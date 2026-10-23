@@ -165,7 +165,7 @@ TITLE_APPROVED = "APPROVED"    # approved by a named GCO reviewer on a recorded 
 TITLE_ISSUED = "ISSUED"        # approved title carried in an issued workbook; immutable afterwards
 TITLE_STATES = (TITLE_NONE, TITLE_DRAFT, TITLE_PROPOSED, TITLE_APPROVED, TITLE_ISSUED)
 TITLE_SHOWN_STATES = (TITLE_APPROVED, TITLE_ISSUED)
-TITLE_FALLBACK_TAG = "ملخص آلي غير معتمد"   # prefix of the mechanical fallback shown when no approved title exists
+TITLE_FALLBACK_TAG = "الملاحظة #"   # neutral reference, never an unapproved automatic summary
 TITLE_MAX = 90
 
 CHANGE_NEW = "ملاحظة جديدة"
