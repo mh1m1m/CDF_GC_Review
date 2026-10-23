@@ -1,0 +1,1278 @@
+{
+ "label": "06_adjudicate",
+ "argv": [
+  "adjudicate",
+  "مذكرة تفاهم تجريبية للتدقيق - مرئيات إدارة الحوكمة والامتثال المؤسسي - الجولة الأولى.xlsx",
+  "dec.json",
+  "--docx",
+  "case.docx",
+  "--record",
+  "adj.json"
+ ],
+ "return_code": 0,
+ "error": null,
+ "seconds": 19.04,
+ "socket_attempts": [],
+ "key_call_order": [
+  "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+  "cdf_gco_crms.ingestion.safe_open:require_safe",
+  "cdf_gco_crms.assurance.personas:from_index",
+  "cdf_gco_crms.assurance.challenge:run_challenge",
+  "cdf_gco_crms.assurance.challenge:black_team",
+  "cdf_gco_crms.assurance.evidence:bind_clause",
+  "cdf_gco_crms.assurance.challenge:_argue",
+  "cdf_gco_crms.assurance.challenge:red_advocate",
+  "cdf_gco_crms.assurance.challenge:adjudicate",
+  "cdf_gco_crms.assurance.objection_engine:decide",
+  "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+  "cdf_gco_crms.assurance.objection_engine:validate"
+ ],
+ "edge_count": 698981,
+ "edges": [
+  {
+   "caller": "cdf_gco_crms.references.textnorm:repair_ligatures",
+   "callee": "cdf_gco_crms.references.textnorm:<genexpr>",
+   "n": 533403
+  },
+  {
+   "caller": "cdf_gco_crms.references.textnorm:nfc",
+   "callee": "cdf_gco_crms.references.textnorm:strip_marks",
+   "n": 30001
+  },
+  {
+   "caller": "cdf_gco_crms.references.textnorm:nfc",
+   "callee": "cdf_gco_crms.references.textnorm:repair_ligatures",
+   "n": 30001
+  },
+  {
+   "caller": "cdf_gco_crms.references.textnorm:match_key",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 24315
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:content_words",
+   "callee": "cdf_gco_crms.assurance.evidence:stem",
+   "n": 17622
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:stem",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 17622
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_cell_text",
+   "callee": "cdf_gco_crms.references.authority_matrix:<lambda>",
+   "n": 7380
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_cell_text",
+   "callee": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "n": 4767
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "callee": "cdf_gco_crms.references.authority_matrix:logical_order",
+   "n": 3690
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_segments",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 3414
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:unit",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 3258
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:col_of",
+   "n": 2801
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:band_of",
+   "n": 2801
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_page_lines",
+   "callee": "cdf_gco_crms.references.org_structure:_segments",
+   "n": 2167
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:_cell_text",
+   "n": 1444
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "n": 1290
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:canonical_body",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 1210
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:content_words",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 1146
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_page_lines",
+   "callee": "cdf_gco_crms.references.textnorm:strip_marks",
+   "n": 1145
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:task_stems",
+   "callee": "cdf_gco_crms.assurance.evidence:<genexpr>",
+   "n": 1003
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:best_task_overlap",
+   "callee": "cdf_gco_crms.assurance.evidence:<genexpr>",
+   "n": 954
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:<genexpr>",
+   "callee": "cdf_gco_crms.assurance.evidence:content_words",
+   "n": 925
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 916
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:classify_role",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 894
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_cell_text",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 813
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:sort_key",
+   "callee": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "n": 435
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:classify_role",
+   "n": 287
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:classify_role",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 286
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<genexpr>",
+   "n": 264
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_parse_division",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 218
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:find_matter",
+   "callee": "cdf_gco_crms.assurance.evidence:<genexpr>",
+   "n": 191
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:<lambda>",
+   "n": 163
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 160
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_parse_tasks",
+   "callee": "cdf_gco_crms.references.org_structure:_header_kind",
+   "n": 150
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:find_matter",
+   "callee": "cdf_gco_crms.assurance.evidence:content_words",
+   "n": 142
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:parse_matrix",
+   "callee": "cdf_gco_crms.references.authority_matrix:sort_key",
+   "n": 141
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:_parse_division",
+   "callee": "cdf_gco_crms.references.org_structure:_header_kind",
+   "n": 128
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:canonical_body",
+   "n": 121
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.org_structure:_header_kind",
+   "n": 95
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.org_structure:_page_lines",
+   "n": 92
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:best_task_overlap",
+   "callee": "cdf_gco_crms.assurance.evidence:content_words",
+   "n": 78
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:best_task_overlap",
+   "callee": "cdf_gco_crms.assurance.evidence:task_stems",
+   "n": 78
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:task_stems",
+   "callee": "cdf_gco_crms.references.org_structure:unit",
+   "n": 78
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:other_owners",
+   "callee": "cdf_gco_crms.assurance.evidence:best_task_overlap",
+   "n": 77
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 75
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.org_structure:_parse_tasks",
+   "n": 75
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:logical_order",
+   "callee": "cdf_gco_crms.references.authority_matrix:<lambda>",
+   "n": 38
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "callee": "cdf_gco_crms.references.authority_matrix:_merge",
+   "n": 38
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:parse_matrix",
+   "callee": "cdf_gco_crms.references.authority_matrix:_parse_page",
+   "n": 28
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:parse_matrix",
+   "callee": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "n": 20
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.reference_verify:norm",
+   "callee": "cdf_gco_crms.references.textnorm:repair_ligatures",
+   "n": 17
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.reference_verify:load_source_text",
+   "callee": "cdf_gco_crms.assurance.reference_verify:<genexpr>",
+   "n": 16
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:_belongs",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:_run_text",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:normalise",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:add_document_text",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:add_document_text",
+   "callee": "cdf_gco_crms.assurance.reference_verify:norm",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:add_document_text",
+   "callee": "cdf_gco_crms.references.textnorm:lam_alef_insensitive",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.references.textnorm:lam_alef_insensitive",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.org_structure:_parse_division",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:column",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:validate_department",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:from_index",
+   "callee": "cdf_gco_crms.assurance.personas:<genexpr>",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:parse_matrix",
+   "callee": "cdf_gco_crms.references.authority_matrix:_plain_page_text",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:_plain_page_text",
+   "callee": "cdf_gco_crms.references.authority_matrix:_cell_text",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:challenge_id",
+   "callee": "cdf_gco_crms.assurance.objection_engine:canon",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:validate",
+   "callee": "cdf_gco_crms.assurance.objection_engine:<genexpr>",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:text",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 8
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "callee": "cdf_gco_crms.references.textnorm:match_key",
+   "n": 8
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:sha256_of",
+   "callee": "cdf_gco_crms.references.index:<lambda>",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:challenge_id",
+   "callee": "cdf_gco_crms.assurance.objection_engine:sha",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "callee": "cdf_gco_crms.assurance.challenge:kind",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:<genexpr>",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:find_matter",
+   "callee": "cdf_gco_crms.references.authority_matrix:sort_key",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "callee": "cdf_gco_crms.assurance.evidence:<genexpr>",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "callee": "cdf_gco_crms.assurance.evidence:has",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:verifications",
+   "callee": "cdf_gco_crms.assurance.evidence:verification",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:verification",
+   "callee": "cdf_gco_crms.assurance.evidence:authority_verified",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:verify_chain",
+   "callee": "cdf_gco_crms.assurance.objection_engine:sha",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "callee": "cdf_gco_crms.references.org_structure:<genexpr>",
+   "n": 3
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.assurance.evidence:__post_init__",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.objection_engine:challenge_id",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<lambda>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:rounds",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:__init__",
+   "callee": "cdf_gco_crms.model.entities:_normalise_runs",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.model.entities:__post_init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:pick",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:load",
+   "callee": "cdf_gco_crms.references.index:source_status",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:source_status",
+   "callee": "cdf_gco_crms.references.index:_register_entry",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:source_status",
+   "callee": "cdf_gco_crms.references.index:sha256_of",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:current_round",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain_text",
+   "callee": "cdf_gco_crms.model.entities:text",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "callee": "cdf_gco_crms.assurance.reference_verify:norm",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "callee": "cdf_gco_crms.assurance.evidence:_locate",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "callee": "cdf_gco_crms.assurance.evidence:_make_id",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "callee": "cdf_gco_crms.assurance.evidence:_excerpt",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:recommendation_part",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:strip_citation",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:strip_citation",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:strip_citation",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.references.authority_matrix:bodies_with",
+   "callee": "cdf_gco_crms.references.authority_matrix:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:has_action_label",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.objection_engine:add",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:add",
+   "callee": "cdf_gco_crms.assurance.objection_engine:productive_cycles",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:add",
+   "callee": "cdf_gco_crms.assurance.objection_engine:canon",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.objection_engine:add",
+   "callee": "cdf_gco_crms.assurance.objection_engine:sha",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.assurance.challenge:__post_init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "callee": "cdf_gco_crms.assurance.evidence:resolve",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "callee": "cdf_gco_crms.assurance.evidence:authority_verified",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.evidence:has",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.challenge:to_dict",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:to_dict",
+   "callee": "cdf_gco_crms.references.index:to_dict",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:to_dict",
+   "callee": "cdf_gco_crms.assurance.evidence:to_dict",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:blockers",
+   "callee": "cdf_gco_crms.assurance.challenge:blocking",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:blocking",
+   "callee": "cdf_gco_crms.assurance.challenge:disposition",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:cycles_used",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:verify_chains",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "main:main",
+   "n": 1
+  },
+  {
+   "caller": "main:main",
+   "callee": "main:cmd_adjudicate",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_adjudicate",
+   "callee": "main:_challenge_record",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "main:_load_state",
+   "n": 1
+  },
+  {
+   "caller": "main:_load_state",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:ok",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:discover",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:from_cell_value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:from_cell_value",
+   "callee": "cdf_gco_crms.model.entities:plain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain",
+   "callee": "cdf_gco_crms.model.entities:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "cdf_gco_crms.assurance.evidence:__init__",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "cdf_gco_crms.assurance.evidence:add_document_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:add_document_text",
+   "callee": "cdf_gco_crms.assurance.reference_verify:load_source_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.reference_verify:load_source_text",
+   "callee": "cdf_gco_crms.word.document_comments:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "cdf_gco_crms.references.index:load",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:load",
+   "callee": "cdf_gco_crms.references.org_structure:parse_org_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:load",
+   "callee": "cdf_gco_crms.references.authority_matrix:parse_matrix",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "cdf_gco_crms.assurance.personas:from_index",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:from_index",
+   "callee": "cdf_gco_crms.assurance.evidence:add_reference_index",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:from_index",
+   "callee": "cdf_gco_crms.references.index:validate_department",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:validate_department",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.references.index:validate_department",
+   "callee": "cdf_gco_crms.references.org_structure:departments",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:from_index",
+   "callee": "cdf_gco_crms.references.org_structure:unit",
+   "n": 1
+  },
+  {
+   "caller": "main:_challenge_record",
+   "callee": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.model.entities:current_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.model.entities:ordered",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:ordered",
+   "callee": "cdf_gco_crms.model.entities:<lambda>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:<lambda>",
+   "callee": "cdf_gco_crms.model.entities:reader_int",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.challenge:black_team",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:_anchor",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_anchor",
+   "callee": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:_scan_scope",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_scan_scope",
+   "callee": "cdf_gco_crms.assurance.evidence:document",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:status_change_claim",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:status_change_claim",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:status_change_claim",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:status_change_claim",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:asserted_approver",
+   "callee": "cdf_gco_crms.assurance.challenge:recommendation_part",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:cited_matrix_item",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:cited_matrix_item",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:cited_matrix_item",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.evidence:find_matter",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "callee": "cdf_gco_crms.assurance.evidence:_matrix_file",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "callee": "cdf_gco_crms.assurance.evidence:_make_id",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "callee": "cdf_gco_crms.assurance.evidence:_excerpt",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:bind_matrix_item",
+   "callee": "cdf_gco_crms.assurance.evidence:_matrix_status",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.references.authority_matrix:bodies_with",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:_make",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_make",
+   "callee": "cdf_gco_crms.assurance.personas:addressee",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.assurance.objection_engine:__post_init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:recommendation_part",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.personas:in_index",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.evidence:content_words",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.personas:owns_task",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:owns_task",
+   "callee": "cdf_gco_crms.assurance.evidence:best_task_overlap",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.personas:other_owners",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:breach_claim",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:breach_claim",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:breach_claim",
+   "callee": "cdf_gco_crms.references.textnorm:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:breach_claim",
+   "callee": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.evidence:basis",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:states_requested_action",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:states_requested_action",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:states_requested_action",
+   "callee": "cdf_gco_crms.assurance.challenge:has_action_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:black_team",
+   "callee": "cdf_gco_crms.assurance.challenge:word_count",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:word_count",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.challenge:_argue",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.challenge:kind",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.objection_engine:challenge_id",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.evidence:bind_clause",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.evidence:resolve",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.personas:matrix_citation",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:red_advocate",
+   "callee": "cdf_gco_crms.assurance.challenge:_gtext",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_gtext",
+   "callee": "cdf_gco_crms.model.entities:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:__post_init__",
+   "callee": "cdf_gco_crms.assurance.objection_engine:canon",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:adjudicate",
+   "callee": "cdf_gco_crms.assurance.objection_engine:challenge_id",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.evidence:verifications",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_argue",
+   "callee": "cdf_gco_crms.assurance.objection_engine:decide",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.challenge:kind",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.objection_engine:productive_cycles",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.model.entities:text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.objection_engine:verify_chain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.personas:to_dict",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:to_dict",
+   "callee": "cdf_gco_crms.assurance.personas:authority_basis",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.personas:authority_basis",
+   "callee": "cdf_gco_crms.assurance.personas:org_citation",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:run_challenge",
+   "callee": "cdf_gco_crms.assurance.evidence:to_dict",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:to_dict",
+   "callee": "cdf_gco_crms.assurance.evidence:document",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.evidence:to_dict",
+   "callee": "cdf_gco_crms.assurance.evidence:items",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_adjudicate",
+   "callee": "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+   "callee": "cdf_gco_crms.assurance.evidence:verifications",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+   "callee": "cdf_gco_crms.assurance.objection_engine:validate",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+   "callee": "cdf_gco_crms.assurance.challenge:blockers",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_adjudicate",
+   "callee": "cdf_gco_crms.assurance.challenge:to_json",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_json",
+   "callee": "cdf_gco_crms.assurance.challenge:to_dict",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:cycles_used",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:dispositions",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "callee": "cdf_gco_crms.assurance.challenge:disposition",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:chain_hash",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:verify_chains",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:<genexpr>",
+   "callee": "cdf_gco_crms.assurance.objection_engine:verify_chain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:_entry_dict",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:_entry_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:no_objection",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.assurance.challenge:to_dict",
+   "callee": "cdf_gco_crms.assurance.challenge:blockers",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_adjudicate",
+   "callee": "main:_emit",
+   "n": 1
+  }
+ ],
+ "touches_challenge_engine": true,
+ "touches_objection_engine": true,
+ "touches_excel_builder": false,
+ "touches_word_builder": false,
+ "stdout_tail": "{\n  \"status\": \"CLEAR\",\n  \"record\": \"/home/user/cdf-gco-crms/v7.12/AI_AGENT_FORENSIC_AUDIT/evidence/runtime_callgraphs/work/adj.json\",\n  \"applied\": [],\n  \"rejected\": [\n    {\n      \"decision_id\": \"D1\",\n      \"observation_id\": \"GCO-AUD-R1-001\",\n      \"reason\": \"Institution-managed public-key trust store is mandatory\"\n    }\n  ],\n  \"remaining_blockers\": []\n}\n"
+}

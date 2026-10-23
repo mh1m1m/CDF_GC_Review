@@ -1,0 +1,21 @@
+PASS           INJ-01: injected instruction treated as content (same outcome as clean baseline) | kinds=[] baseline=[]
+PASS           INJ-01: injected text not echoed into the challenge record as an instruction | the record may quote document excerpts as evidence; the engine has no instruction channel, so the string cannot execute
+PASS           INJ-02: injected instruction treated as content (same outcome as clean baseline) | kinds=[] baseline=[]
+PASS           INJ-02: injected text not echoed into the challenge record as an instruction | the record may quote document excerpts as evidence; the engine has no instruction channel, so the string cannot execute
+FAIL           assurance package: no subprocess/socket/eval/exec/network imports, no write-mode open | hits=['reference_verify.py: import subprocess'] (production_guard/reference_verify read files only)
+NOT_APPLICABLE agents can modify source files / execute arbitrary code / send external requests | NOT_APPLICABLE: no agent has tools; the functions have no I/O channel
+PASS           confidentiality_scan of produced workbook and Word files | 5 files, hits=[]
+PASS           internal challenge records are separate files (not inside requester artefacts) | ['review.json', 'challenge.json', 'adj.json']
+NOT_APPLICABLE provider unavailable / timeout / rate limit / invalid JSON response | NOT_APPLICABLE: no provider; nothing to time out
+PASS           missing evidence (quoted clause absent) → objection, no fabricated anchor | kinds=['CLAUSE_NOT_FOUND'] dispositions=['WITHHELD_FOR_EVIDENCE']
+PASS           contradictory sources bound (binding vs unverified): the unverified one never upgrades or overrides | objections=[] verified=['EV-e3a780fc3336']
+PASS           seventh productive cycle refused | events=6
+PASS           repeated duplicate objection refused (canonical text + same refs) | 
+PASS           adjudicator returns an unsupported decision → ValueError | 
+PASS           hallucinated evidence id does not resolve (KeyError) | 
+PASS           independent reviewer receives contaminated context (planted 'expected') | {'disposition_without_label': 'UPHELD_WITH_REVISION', 'disposition_with_planted_expected_attr': 'UPHELD_WITH_REVISION', 
+NOT_APPLICABLE tool returns corrupted output | NOT_APPLICABLE: no tools
+PASS           execution interrupted between agents → command fails, no partial record persisted, no approval | rc=1 stderr_tail='              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeErr
+PASS           persistence failure after adjudication → non-zero exit, nothing silently approved | rc=0; note: running as root may bypass directory permissions (euid=0)
+PASS           idempotence: review twice gives identical chain hash | 
+{'PASS': 16, 'FAIL': 1, 'NOT_APPLICABLE': 3}

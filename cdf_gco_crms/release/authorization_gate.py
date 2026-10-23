@@ -1,0 +1,262 @@
+"""Release authorisation gate (v7.12, 19A.9 / P0 issuance bypass).
+
+One place decides whether a review state may be written as an issuable
+requester file. The decision is bound to the *content* that the pre-issue
+challenge examined, not to a file name or a command sequence:
+
+  * :func:`state_fingerprint` hashes the document identity, the rounds and the
+    substantive content of every observation (location, quote, comment, the
+    round cells and the closure basis). Title decisions are excluded: they
+    carry their own human-decision proof (``TitleEvidence``, 10.4A.16), so
+    approving or issuing titles does not reopen the challenge.
+  * ``review`` / ``challenge`` / ``adjudicate`` write a gate record keyed by
+    that fingerprint (:func:`record_review`) next to the challenge record.
+  * Every issuing command asks :func:`authorize` before it writes. An issue is
+    authorised only when a gate record exists for exactly this content, its
+    status is CLEAR (no blocker without a verified reviewer decision), the
+    challenge record on disk is unaltered and itself clean, its hash chains
+    verify, and the review did not run against the SYNTHETIC reference
+    fixture (unless the document is a demo).
+  * Without authorisation a command refuses (return code 3) unless the caller
+    asks for a working copy, which is written under a ``WORKING-COPY`` file
+    name with the working-copy marker in its package properties
+    (:func:`working_copy_name`, :func:`mark_working_copy_docx`, and the
+    ``working_copy`` flag of ``build_workbook``).
+
+The gate is deterministic and offline. It never grants institutional
+approval: it only refuses to write an issuable file for content whose
+challenge is not cleanly closed.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import re
+import zipfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from xml.sax.saxutils import escape
+
+from ..model.entities import ReviewState, plain_text
+
+GATE_SCHEMA = "CDF-RELEASE-GATE-v7.12"
+FINGERPRINT_SCHEMA = "CDF-STATE-FP-v7.12"
+DEFAULT_GATE_DIR = Path("build/adversarial/gate")
+STATUS_CLEAR = "CLEAR"
+STATUS_BLOCKED = "BLOCKED"
+MODE_SYNTHETIC = "SYNTHETIC"
+WORKING_COPY_SUFFIX = " - WORKING-COPY"
+WORKING_COPY_MARK = "نسخة عمل غير معتمدة للإصدار — WORKING COPY, NOT AUTHORISED FOR ISSUE"
+WORKING_COPY_KEYWORD = "نسخة عمل"
+
+# reasons (stable identifiers for callers and tests)
+R_NO_RECORD = "NO_REVIEW_RECORD_FOR_THIS_CONTENT"
+R_BLOCKERS = "BLOCKERS_OUTSTANDING"
+R_CHAINS = "HASH_CHAINS_NOT_VERIFIED"
+R_MISMATCH = "RECORD_DOCUMENT_OR_ROUND_MISMATCH"
+R_RECORD_FILE = "CHALLENGE_RECORD_MISSING_OR_ALTERED"
+R_RECORD_CONTENT = "CHALLENGE_RECORD_NOT_CLEAN"
+R_SYNTHETIC = "SYNTHETIC_REFERENCE_NOT_ISSUABLE"
+R_SCHEMA = "GATE_RECORD_SCHEMA_UNKNOWN"
+
+
+# ------------------------------------------------------------------ fingerprint
+def _cells(o) -> dict:
+    out = {}
+    for r in sorted(o.cells):
+        c = o.cells[r]
+        out[str(r)] = {"closure": plain_text(c.closure), "feedback": plain_text(c.feedback),
+                       "response": plain_text(c.response), "impl": plain_text(c.impl)}
+    return out
+
+
+def fingerprint_payload(state: ReviewState) -> dict:
+    """The exact content the fingerprint covers (deterministic order, plain text only)."""
+    d = state.document
+    return {
+        "schema": FINGERPRINT_SCHEMA,
+        "document": {"name": d.name, "code": d.code, "cover_version": d.cover_version,
+                     "owning_department": d.owning_department, "is_demo": bool(d.is_demo)},
+        "rounds": [{"number": r.number, "date": r.date, "document_version": r.document_version}
+                   for r in sorted(state.rounds, key=lambda r: r.number)],
+        "observations": [{"internal_id": o.internal_id, "reader_no": o.reader_no, "birth_round": o.birth_round,
+                          "location": plain_text(o.location), "quote": plain_text(o.quote),
+                          "comment": plain_text(o.comment), "cells": _cells(o),
+                          "closure_basis": {str(k): v for k, v in sorted(o.closure_basis.items())}}
+                         for o in sorted(state.observations, key=lambda o: o.internal_id)],
+    }
+
+
+def state_fingerprint(state: ReviewState) -> str:
+    payload = json.dumps(fingerprint_payload(state), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def sha256_file(path) -> str:
+    h = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+# ------------------------------------------------------------------ records
+def gate_record_path(fingerprint: str, gate_dir=DEFAULT_GATE_DIR) -> Path:
+    return Path(gate_dir) / f"{fingerprint}.json"
+
+
+def record_review(state: ReviewState, record, record_path, *, reference_mode: str, gate_dir=DEFAULT_GATE_DIR,
+                  decisions_applied: int = 0, command: str = "review") -> dict:
+    """Write the gate record of a challenge run for the content of ``state`` (overwrites the previous one)."""
+    record_path = Path(record_path)
+    blockers = record.blockers()
+    fp = state_fingerprint(state)
+    rec = {
+        "schema": GATE_SCHEMA, "fingerprint": fp, "fingerprint_schema": FINGERPRINT_SCHEMA,
+        "document_code": state.document.code, "round": state.current_round, "is_demo": bool(state.document.is_demo),
+        "status": STATUS_BLOCKED if blockers else STATUS_CLEAR, "blockers": blockers,
+        "chains_verified": bool(record.verify_chains()), "chain_hash": record.chain_hash,
+        "independence": record.independence, "role_isolation": record.role_isolation,
+        "reference_mode": reference_mode, "command": command, "decisions_applied": int(decisions_applied),
+        "challenge_record": str(record_path), "challenge_record_sha256": sha256_file(record_path),
+        "recorded_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "note": ("authorisation means only that no blocker stands for exactly this content; "
+                 "institutional approval of the issue is a human act outside the engine (19A.9)"),
+    }
+    out = gate_record_path(fp, gate_dir)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    return rec
+
+
+def load_gate_record(state: ReviewState, gate_dir=DEFAULT_GATE_DIR) -> dict | None:
+    p = gate_record_path(state_fingerprint(state), gate_dir)
+    if not p.is_file():
+        return None
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@dataclass
+class Authorization:
+    ok: bool
+    fingerprint: str
+    reasons: list[str] = field(default_factory=list)
+    record: dict | None = None
+
+    def to_dict(self) -> dict:
+        return {"authorized": self.ok, "fingerprint": self.fingerprint, "reasons": list(self.reasons),
+                "gate_record": self.record}
+
+
+def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR) -> Authorization:
+    """Decide whether the content of ``state`` may be written as an issuable file (see module docstring)."""
+    fp = state_fingerprint(state)
+    rec = load_gate_record(state, gate_dir)
+    if rec is None:
+        return Authorization(False, fp, [R_NO_RECORD])
+    reasons: list[str] = []
+    if rec.get("schema") != GATE_SCHEMA or rec.get("fingerprint") != fp:
+        reasons.append(R_SCHEMA)
+    if rec.get("document_code") != state.document.code or rec.get("round") != state.current_round:
+        reasons.append(R_MISMATCH)
+    if rec.get("status") != STATUS_CLEAR or rec.get("blockers"):
+        reasons.append(f"{R_BLOCKERS}:{len(rec.get('blockers') or [])}")
+    if rec.get("chains_verified") is not True:
+        reasons.append(R_CHAINS)
+    if rec.get("reference_mode") == MODE_SYNTHETIC and not state.document.is_demo:
+        reasons.append(R_SYNTHETIC)
+    path = Path(rec.get("challenge_record", ""))
+    if not path.is_file() or sha256_file(path) != rec.get("challenge_record_sha256"):
+        reasons.append(R_RECORD_FILE)
+    else:
+        try:
+            chal = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            chal = None
+        if (not isinstance(chal, dict) or chal.get("blockers") or chal.get("chains_verified") is not True
+                or chal.get("document_code") != state.document.code or chal.get("round") != state.current_round):
+            reasons.append(R_RECORD_CONTENT)
+    return Authorization(not reasons, fp, reasons, rec)
+
+
+# ------------------------------------------------------------------ working copies
+def working_copy_name(path) -> Path:
+    """``name.xlsx`` → ``name - WORKING-COPY.xlsx`` (idempotent)."""
+    p = Path(path)
+    if p.stem.endswith(WORKING_COPY_SUFFIX):
+        return p
+    return p.with_name(f"{p.stem}{WORKING_COPY_SUFFIX}{p.suffix}")
+
+
+def is_working_copy_name(path) -> bool:
+    return Path(path).stem.endswith(WORKING_COPY_SUFFIX)
+
+
+_CORE_PART = "docProps/core.xml"
+_CT_PART = "[Content_Types].xml"
+_RELS_PART = "_rels/.rels"
+_CORE_CT = "application/vnd.openxmlformats-package.core-properties+xml"
+_CORE_REL = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"
+_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+_EMPTY_CORE = (
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+    f'<cp:coreProperties xmlns:cp="{_CP}" xmlns:dc="http://purl.org/dc/elements/1.1/" '
+    'xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" '
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></cp:coreProperties>'
+)
+
+
+def _set_core_element(xml: str, tag: str, value: str) -> str:
+    """Set ``<cp:tag>`` to ``value`` in a core.xml string (replace or append before the closing tag)."""
+    pat = re.compile(rf"<cp:{tag}(?:\s[^>]*)?>.*?</cp:{tag}>|<cp:{tag}(?:\s[^>]*)?/>", re.S)
+    elem = f"<cp:{tag}>{escape(value)}</cp:{tag}>"
+    if pat.search(xml):
+        return pat.sub(elem, xml, count=1)
+    return xml.replace("</cp:coreProperties>", elem + "</cp:coreProperties>", 1)
+
+
+def mark_working_copy_docx(path) -> None:
+    """Stamp a Word package as a working copy: category and keywords in ``docProps/core.xml``.
+
+    Works at package level so that it applies equally to files produced by ``python-docx`` and to real
+    documents annotated by ``comment_document``; every other part is copied byte for byte.
+    """
+    path = Path(path)
+    with zipfile.ZipFile(path) as z:
+        infos = z.infolist()
+        parts = {i.filename: z.read(i.filename) for i in infos}
+    core = parts.get(_CORE_PART, _EMPTY_CORE.encode("utf-8")).decode("utf-8")
+    core = _set_core_element(core, "category", WORKING_COPY_MARK)
+    core = _set_core_element(core, "keywords", WORKING_COPY_KEYWORD)
+    if _CORE_PART not in parts:
+        ct = parts[_CT_PART].decode("utf-8")
+        if "docProps/core.xml" not in ct:
+            ct = ct.replace("</Types>", f'<Override PartName="/{_CORE_PART}" ContentType="{_CORE_CT}"/></Types>', 1)
+        parts[_CT_PART] = ct.encode("utf-8")
+        rels = parts[_RELS_PART].decode("utf-8")
+        if _CORE_REL not in rels:
+            rels = rels.replace("</Relationships>", f'<Relationship Id="rIdCoreWC" Type="{_CORE_REL}" '
+                                                     f'Target="{_CORE_PART}"/></Relationships>', 1)
+        parts[_RELS_PART] = rels.encode("utf-8")
+    parts[_CORE_PART] = core.encode("utf-8")
+    tmp = path.with_name(f".{path.name}.wc.tmp")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        names = [i.filename for i in infos]
+        for name in names + [n for n in parts if n not in names]:
+            z.writestr(name, parts[name])
+    tmp.replace(path)
+
+
+def docx_is_working_copy(path) -> bool:
+    with zipfile.ZipFile(path) as z:
+        if _CORE_PART not in z.namelist():
+            return False
+        return WORKING_COPY_MARK in z.read(_CORE_PART).decode("utf-8", "replace")
+
+
+def xlsx_is_working_copy(path) -> bool:
+    with zipfile.ZipFile(path) as z:
+        if _CORE_PART not in z.namelist():
+            return False
+        return WORKING_COPY_MARK in z.read(_CORE_PART).decode("utf-8", "replace")
