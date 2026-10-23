@@ -58,7 +58,7 @@ def display_title(title: str | None, title_status: str, comment_text: str,
     if title_status in S.TITLE_SHOWN_STATES and title and title.strip():
         return " ".join(title.split())
     number = str(reader_no).strip() if reader_no is not None else "--"
-    return f"{S.TITLE_FALLBACK_TAG}{number.zfill(2) if number.isdecimal() else '--'}
+    return f"{S.TITLE_FALLBACK_TAG}{number.zfill(2) if number.isdecimal() else '--'}"
 
 
 ACTION_OPENERS = ("نوصي", "نأمل", "نرجو", "نقترح", "نؤكد", "يُستبدل", "يُحذف", "تُضاف", "إحلال", "إضافة",
