@@ -462,6 +462,20 @@ def main(argv=None):
         if name == "adjudicate":
             p.add_argument("decisions"); p.add_argument("--trust-store", help="JSON {key_id: base64 raw Ed25519 public key}")
     a = ap.parse_args(argv)
+    # Central CLI preflight: no input parsing or output creation before the gate.
+    # This does not replace the institutional authorization service required for
+    # production; it makes every regular exporting CLI command fail closed now.
+    export_commands = {"round1", "append", "rebuild", "migrate", "finalize-titles",
+                       "build-excel", "build-word"}
+    if a.cmd in export_commands:
+        try:
+            authorize_cli_export(Path("preflight.xlsx"),
+                                 internal_draft=getattr(a, "internal_draft", False),
+                                 issuance_requested=getattr(a, "issue", False))
+        except IssuanceDenied as exc:
+            _emit({"status": "REFUSED", "detail": str(exc),
+                   "classification": DRAFT_CLASSIFICATION, "no_output_generated": True})
+            return RC_REFUSED
     if a.cmd == "migrate":
         try:
             authorize_cli_export(Path(a.out_dir) / "migration.xlsx", internal_draft=a.internal_draft)
