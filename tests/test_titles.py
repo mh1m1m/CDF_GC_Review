@@ -44,8 +44,8 @@ def test_proposed_title_is_never_shown_as_approved():
     o = st.observations[0]
     assert o.title_status == S.TITLE_PROPOSED
     shown = TD.display_title(o.title, o.title_status, "نوصي بتقييد الصلاحية.")
-    assert shown.startswith(S.TITLE_FALLBACK_TAG) and o.title not in shown
-    assert TD.display_title(None, S.TITLE_NONE, "") == S.TITLE_FALLBACK_TAG
+    assert shown == "الملاحظة #--" and o.title not in shown
+    assert TD.display_title(None, S.TITLE_NONE, "") == "الملاحظة #--"
 
 
 def test_finalize_titles_requires_human_proof_and_keeps_ids():
@@ -91,7 +91,7 @@ def test_title_survives_rebuild_and_dashboard_shows_only_approved(tmp_path):
     hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
     disp = [hs.cell(row=r, column=hdr["obs.title_disp"]).value for r in range(2, 6)]
     assert disp[1] == "عنوان مقترح رقم 2"
-    assert all(d.startswith(S.TITLE_FALLBACK_TAG) for i, d in enumerate(disp) if i != 1)
+    assert all(d == f"الملاحظة #{i+1:02d}" for i, d in enumerate(disp) if i != 1)
 
 
 def test_tampered_approval_is_demoted_on_read(tmp_path):
