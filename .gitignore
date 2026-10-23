@@ -1,0 +1,44 @@
+# ---- CDF–GCO–CRMS v7.12 — source-control policy (prepared 2026-10-23)
+# Confidential institutional inputs: never in the repository (provision locally from the authorised CDF store;
+# filenames and SHA-256 in EVIDENCE/BASELINE-AUDIT.json)
+sources/reference/
+sources/CDF_Design_Guide.pdf
+sources/v7.12/*.xlsx
+sources/v7.12/*.png
+sources/v7.12/chatgpt_cdf_v712/
+sources/earlier_package/
+# Generated artefacts, build state and packages (reproducible with tools/build_deliverables.py, tools/build_rc.py)
+deliverables/
+build/
+dist/
+# Audit evidence that quotes institutional excerpts or holds scratch work
+AI_AGENT_FORENSIC_AUDIT/evidence/live_prompts/
+AI_AGENT_FORENSIC_AUDIT/evidence/runtime_callgraphs/work/
+# Python, tooling, environments, secrets
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.env
+.env*
+*.key
+*.pem
+*.rejected.json
+# ---- Public-repository exclusions (owner decision 2026-10-23: repository stays public; institutional material never published)
+sources/
+EVIDENCE/
+assets/
+cdf_gco_crms/protocol/v711_amendments.py
+cdf_gco_crms/protocol/v712_amendments.py
+cdf_gco_crms/protocol/consolidate.py
+tools/build_protocol.py
+tools/decisions_traceability.py
+tests/test_protocol.py
+tests/test_references.py
+tests/test_challenge.py
+AI_AGENT_FORENSIC_AUDIT/cases/
+AI_AGENT_FORENSIC_AUDIT/evidence/agent_execution_records/
+AI_AGENT_FORENSIC_AUDIT/evidence/live_outputs/
+AI_AGENT_FORENSIC_AUDIT/synthetic_case_generator.py
+AI_AGENT_FORENSIC_AUDIT/reports/STATUS-FORM.md

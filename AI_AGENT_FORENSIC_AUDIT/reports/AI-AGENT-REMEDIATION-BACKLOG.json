@@ -1,0 +1,159 @@
+{
+ "schema": "CDF-AUDIT-REMEDIATION-1",
+ "findings": [
+  {
+   "Finding_ID": "R-01",
+   "Severity": "CRITICAL",
+   "Affected_Agent": "all",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py",
+   "Root_Cause": "No AI provider integration; roles are rule tables",
+   "Operational_Impact": "The 'Black Team / Red Advocate / Adjudicator' labels describe simulations; no case is reasoned about",
+   "Required_Code_Change": "Introduce a provider adapter layer (cdf_gco_crms/agents/providers) with a typed invocation record (17.1 fields), retries, timeouts and a mock provider clearly labelled MOCK_PROVIDER",
+   "Acceptance_Test": "MODE B: adapter unit tests incl. timeout/invalid-JSON/rate-limit; MODE C: one live Black Team inference on an unseen case with a recorded Invocation_ID",
+   "Dependencies": [],
+   "Priority": "P0"
+  },
+  {
+   "Finding_ID": "R-02",
+   "Severity": "CRITICAL",
+   "Affected_Agent": "Black Team, Red Advocate, Adjudicator",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py",
+   "Root_Cause": "run_challenge runs all roles in one process on shared objects",
+   "Operational_Impact": "Independence cannot be claimed (SINGLE_PROCESS_RULE_BASED)",
+   "Required_Code_Change": "Role runner that builds a separate context per role (05.2–05.4 information boundaries), separate invocation per role, no shared mutable objects; keep the deterministic engine as a pre-check",
+   "Acceptance_Test": "context_isolation_audit: distinct Execution_ID/Context_ID per role, planted labels inaccessible, boundary tests for each role",
+   "Dependencies": [
+    "R-01"
+   ],
+   "Priority": "P0"
+  },
+  {
+   "Finding_ID": "R-03",
+   "Severity": "CRITICAL",
+   "Affected_Agent": "orchestrator",
+   "Source_File": "main.py",
+   "Root_Cause": "Issuing commands (round1/append/build-excel/build-word) never call the challenge; blockers do not stop a build",
+   "Operational_Impact": "Pre-issue review is optional and unenforced",
+   "Required_Code_Change": "Add an `issue` command (or a --require-review flag enforced by build-excel/build-word) that refuses to build while the latest ChallengeRecord for that state hash has blockers or is absent",
+   "Acceptance_Test": "runtime_callgraph: build after BLOCKED review returns rc 3; test_e2e asserts the gate",
+   "Dependencies": [],
+   "Priority": "P0"
+  },
+  {
+   "Finding_ID": "R-04",
+   "Severity": "HIGH",
+   "Affected_Agent": "Red Advocate / Editorial",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py, rounds/round_expansion.py",
+   "Root_Cause": "Advocacy.revised_comment, revised_quote, route_to have no consumer",
+   "Operational_Impact": "A valid objection cannot change the observation; AI-031/AI-032 fail",
+   "Required_Code_Change": "apply_dispositions(state, record, decisions): apply UPHELD_WITH_REVISION/NARROWED/ROUTED to the ReviewState only under a verified human decision, with history",
+   "Acceptance_Test": "test: revised comment appears in the rebuilt workbook and Word comment after a signed decision; never without one",
+   "Dependencies": [
+    "R-03"
+   ],
+   "Priority": "P0"
+  },
+  {
+   "Finding_ID": "R-05",
+   "Severity": "HIGH",
+   "Affected_Agent": "Adjudicator",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py",
+   "Root_Cause": "Rule table accuracy 0.656 < 0.80 on unseen cases; taxonomy disagreement (breach×REVISE → NARROWED)",
+   "Operational_Impact": "Wrong dispositions on ~1/3 of unseen cases",
+   "Required_Code_Change": "Document the disposition table in 19A.6 or align it; add the blind evaluation harness (this audit's cases) to CI with a frozen key",
+   "Acceptance_Test": "Adjudicator_Accuracy ≥ 0.80 on the sealed set",
+   "Dependencies": [],
+   "Priority": "P1"
+  },
+  {
+   "Finding_ID": "R-06",
+   "Severity": "HIGH",
+   "Affected_Agent": "Black Team",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py",
+   "Root_Cause": "Mandate-overlap thresholds (0.34/0.5) miss technical-specialisation and misrouting cases; 4 of 20 objection categories have no rule",
+   "Operational_Impact": "Detection 0.765 on covered categories; 0 on uncovered",
+   "Required_Code_Change": "Either extend rules (existing-provision scan, fabricated-citation check, proposed-structure-as-approved, working-method overreach) or hand these to a live agent (R-01/R-02)",
+   "Acceptance_Test": "Valid_Objection_Detection_Rate ≥ 0.80 and uncovered categories ≥ 0.5 on the sealed set",
+   "Dependencies": [
+    "R-01"
+   ],
+   "Priority": "P1"
+  },
+  {
+   "Finding_ID": "R-07",
+   "Severity": "HIGH",
+   "Affected_Agent": "Independent Final Reviewer (Art. 20)",
+   "Source_File": "none",
+   "Root_Cause": "Role defined in protocol only",
+   "Operational_Impact": "No independent final read exists; R1–R7 never measured",
+   "Required_Code_Change": "Implement the Article 20 reader as an isolated run with a clean context (finalised draft + titles + evidence only) and the G-UX-17/R7 gate",
+   "Acceptance_Test": "20.4 thresholds computed on a synthetic review; context contains no 19A record",
+   "Dependencies": [
+    "R-02"
+   ],
+   "Priority": "P1"
+  },
+  {
+   "Finding_ID": "R-08",
+   "Severity": "HIGH",
+   "Affected_Agent": "Human authorization",
+   "Source_File": "cdf_gco_crms/assurance/objection_engine.py",
+   "Root_Cause": "No validity window, expiry or revocation for HumanDecision; trust store is a caller dict",
+   "Operational_Impact": "A stale but validly signed decision is accepted; no institutional key management",
+   "Required_Code_Change": "Add issued_at/valid_until and a revocation list to the trust store; load the trust store from an institution-managed location with its own signature",
+   "Acceptance_Test": "human_authority_audit attempt 9 rejected; trust-store provenance recorded",
+   "Dependencies": [],
+   "Priority": "P1"
+  },
+  {
+   "Finding_ID": "R-09",
+   "Severity": "MEDIUM",
+   "Affected_Agent": "state machine",
+   "Source_File": "cdf_gco_crms/assurance/objection_engine.py",
+   "Root_Cause": "Duplicate control is exact canonical text only",
+   "Operational_Impact": "Paraphrased repeats consume cycles",
+   "Required_Code_Change": "Normalise punctuation/whitespace/diacritics in canon(); add a token-overlap or embedding similarity threshold for semantic duplicates",
+   "Acceptance_Test": "debate_audit SEMANTIC_DUPLICATE tests PASS",
+   "Dependencies": [],
+   "Priority": "P2"
+  },
+  {
+   "Finding_ID": "R-10",
+   "Severity": "MEDIUM",
+   "Affected_Agent": "Evidence verification",
+   "Source_File": "cdf_gco_crms/assurance/evidence.py",
+   "Root_Cause": "Applicability never evaluated",
+   "Operational_Impact": "Every reference is NOT_ESTABLISHED; AI-019 fails",
+   "Required_Code_Change": "Applicability evaluation step (rule or agent) with its own evidence record and the VERIFIED/SUPPORTED_BUT_NOT_CONCLUSIVE/UNVERIFIED/CONTRADICTED/NOT_APPLICABLE scale of 13.5",
+   "Acceptance_Test": "cases with applicable vs inapplicable provisions classified correctly",
+   "Dependencies": [
+    "R-01"
+   ],
+   "Priority": "P2"
+  },
+  {
+   "Finding_ID": "R-11",
+   "Severity": "LOW",
+   "Affected_Agent": "CLI",
+   "Source_File": "main.py:cmd_round1/_new",
+   "Root_Cause": "The 'title' field of the round-1 JSON is dropped",
+   "Operational_Impact": "Proposed titles must be re-entered at finalize-titles",
+   "Required_Code_Change": "Pass title through NewObservation in _new()",
+   "Acceptance_Test": "07_finalize-titles trace applies the proposal without re-entry",
+   "Dependencies": [],
+   "Priority": "P2"
+  },
+  {
+   "Finding_ID": "R-12",
+   "Severity": "LOW",
+   "Affected_Agent": "security",
+   "Source_File": "cdf_gco_crms/assurance/reference_verify.py",
+   "Root_Cause": "pdftotext subprocess inside the assurance package",
+   "Operational_Impact": "Minor: fixed binary, read-only; still an execution channel in a package that will host agents",
+   "Required_Code_Change": "Move PDF extraction to ingestion/ with an allow-list and timeout; keep assurance/ free of subprocess",
+   "Acceptance_Test": "security_negative_tests static rule PASS",
+   "Dependencies": [],
+   "Priority": "P3"
+  }
+ ]
+}

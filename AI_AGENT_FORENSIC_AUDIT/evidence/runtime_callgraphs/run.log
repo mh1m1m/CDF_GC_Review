@@ -1,0 +1,98 @@
+[
+ {
+  "label": "01_round1",
+  "return_code": "BuildResult",
+  "error": null,
+  "seconds": 1.26,
+  "socket_attempts": [],
+  "key_call_order": [
+   "cdf_gco_crms.rounds.round_expansion:build_round1",
+   "cdf_gco_crms.excel.workbook_builder:build_workbook"
+  ],
+  "touches_challenge_engine": false,
+  "touches_objection_engine": false,
+  "touches_excel_builder": true,
+  "touches_word_builder": false
+ },
+ {
+  "label": "02_build-excel",
+  "return_code": 0,
+  "error": null,
+  "seconds": 1.89,
+  "socket_attempts": [],
+  "key_call_order": [
+   "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "cdf_gco_crms.excel.workbook_builder:build_workbook"
+  ],
+  "touches_challenge_engine": false,
+  "touches_objection_engine": false,
+  "touches_excel_builder": true,
+  "touches_word_builder": false
+ },
+ {
+  "label": "03_build-word",
+  "return_code": 0,
+  "error": null,
+  "seconds": 0.53,
+  "socket_attempts": [],
+  "key_call_order": [
+   "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "cdf_gco_crms.word.document_comments:comment_document"
+  ],
+  "touches_challenge_engine": false,
+  "touches_objection_engine": false,
+  "touches_excel_builder": false,
+  "touches_word_builder": true
+ },
+ {
+  "label": "04_review",
+  "return_code": 0,
+  "error": null,
+  "seconds": 20.37,
+  "socket_attempts": [],
+  "key_call_order": [
+   "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "cdf_gco_crms.assurance.personas:from_index",
+   "cdf_gco_crms.assurance.challenge:run_challenge",
+   "cdf_gco_crms.assurance.challenge:black_team",
+   "cdf_gco_crms.assurance.evidence:bind_clause",
+   "cdf_gco_crms.assurance.challenge:_argue",
+   "cdf_gco_crms.assurance.challenge:red_advocate",
+   "cdf_gco_crms.assurance.challenge:adjudicate",
+   "cdf_gco_crms.assurance.objection_engine:decide"
+  ],
+  "touches_challenge_engine": true,
+  "touches_objection_engine": true,
+  "touches_excel_builder": false,
+  "touches_word_builder": false
+ },
+ {
+  "label": "05_challenge",
+  "return_code": 0,
+  "error": null,
+  "seconds": 16.97,
+  "socket_attempts": [],
+  "key_call_order": [
+   "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "cdf_gco_crms.assurance.personas:from_index",
+   "cdf_gco_crms.assurance.challenge:run_challenge",
+   "cdf_gco_crms.assurance.challenge:black_team",
+   "cdf_gco_crms.assurance.evidence:bind_clause",
+   "cdf_gco_crms.assurance.challenge:_argue",
+   "cdf_gco_crms.assurance.challenge:red_advocate",
+   "cdf_gco_crms.assurance.challenge:adjudicate",
+   "cdf_gco_crms.assurance.objection_engine:decide",
+   "cdf_gco_crms.assurance.challenge:confidentiality_scan"
+  ],
+  "touches_challenge_engine": true,
+  "touches_objection_engine": true,
+  "touches_excel_builder": false,
+  "touches_word_builder": false
+ },
+ {
+  "label": "06_adjudicate",
+  "return_code":

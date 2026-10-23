@@ -1,0 +1,86 @@
+{
+ "schema": "CDF-AUDIT-DEBATE-1",
+ "results": [
+  {
+   "test": "ONE_CYCLE_RESOLUTION (REG-01 breach wording → REVISE)",
+   "result": "PASS",
+   "detail": "{'UNSUPPORTED_BREACH_CLAIM': 2}"
+  },
+  {
+   "test": "MULTIPLE_OBJECTIONS: distinct Challenge_IDs with their own cycle counters",
+   "result": "PASS",
+   "detail": "{'DUPLICATE_REMEDY': ('ADV-C13CA6A0BBA26F30', 2), 'VERBOSE': ('ADV-0CECF6352038AF67', 2)}"
+  },
+  {
+   "test": "SIX_CYCLE_UNRESOLVED → ADJUDICATOR_ESCALATION (CYC-01)",
+   "result": "PASS",
+   "detail": "{'CONTESTED_OWNERSHIP': (6, 'ESCALATED_TO_GCO_REVIEWER')}"
+  },
+  {
+   "test": "SEVENTH_CYCLE_REJECTED",
+   "result": "PASS",
+   "detail": "6"
+  },
+  {
+   "test": "SEMANTIC_DUPLICATE: whitespace/punctuation paraphrase with same refs refused",
+   "result": "FAIL",
+   "detail": "canon() normalisation only; a true paraphrase with different words is NOT detected (see limitation)"
+  },
+  {
+   "test": "SEMANTIC_DUPLICATE: genuine paraphrase (different words, same meaning) refused",
+   "result": "FAIL",
+   "detail": "expected limitation: canonical-text equality only"
+  },
+  {
+   "test": "NEW_EVIDENCE_INTRODUCED changes the outcome (REG-01 vs REG-02)",
+   "result": "PASS",
+   "detail": "{'REG-01': ['UNSUPPORTED_BREACH_CLAIM'], 'REG-02': []}"
+  },
+  {
+   "test": "EVIDENCE_WITHDRAWN restores the objection",
+   "result": "PASS",
+   "detail": "['UNSUPPORTED_BREACH_CLAIM']"
+  },
+  {
+   "test": "cited clause corrected (absent → present) changes the outcome",
+   "result": "PASS",
+   "detail": "{'absent': ['CLAUSE_NOT_FOUND'], 'present': []}"
+  },
+  {
+   "test": "observation narrowed (JUR-01 technical → JUR-02 governance) changes the outcome",
+   "result": "PASS",
+   "detail": "{'JUR-01': [], 'JUR-02': ['CONTESTED_OWNERSHIP']}"
+  },
+  {
+   "test": "recipient changes (procurement → human capital) changes the outcome",
+   "result": "NOT_VERIFIED",
+   "detail": "{'procurement': [], 'human_capital': []}"
+  },
+  {
+   "test": "institutional mandate reclassified (PROPOSED → APPROVED) changes the outcome",
+   "result": "NOT_VERIFIED",
+   "detail": "NOT_VERIFIED: the reference index is read-only in this audit; no approved mandate exists to load"
+  },
+  {
+   "test": "PARTIAL_AGREEMENT (advocate REVISE = concedes wording, keeps the request)",
+   "result": "PASS",
+   "detail": "['REVISE']"
+  },
+  {
+   "test": "TWO_CYCLE_RESOLUTION",
+   "result": "NOT_VERIFIED",
+   "detail": "NOT_VERIFIED: no synthetic case produced a resolution exactly at the second exchange; the loop supports it (_argue)"
+  },
+  {
+   "test": "debate history preserved (hash chain verified on every record)",
+   "result": "PASS",
+   "detail": ""
+  }
+ ],
+ "summary": {
+  "PASS": 10,
+  "FAIL": 2,
+  "NOT_VERIFIED": 3
+ },
+ "limitation": "The 'debate' is a fixed exchange table (_followups) per objection kind; arguments change only through the evidence registry and the persona, not through reasoning. Dynamic behaviour exists for evidence, clause presence, scope and recipient, as shown."
+}

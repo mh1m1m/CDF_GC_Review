@@ -1,0 +1,528 @@
+{
+ "schema": "CDF-AUDIT-PROVIDER-INVENTORY-1",
+ "trees": {
+  "v7.12 engine (audited)": {
+   "path": "v7.12/cdf_gco_crms",
+   "python_files": 69,
+   "provider_or_http_modules_imported": [
+    "socket"
+   ],
+   "provider_string_hits": [
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/personas.py",
+     "line": 20,
+     "match": "inference",
+     "text": "it never fills a gap by inference (05.6, G-REF-4)."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v712_amendments.py",
+     "line": 35,
+     "match": "inference",
+     "text": "ART_05_6 = \"\"\"05.6 Authority claims against the delegation of authority matrix (added v7.12). A claim in a reviewed document about who approves, recommends, rev"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "match": "inference",
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    }
+   ],
+   "provider_string_hit_count": 3,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "v7.12/cdf_gco_crms/references/org_structure.py",
+     "line": 125,
+     "text": "``difflib`` ratio at or above ``cutoff``. Deterministic: ties go to the"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/references/org_structure.py",
+     "line": 305,
+     "text": "Deterministic; records keep their page numbers. The result proves only"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/references/authority_matrix.py",
+     "line": 120,
+     "text": "\"\"\"Index over the parsed matrix (deterministic order by item number).\"\"\""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/references/authority_matrix.py",
+     "line": 325,
+     "text": "\"\"\"Parse the matrix PDF into a :class:`MatrixIndex` (deterministic)."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/evidence.py",
+     "line": 25,
+     "text": "Pure Python; no model call; deterministic ids."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/evidence.py",
+     "line": 272,
+     "text": "\"\"\"Matrix items for a matter: the index's loose search first, then title-word overlap (deterministic).\"\"\""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/objection_engine.py",
+     "line": 1,
+     "text": "\"\"\"Deterministic objection engine: six productive cycles, hash-chained events, no AI self-reversal."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/objection_engine.py",
+     "line": 4,
+     "text": "without container paths. Pure Python, no model calls, no invented evidence."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/objection_engine.py",
+     "line": 301,
+     "text": "EVALUATION_TYPE = \"DETERMINISTIC_RULE_FIXTURE_NOT_LLM_ADJUDICATION\""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 28,
+     "text": "runs as rules in one process. No live model adjudicates and no isolated"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 29,
+     "text": "agent instances exist, so ``independence`` is SINGLE_PROCESS_RULE_BASED and"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 63,
+     "text": "INDEPENDENCE = \"SINGLE_PROCESS_RULE_BASED\""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 71,
+     "text": "MOCK_NOTE = (\"mock_vs_live: every result here comes from deterministic rules in one process on synthetic cases; \""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 72,
+     "text": "\"no live agent, model or isolated instance was run (independence SINGLE_PROCESS_RULE_BASED, \""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 321,
+     "text": "isolation_statement: str = (\"Roles BLACK, RED_ADVOCATE and ADJUDICATOR ran in sequence as rules in one process; \""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 392,
+     "text": "\"\"\"Rule-based recipient challenge of one drafted observation; an empty list is a valid result."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 901,
+     "text": "(\"REGISTER_FIELD\", re.compile(r\"Challenge_ID|SINGLE_PROCESS_RULE_BASED|CDF-ADV-\")),"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "line": 1151,
+     "text": "\"evaluation_type\": \"DETERMINISTIC_RULE_FIXTURE_NOT_LLM_ADJUDICATION\"}"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 34,
+     "text": "10.4A.5 Layout (Annex D.10). Right-to-left, a grid of twelve equal columns, Calibri, gridlines hidden, no font below 9 pt, readable at 100 % zoom on a 13 to 15 inch laptop without "
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 114,
+     "text": "TEST 09 Duplicate-round prevention: the same round twice changes nothing; a different second build fails; duplicated headers rejected; deterministic rebuild."
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v712_amendments.py",
+     "line": 39,
+     "text": "19A.2 Parties. Three roles, each with its own input and output record: the objector (\"محاكي الإدارة المستلمة\"), who argues as the recipient department would (its mandate, its owner"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v712_amendments.py",
+     "line": 280,
+     "text": "\"(SINGLE_PROCESS_RULE_BASED or isolated instances, 19A.2) (v7.12).\","
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/protocol/v712_amendments.py",
+     "line": 425,
+     "text": "\"reader, independence disclosure SINGLE_PROCESS_RULE_BASED (19A.2, 23.1); pre-issue withdrawal or narrowing under 19A.6 is not \""
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/regression/registers.py",
+     "line": 49,
+     "text": "(18, \"B\", \"Review Readiness Panel\", IMPL, \"P2\", \"Rule-based categorical readiness\", \"Formulas\", \"None\", \"States that it is not an approval\", \"G-DASH-05\", \"\"),"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/excel/register_writer.py",
+     "line": 3,
+     "text": "The renderer is deterministic: the same state always gives the same sheet."
+    }
+   ]
+  },
+  "v7.12 entry point": {
+   "path": "v7.12/main.py",
+   "python_files": 1,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [],
+   "provider_string_hit_count": 0,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "v7.12/main.py",
+     "line": 398,
+     "text": "\"\"\"Apply recorded, signed reviewer decisions to the blockers of a re-run challenge (deterministic ids).\"\"\""
+    }
+   ]
+  },
+  "v7.12 tools": {
+   "path": "v7.12/tools",
+   "python_files": 11,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [],
+   "provider_string_hit_count": 0,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "v7.12/tools/decisions_traceability.py",
+     "line": 64,
+     "text": "\"single-process rule-based roles are recorded SINGLE_PROCESS_RULE_BASED and stated in the delivery note; isolated agents claimed only where exercised (19A.2)\"),"
+    },
+    {
+     "file": "v7.12/tools/decisions_traceability.py",
+     "line": 155,
+     "text": "\"three isolated contexts where available, then the reader of Art. 20; otherwise SINGLE_PROCESS_RULE_BASED and NOT_VERIFIED (19A.2)\"),"
+    },
+    {
+     "file": "v7.12/tools/write_docs.py",
+     "line": 150,
+     "text": "\"9. The adversarial challenge engine (19A) runs deterministic fixtures; no independent model-based challenge was executed in this build.\","
+    },
+    {
+     "file": "v7.12/tools/patch_status.py",
+     "line": 31,
+     "text": "\"live agents\": \"no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)\"}"
+    },
+    {
+     "file": "v7.12/tools/patch_status.py",
+     "line": 207,
+     "text": "rows.append(R(\"V712-039\", S(ch_t[0]), f\"challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic engine; {ch_t[1]}\","
+    },
+    {
+     "file": "v7.12/tools/patch_status.py",
+     "line": 211,
+     "text": "rows.append(R(\"V712-042\", \"NOT_VERIFIED\", \"independence recorded as SINGLE_PROCESS_RULE_BASED (19A.2, 23.1)\", EXT[\"live agents\"]))"
+    },
+    {
+     "file": "v7.12/tools/patch_status.py",
+     "line": 217,
+     "text": "rows.append(R(\"V712-046\", \"NOT_VERIFIED\", \"held-out fixture set evaluated by the deterministic engine (evaluate_held_out)\", EXT[\"live agents\"]))"
+    },
+    {
+     "file": "v7.12/tools/patch_status.py",
+     "line": 332,
+     "text": "[\"G-ADV-LIVE\", \"Live independent adjudication\", \"NOT_VERIFIED\", \"deterministic engine only (SINGLE_PROCESS_RULE_BASED)\", \"live agents\", \"disclosed in 23.1\"]]"
+    },
+    {
+     "file": "v7.12/tools/build_rc.py",
+     "line": 175,
+     "text": "\"- Live independent agents: the 19A challenge is a deterministic rule engine in one process (independence SINGLE_PROCESS_RULE_BASED, \""
+    },
+    {
+     "file": "v7.12/tools/build_deliverables.py",
+     "line": 222,
+     "text": "\"09\": (\"Duplicate round prevention\", \"round 5 applied twice; different content; gap; duplicated headers\", \"NO_OP; refused; refused; refused; deterministic rebuild\"),"
+    }
+   ]
+  },
+  "v7.12 tests": {
+   "path": "v7.12/tests",
+   "python_files": 11,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [],
+   "provider_string_hit_count": 0,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "v7.12/tests/test_e2e.py",
+     "line": 249,
+     "text": "assert rec[\"chains_verified\"] and rec[\"blockers\"] == [] and rec[\"independence\"] == \"SINGLE_PROCESS_RULE_BASED\""
+    },
+    {
+     "file": "v7.12/tests/test_assurance.py",
+     "line": 361,
+     "text": "def test_synthetic_fixtures_deterministic(tmp_path):"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 5,
+     "text": "Everything here is rule-based in one process; no live agent is run and no"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 117,
+     "text": "assert exact.id == reg.bind_clause(CH._Q_121).id            # deterministic id"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 199,
+     "text": "def test_objections_are_deterministic_and_grounded(index):"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 390,
+     "text": "assert data[\"independence\"] == INDEPENDENCE == \"SINGLE_PROCESS_RULE_BASED\""
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 425,
+     "text": "assert \"no live agent\" in r[\"mock_vs_live\"] and r[\"independence\"] == \"SINGLE_PROCESS_RULE_BASED\""
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 426,
+     "text": "assert r[\"evaluation_type\"] == \"DETERMINISTIC_RULE_FIXTURE_NOT_LLM_ADJUDICATION\""
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "line": 428,
+     "text": "assert r == evaluate_held_out(index)                                      # deterministic"
+    },
+    {
+     "file": "v7.12/tests/test_protocol.py",
+     "line": 156,
+     "text": "assert \"not the independent reader of Art. 20\" in c2 and \"SINGLE_PROCESS_RULE_BASED\" in c2"
+    },
+    {
+     "file": "v7.12/tests/test_protocol.py",
+     "line": 164,
+     "text": "assert \"SINGLE_PROCESS_RULE_BASED\" in clause_block(t, \"23.1\")"
+    },
+    {
+     "file": "v7.12/tests/test_references.py",
+     "line": 207,
+     "text": "def test_parsers_are_deterministic():"
+    }
+   ]
+  },
+  "v7.11 package": {
+   "path": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms",
+   "python_files": 51,
+   "provider_or_http_modules_imported": [
+    "socket"
+   ],
+   "provider_string_hits": [
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "match": "inference",
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    }
+   ],
+   "provider_string_hit_count": 1,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 34,
+     "text": "10.4A.5 Layout (Annex D.10). Right-to-left, a grid of twelve equal columns, Calibri, gridlines hidden, no font below 9 pt, readable at 100 % zoom on a 13 to 15 inch laptop without "
+    },
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 114,
+     "text": "TEST 09 Duplicate-round prevention: the same round twice changes nothing; a different second build fails; duplicated headers rejected; deterministic rebuild."
+    },
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/regression/registers.py",
+     "line": 49,
+     "text": "(18, \"B\", \"Review Readiness Panel\", IMPL, \"P2\", \"Rule-based categorical readiness\", \"Formulas\", \"None\", \"States that it is not an approval\", \"G-DASH-05\", \"\"),"
+    },
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    },
+    {
+     "file": "uploads/source_unzipped/cdf-gco-crms-v7.11/cdf_gco_crms/excel/register_writer.py",
+     "line": 3,
+     "text": "The renderer is deterministic: the same state always gives the same sheet."
+    }
+   ]
+  },
+  "Batch 10 ChatGPT adapter cdf_v712": {
+   "path": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712",
+   "python_files": 21,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/release_tables.py",
+     "line": 6,
+     "match": "LLM",
+     "text": "('P01','Adversarial engine','New deterministic state machine exists','LLM-authenticated independent agents not executed','PARTIAL','G-ADV-13'),"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/assurance.py",
+     "line": 2,
+     "match": "LLM",
+     "text": "Pure Python, deterministic, append-only event chain, no LLM calls and no invented legal evidence."
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/reference_verify.py",
+     "line": 1,
+     "match": "inference",
+     "text": "\"\"\"Document-backed institutional reference verification; NO inference of authority from a filename."
+    }
+   ],
+   "provider_string_hit_count": 3,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/release_tables.py",
+     "line": 6,
+     "text": "('P01','Adversarial engine','New deterministic state machine exists','LLM-authenticated independent agents not executed','PARTIAL','G-ADV-13'),"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/release_tables.py",
+     "line": 12,
+     "text": "('P07','Tests','20 pure core tests pass, 15 deterministic fixture checks','Original 20 baseline tests and AI adversarial eval not executed','NOT_VERIFIED','G-RT'),"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/assurance.py",
+     "line": 2,
+     "text": "Pure Python, deterministic, append-only event chain, no LLM calls and no invented legal evidence."
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/consolidate_protocol.py",
+     "line": 37,
+     "text": "**19A.12 ChatGPT execution contract.** When operated in ChatGPT, an available Python environment may execute the local deterministic engine and generate files. Role prompts for the"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/adversarial_fixtures.py",
+     "line": 1,
+     "text": "\"\"\"15 explicitly SYNTHETIC deterministic fixtures; NOT live multi-agent evaluation.\"\"\""
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/adversarial_fixtures.py",
+     "line": 56,
+     "text": "'evaluation_type':'DETERMINISTIC_RULE_FIXTURE_NOT_LLM_ADJUDICATION'})"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/adversarial_fixtures.py",
+     "line": 62,
+     "text": "results=run(Path(sys.argv[1]));print(f'{len(results)} deterministic fixtures complete, {sum(r[\"passed\"] for r in results)} structurally passed; no independent model adjudication pe"
+    }
+   ]
+  },
+  "Batch 10 RUN_IN_CHATGPT.py": {
+   "path": "uploads/batch10/CDF-GCO-CRMS-v7.12/RUN_IN_CHATGPT.py",
+   "python_files": 1,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [],
+   "provider_string_hit_count": 0,
+   "explicit_statements_about_llm_use": []
+  },
+  "Batch 10 legacy_source_v712_rc": {
+   "path": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc",
+   "python_files": 54,
+   "provider_or_http_modules_imported": [
+    "socket"
+   ],
+   "provider_string_hits": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "match": "inference",
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    }
+   ],
+   "provider_string_hit_count": 1,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 34,
+     "text": "10.4A.5 Layout (Annex D.10). Right-to-left, a grid of twelve equal columns, Calibri, gridlines hidden, no font below 9 pt, readable at 100 % zoom on a 13 to 15 inch laptop without "
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/protocol/v711_amendments.py",
+     "line": 114,
+     "text": "TEST 09 Duplicate-round prevention: the same round twice changes nothing; a different second build fails; duplicated headers rejected; deterministic rebuild."
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/regression/registers.py",
+     "line": 49,
+     "text": "(18, \"B\", \"Review Readiness Panel\", IMPL, \"P2\", \"Rule-based categorical readiness\", \"Formulas\", \"None\", \"States that it is not an approval\", \"G-DASH-05\", \"\"),"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/regression/registers.py",
+     "line": 50,
+     "text": "(19, \"B\", \"Executive Narrative Generator\", IMPL, \"P2\", \"Two deterministic sentences built by formulas\", \"Formulas\", \"None\", \"No inference beyond the counts\","
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/excel/register_writer.py",
+     "line": 3,
+     "text": "The renderer is deterministic: the same state always gives the same sheet."
+    }
+   ]
+  },
+  "exploratory ChatGPT copy in sources/": {
+   "path": "v7.12/sources/v7.12/chatgpt_cdf_v712",
+   "python_files": 21,
+   "provider_or_http_modules_imported": [],
+   "provider_string_hits": [
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/release_tables.py",
+     "line": 6,
+     "match": "LLM",
+     "text": "('P01','Adversarial engine','New deterministic state machine exists','LLM-authenticated independent agents not executed','PARTIAL','G-ADV-13'),"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/assurance.py",
+     "line": 2,
+     "match": "LLM",
+     "text": "Pure Python, deterministic, append-only event chain, no LLM calls and no invented legal evidence."
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/reference_verify.py",
+     "line": 1,
+     "match": "inference",
+     "text": "\"\"\"Document-backed institutional reference verification; NO inference of authority from a filename."
+    }
+   ],
+   "provider_string_hit_count": 3,
+   "explicit_statements_about_llm_use": [
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/release_tables.py",
+     "line": 6,
+     "text": "('P01','Adversarial engine','New deterministic state machine exists','LLM-authenticated independent agents not executed','PARTIAL','G-ADV-13'),"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/release_tables.py",
+     "line": 12,
+     "text": "('P07','Tests','20 pure core tests pass, 15 deterministic fixture checks','Original 20 baseline tests and AI adversarial eval not executed','NOT_VERIFIED','G-RT'),"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/assurance.py",
+     "line": 2,
+     "text": "Pure Python, deterministic, append-only event chain, no LLM calls and no invented legal evidence."
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/consolidate_protocol.py",
+     "line": 37,
+     "text": "**19A.12 ChatGPT execution contract.** When operated in ChatGPT, an available Python environment may execute the local deterministic engine and generate files. Role prompts for the"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/adversarial_fixtures.py",
+     "line": 1,
+     "text": "\"\"\"15 explicitly SYNTHETIC deterministic fixtures; NOT live multi-agent evaluation.\"\"\""
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/adversarial_fixtures.py",
+     "line": 56,
+     "text": "'evaluation_type':'DETERMINISTIC_RULE_FIXTURE_NOT_LLM_ADJUDICATION'})"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/adversarial_fixtures.py",
+     "line": 62,
+     "text": "results=run(Path(sys.argv[1]));print(f'{len(results)} deterministic fixtures complete, {sum(r[\"passed\"] for r in results)} structurally passed; no independent model adjudication pe"
+    }
+   ]
+  }
+ },
+ "conclusion": "No AI-provider SDK, HTTP client or model gateway is imported by any tree. The only network-capable import is `socket` in cdf_gco_crms/qa/lo_engine.py, used to test AF_UNIX availability for LibreOffice. Provider-looking strings are vocabulary (e.g. 'inference', 'LLM' in docstrings that deny LLM use)."
+}
