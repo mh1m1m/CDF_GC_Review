@@ -259,7 +259,9 @@ def stage_tests(st):
               "test_security": ("29", "Safe ingestion and formula injection (15A.3(h), I-15)"),
               "test_word_lifecycle": ("30", "Word lifecycle on case documents (08.2, 16.1, G-SYNC-9)"),
               "test_challenge": ("31", "Grounded adversarial challenge (19A)"),
-              "test_e2e": ("32", "Production end-to-end case (15A, 16.1, 17.7, 19A)")}
+              "test_e2e": ("32", "Production end-to-end case (15A, 16.1, 17.7, 19A)"),
+              "test_release_gate": ("33", "Release authorisation gate: no issue without a CLEAR review of this content (19A.9)"),
+              "test_reference_synthetic": ("34", "Public SYNTHETIC reference fixture (reference layer and challenge without institutional sources)")}
     counters: dict[str, int] = {}
     for tc in root.iter("testcase"):
         name = tc.get("name")

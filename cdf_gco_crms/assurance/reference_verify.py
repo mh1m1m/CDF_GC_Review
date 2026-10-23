@@ -29,6 +29,7 @@ from ..references.textnorm import lam_alef_insensitive, repair_ligatures
 APPROVALS = frozenset({
     "APPROVED_CURRENT", "APPROVED_SUPERSEDED", "PROPOSED_NOT_APPROVED", "DRAFT_UNDETERMINED",
     "NOT_SUPPLIED", "EXTERNAL_BINDING", "EXTERNAL_NON_BINDING", "UNVERIFIED",
+    "SYNTHETIC_NOT_APPROVED",   # public test fixture (references/synthetic_index); never an institutional class
 })
 VERDICT_TEXT_ONLY = "TEXT_VERIFIED_ONLY"
 VERDICT_NOT_VERIFIED = "NOT_VERIFIED"

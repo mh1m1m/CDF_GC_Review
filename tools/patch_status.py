@@ -109,6 +109,8 @@ def build_rows() -> list[dict]:
     br_t = tests_ok(T, "test_brand")
     rf_t = tests_ok(T, "test_references")
     e2e_t = tests_ok(T, "test_e2e")
+    gate_t = tests_ok(T, "test_release_gate")
+    syn_t = tests_ok(T, "test_reference_synthetic")
     xw_ok = ps.get("crosswalk_rows_not_pass") == 0 and ps.get("unexplained_removed") == [] and ps.get("structure_problems") == []
 
     def R(pid, status, evidence, note=""):
@@ -156,7 +158,7 @@ def build_rows() -> list[dict]:
                   "columns (TEST 09); migrated v7.10/v7.11 files interpreted (TEST 13, migration stage)"))
     rows.append(R("V712-011", S(ttl_t[0]), f"title states NONE/DRAFT/PROPOSED/APPROVED/ISSUED, TitleEvidence (reviewer, ISO date, decision ref); "
                   f"forged status demoted on read; {ttl_t[1]}"))
-    rows.append(R("V712-012", S(ttl_t[0] and ok6), "legacy observations keep their Internal_ID; fallback shown as 'ملخص آلي غير معتمد: …'; "
+    rows.append(R("V712-012", S(ttl_t[0] and ok6), "legacy observations keep their Internal_ID; fallback shown as the neutral 'الملاحظة #NN'; "
                   "no retroactive approval without a recorded decision (finalize_titles)"))
     rows.append(R("V712-013", S(ttl_t[0]), "dashboard table = 7 columns of 10.4A.11 led by the title; queue shows the title; detail panel keeps "
                   "'الموضع عند الإصدار' and 'الموضع الحالي'; rows keyed by Internal_ID (TEST 11 sort)"))
@@ -199,20 +201,23 @@ def build_rows() -> list[dict]:
     rows.append(R("V712-032", S(wl_t[0]), f"diff_returned: tracked changes, silent edits, deleted/altered comments, moved anchors; {wl_t[1]}"))
     rows.append(R("V712-033", S(wl_t[0]), f"closed_text_integrity: INTACT/MOVED_IDENTICAL/CHANGED/MISSING, blocks output; {wl_t[1]}"))
     rows.append(R("V712-034", S(e2e_t[0]), f"round 1 → owner return (Word + Excel) → round 2 → round 3 with linked artefacts; {e2e_t[1]}"))
-    rows.append(R("V712-035", S(e2e_t[0] and wl_t[0]), f"Word files rendered in LibreOffice, Calibri runs, relationships verified; {e2e_t[1]}"))
+    rows.append(R("V712-035", S(e2e_t[0] and wl_t[0], nv=True), f"Word files rendered in LibreOffice, Calibri runs, relationships verified; {e2e_t[1]}",
+                  "LibreOffice render only; fidelity in Microsoft Word desktop not verified in this environment (forensic review, disputed status)"))
     rows.append(R("V712-036", S(wl_t[0]), f"atomic_output + check_package: duplicate REFs, mismatches, broken relationships block; originals kept; {wl_t[1]}"))
     # ------------------------------------------------------------------ 04 Adversarial
     rows.append(R("V712-037", S(ch_t[0]), f"assurance/evidence.EvidenceRegistry: SHA, page/paragraph, excerpt, version, approval class; fake id → KeyError; {ch_t[1]}"))
     rows.append(R("V712-038", S(ch_t[0] and rf_t[0]), f"personas.RecipientPersona: PROPOSED_NOT_APPROVED mandates never approval authority; {rf_t[1]}"))
-    rows.append(R("V712-039", S(ch_t[0]), f"challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic engine; {ch_t[1]}",
-                  EXT["live agents"]))
-    rows.append(R("V712-040", S(ch_t[0]), "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence", EXT["live agents"]))
+    rows.append(R("V712-039", S(ch_t[0], nv=True), f"challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic rules "
+                  f"in one process, no live Black Team agent (forensic audit: DETERMINISTIC_AGENT_SIMULATION_ONLY); {ch_t[1]}", EXT["live agents"]))
+    rows.append(R("V712-040", S(ch_t[0], nv=True), "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence; deterministic rules, "
+                  "no live Red Advocate agent; adjudicated revisions not yet applied to the register (forensic audit R-04)", EXT["live agents"]))
     rows.append(R("V712-041", S(ch_t[0] and as_t[0]), f"six productive cycles per objection, paraphrase duplicate prevention, append-only hash chain; {as_t[1]}"))
     rows.append(R("V712-042", "NOT_VERIFIED", "independence recorded as SINGLE_PROCESS_RULE_BASED (19A.2, 23.1)", EXT["live agents"]))
     rows.append(R("V712-043", S(ttl_t[0] and as_t[0]), "TitleEvidence / HumanDecision: reviewer, timestamp, decision reference, verification status; "
                   "a boolean is refused (finalize-titles, check_decision_record)"))
-    rows.append(R("V712-044", S(ch_t[0] and has("cdf_gco_crms/assurance/challenge.py") and e2e_t[0]), "pre-issue pipeline: challenge → human decisions → titles → "
-                  f"Word/Excel; blockers refuse publication (CLI review / issue path); {e2e_t[1]}"))
+    rows.append(R("V712-044", S(gate_t[0] and has("cdf_gco_crms/release/authorization_gate.py") and e2e_t[0]), "pre-issue pipeline: challenge → human decisions → titles → "
+                  f"Word/Excel; the release gate (cdf_gco_crms/release/authorization_gate) refuses build-excel/build-word/rebuild/finalize-titles while no CLEAR "
+                  f"record exists for exactly this content; round1/append write marked working copies; {gate_t[1]}; {e2e_t[1]}"))
     rows.append(R("V712-045", S(ch_t[0]), "confidentiality_scan over requester workbook and Word: no evidence ids, reviewer names or register terms"))
     rows.append(R("V712-046", "NOT_VERIFIED", "held-out fixture set evaluated by the deterministic engine (evaluate_held_out)", EXT["live agents"]))
     # ------------------------------------------------------------------ 05 Protocol
@@ -302,6 +307,16 @@ def write(rows: list[dict], out_dir: Path):
            # the three classes of the execution directive (§11); the third is never written by a tool
            "release_classification": ("PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING"
                                       if counts.get("FAIL", 0) == 0 else "PRODUCTION_ENGINEERING_INCOMPLETE"),
+           # split classification (v7.12 review finding c): one line per dimension, never merged into one claim
+           "classification": {
+               "deterministic_engineering": ("COMPLETE" if counts.get("FAIL", 0) == 0 else "INCOMPLETE")
+                                            + " — rule-based engine, gates and regression suite; evidence on disk",
+               "multi_agent_ai": "NOT_VERIFIED — no live, isolated Black Team / Red Advocate / Adjudicator agents in the product; "
+                                 "the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED; forensic audit verdict "
+                                 "DETERMINISTIC_AGENT_SIMULATION_ONLY)",
+               "institutional_approval": "PENDING — authentic documented authority, Article 00.8 reference-case replay and the "
+                                         "mandatory gates outside this engine are not supplied; never granted by a tool",
+           },
            "operational_approval": "NOT_GRANTED — requires authentic documented authority, Article 00.8 PASS and every mandatory gate PASS outside this engine",
            "separately_reported": {"BLOCKED_EXTERNAL": [r["id"] for r in rows if r["status"] == "BLOCKED_EXTERNAL"],
                                    "NOT_VERIFIED": [r["id"] for r in rows if r["status"] == "NOT_VERIFIED"]},
@@ -309,6 +324,10 @@ def write(rows: list[dict], out_dir: Path):
     (out_dir / "PATCH-STATUS.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
     lines = ["# PATCH-STATUS — CDF–GCO–CRMS v7.12 (60 patches)", "", f"Generated {rep['generated']}.",
              f"Engineering status: **{rep['engineering_status']}**. Release classification: **{rep['release_classification']}**.", "",
+             "Classification by dimension:", "",
+             f"- Deterministic engineering: **{rep['classification']['deterministic_engineering']}**",
+             f"- Multi-agent AI: **{rep['classification']['multi_agent_ai']}**",
+             f"- Institutional approval: **{rep['classification']['institutional_approval']}**", "",
              "| Status | Count |", "|---|---|"] + [f"| {k} | {v} |" for k, v in sorted(counts.items())] + ["",
              "| ID | Stream | Title | Backlog before | Status | Evidence | Note |", "|---|---|---|---|---|---|---|"]
     for r in rows:

@@ -113,6 +113,7 @@ class ReferenceIndex:
     org: OrgIndex
     matrix: MatrixIndex
     sources: dict[str, SourceStatus] = field(default_factory=dict)
+    mode: str = "INSTITUTIONAL_SOURCES"      # or "SYNTHETIC" for the public fixture (synthetic_index)
 
     @classmethod
     def load(cls, org_text: Path = DEFAULT_ORG_TEXT, org_pdf: Path | None = DEFAULT_ORG_PDF,
@@ -184,6 +185,7 @@ class ReferenceIndex:
     def sources_report(self) -> dict:
         return {
             "schema": EXPORT_SCHEMA,
+            "mode": self.mode,
             "note": ("Extraction proves only that a passage occurs in the source file; it establishes neither "
                      "legal applicability (NOT_ESTABLISHED) nor approval. Status flags are carried from "
                      "INSTITUTIONAL-SOURCE-STATUS.json and are never upgraded here."),
@@ -220,4 +222,4 @@ class ReferenceIndex:
         mat = MatrixIndex.from_dict(json.loads((out / "authority_matrix.json").read_text(encoding="utf-8")))
         rep = json.loads((out / "reference_sources.json").read_text(encoding="utf-8"))
         sources = {k: SourceStatus(**v) for k, v in rep["sources"].items()}
-        return cls(org, mat, sources)
+        return cls(org, mat, sources, mode=rep.get("mode", "INSTITUTIONAL_SOURCES"))

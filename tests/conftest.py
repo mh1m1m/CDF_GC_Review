@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from cdf_gco_crms.config import round_schema as S  # noqa: E402
 from cdf_gco_crms.model.entities import GText, Segment  # noqa: E402
+from cdf_gco_crms.references.synthetic_index import load_reference_index, real_sources_available  # noqa: E402
 from cdf_gco_crms.regression import synthetic as SY  # noqa: E402
 from cdf_gco_crms.rounds.round_expansion import NewObservation  # noqa: E402
 
@@ -50,3 +52,18 @@ def five_round(tmp_path_factory):
     out = tmp_path_factory.mktemp("five")
     h = history(traj, new, rounds=5, outdir=out, code="FIV")
     return h, traj, out
+
+
+@pytest.fixture(scope="session")
+def reference_index():
+    """The authority reference index for tests: the institutional sources when they are on disk, else the public
+    SYNTHETIC fixture (``cdf_gco_crms.references.synthetic_index``). ``CDF_TEST_SYNTHETIC_REFERENCE=1`` forces the
+    fixture so that the public-clone path can be exercised on a machine that holds the sources."""
+    if os.environ.get("CDF_TEST_SYNTHETIC_REFERENCE") == "1":
+        return load_reference_index(synthetic="always")
+    return load_reference_index(synthetic="if-missing")
+
+
+@pytest.fixture(scope="session")
+def institutional_sources_present() -> bool:
+    return real_sources_available() and os.environ.get("CDF_TEST_SYNTHETIC_REFERENCE") != "1"

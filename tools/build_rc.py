@@ -181,7 +181,7 @@ def limitations_text() -> str:
         "- Signed and current delegation-of-authority matrix (the 28-page copy is recorded UNVERIFIED).",
         "- Department approval of the organisational mandates (the 92-page deck is recorded PROPOSED_NOT_APPROVED).",
         "- GCO reviewer sign-offs of observation titles and of challenge dispositions on real observations (every title in the demonstration "
-        "files is PROPOSED or shown with the tag ملخص آلي غير معتمد).",
+        "files is PROPOSED or shown as the neutral label الملاحظة #NN).",
         "- GCO signatures and legal review of 23.1.", "",
         "## Engineering limitations recorded in code", "",
         "- Word anchors are run-granular; a quote spanning two paragraphs is not located; headers, footers and footnotes are preserved but not searched.",

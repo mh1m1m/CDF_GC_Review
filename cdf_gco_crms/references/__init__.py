@@ -9,3 +9,4 @@ from .authority_matrix import Item, MatrixIndex, parse_matrix  # noqa: F401
 from .index import ReferenceIndex, SourceStatus  # noqa: F401
 from .org_structure import Mandate, OrgIndex, Sector, Unit, parse_org_text  # noqa: F401
 from .textnorm import match_key, nfc, repair_ligatures  # noqa: F401
+from .synthetic_index import load_reference_index, synthetic_reference_index  # noqa: F401

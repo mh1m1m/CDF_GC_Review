@@ -165,7 +165,20 @@ TITLE_APPROVED = "APPROVED"    # approved by a named GCO reviewer on a recorded 
 TITLE_ISSUED = "ISSUED"        # approved title carried in an issued workbook; immutable afterwards
 TITLE_STATES = (TITLE_NONE, TITLE_DRAFT, TITLE_PROPOSED, TITLE_APPROVED, TITLE_ISSUED)
 TITLE_SHOWN_STATES = (TITLE_APPROVED, TITLE_ISSUED)
-TITLE_FALLBACK_TAG = "ملخص آلي غير معتمد"   # prefix of the mechanical fallback shown when no approved title exists
+TITLE_FALLBACK_FORMAT = "الملاحظة #{no}"   # neutral fallback shown when no approved title exists (10.4A.16; v7.12 review finding)
+
+
+def title_fallback(reader_no) -> str:
+    """\"الملاحظة #NN\": the neutral reader-number label shown in place of a title that no reviewer approved.
+
+    Nothing of the observation text is shown, so a reader can never take an engine extract for a GCO title; the
+    number is the reader number of the row, zero-padded to two digits (``#07``, ``#120``).
+    """
+    try:
+        no = f"{int(str(reader_no).strip()):02d}"
+    except (TypeError, ValueError):
+        no = str(reader_no or "").strip() or "—"
+    return TITLE_FALLBACK_FORMAT.format(no=no)
 TITLE_MAX = 90
 
 CHANGE_NEW = "ملاحظة جديدة"

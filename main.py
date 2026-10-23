@@ -37,6 +37,13 @@ v7.12 workflow commands (patch V712-003; every command prints JSON and returns a
 
 Return codes: 0 OK · 1 gate or check FAIL · 2 input/schema error · 3 refused by policy · 4 NOT_VERIFIED / BLOCKED_EXTERNAL
 
+Release authorisation gate (19A.9; cdf_gco_crms.release.authorization_gate)
+  round1 and append always write WORKING COPIES (a draft is reviewed before it is issued). rebuild, finalize-titles,
+  build-excel and build-word write an issuable file only when a review/adjudicate record for exactly this content is
+  CLEAR; otherwise they refuse (code 3) unless --working-copy is given, which writes "<name> - WORKING-COPY" with the
+  working-copy marker in the package properties. --gate-dir changes where the gate records live (build/adversarial/gate).
+  review/challenge/adjudicate accept --synthetic-reference (public fixture; such a review never authorises an issue).
+
 JSON input (UTF-8)
   round1: {"document": {"name": "...", "code": "PL", "cover_version": "...", "owning_department": "..."},
            "date": "2026-10-23",
@@ -73,7 +80,7 @@ def _text(v):
 
 
 def _new(o):
-    return NewObservation(o["location"], o["quote"], _text(o["comment"]), o.get("reason"))
+    return NewObservation(o["location"], o["quote"], _text(o["comment"]), o.get("reason"), title=o.get("title"))
 
 
 def cmd_round1(a):
@@ -84,10 +91,12 @@ def cmd_round1(a):
                    owning_department=d.get("owning_department"), is_demo=bool(d.get("is_demo")))
     st = build_round1(doc, [_new(o) for o in spec["observations"]], date=spec.get("date"),
                       document_version=d.get("cover_version"))
-    out = Path(a.out_dir) / f"{W.file_stem(doc.name, 1)}.xlsx"
-    res = build_workbook(st, out)
-    print(out)
-    return res
+    from cdf_gco_crms.release.authorization_gate import working_copy_name
+    out = working_copy_name(Path(a.out_dir) / f"{W.file_stem(doc.name, 1)}.xlsx")
+    build_workbook(st, out, working_copy=True)
+    _emit({"status": "OK", "output": str(out), "working_copy": True,
+           "note": "a round-1 draft is a working copy; it is issued by build-excel after `review` clears it (19A.9)"})
+    return RC_OK
 
 
 def _load_state(path, a=None):
@@ -122,21 +131,29 @@ def cmd_append(a):
                       for x in spec.get("assessments", [])],
                      [_new(o) for o in spec.get("new_observations", [])])
     new_state, rep = apply_round(state, rin)
-    out = Path(a.out_dir) / f"{W.file_stem(new_state.document.name, new_state.current_round)}.xlsx"
-    build_workbook(new_state, out)
+    from cdf_gco_crms.release.authorization_gate import working_copy_name
+    out = working_copy_name(Path(a.out_dir) / f"{W.file_stem(new_state.document.name, new_state.current_round)}.xlsx")
+    build_workbook(new_state, out, working_copy=True)
     report.update({"action": rep.action, "carried_closed": len(rep.carried_closed), "assessed": len(rep.assessed),
-                   "reopened": rep.reopened, "new": rep.new_ids, "output": str(out)})
+                   "reopened": rep.reopened, "new": rep.new_ids, "output": str(out), "working_copy": True,
+                   "note": "a new round is a working copy; it is issued by build-excel after `review` clears it (19A.9)"})
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    return RC_OK
 
 
 def cmd_rebuild(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     pw = _load_state(a.workbook, a)
-    out = Path(a.out_dir) / Path(a.workbook).name
+    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
+    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / name)
+    if out is None:
+        return RC_REFUSED
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
-    build_workbook(pw.state, out)
-    print(out)
+    build_workbook(pw.state, out, working_copy=wc)
+    _emit({"status": "OK", "output": str(out), **_gate_report(auth, wc)})
+    return RC_OK
 
 
 def cmd_verify(a):
@@ -164,6 +181,35 @@ def cmd_gates(a):
 
 # ============================================================================ v7.12 commands
 RC_OK, RC_FAIL, RC_INPUT, RC_REFUSED, RC_NOT_VERIFIED = 0, 1, 2, 3, 4
+
+
+def _gate_dir(a):
+    from cdf_gco_crms.release.authorization_gate import DEFAULT_GATE_DIR
+    return Path(getattr(a, "gate_dir", None) or DEFAULT_GATE_DIR)
+
+
+def _issue_or_working_copy(a, state, out):
+    """Central release gate of every issuing command.
+
+    Returns ``(out_path, working_copy, authorization)``: the authorised path when the gate clears; the WORKING-COPY
+    path when ``--working-copy`` was given; otherwise emits a refusal and returns ``(None, None, auth)`` so that the
+    caller writes nothing and returns RC_REFUSED. Nothing is written by this function.
+    """
+    from cdf_gco_crms.release.authorization_gate import authorize, working_copy_name
+    auth = authorize(state, _gate_dir(a))
+    if auth.ok:
+        return Path(out), False, auth
+    if getattr(a, "working_copy", False):
+        return working_copy_name(out), True, auth
+    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "gate": auth.to_dict(),
+           "detail": "no CLEAR review record exists for exactly this content (19A.9); run `review`/`adjudicate` on it, "
+                     "or pass --working-copy to write a marked, non-issuable working copy"})
+    return None, None, auth
+
+
+def _gate_report(auth, working_copy):
+    return {"working_copy": bool(working_copy), "release_authorized": bool(auth.ok), "fingerprint": auth.fingerprint,
+            "gate_reasons": list(auth.reasons)}
 
 
 def _emit(obj, path=None):
@@ -227,13 +273,21 @@ def cmd_finalize_titles(a):
     if rep.refused and not a.allow_partial:
         _emit({"status": "REFUSED", "refused": rep.refused, "detail": "no output written; use --allow-partial to apply the accepted decisions"})
         return RC_REFUSED
+    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
+    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
+    out, wc, auth = _issue_or_working_copy(a, new, Path(a.out_dir) / name)
+    if out is None:
+        return RC_REFUSED
+    if a.issue and wc:
+        _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED",
+               "detail": "--issue freezes titles as ISSUED; that is an issue act and cannot be done on a working copy"})
+        return RC_REFUSED
     issued = mark_titles_issued(new) if a.issue else 0
-    out = Path(a.out_dir) / Path(a.workbook).name
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
-    build_workbook(new, out)
+    build_workbook(new, out, working_copy=wc)
     _emit({"status": "OK", "approved": rep.approved, "rejected": rep.rejected, "withdrawn": rep.withdrawn,
-           "refused": rep.refused, "issued": issued, "output": str(out)})
+           "refused": rep.refused, "issued": issued, "output": str(out), **_gate_report(auth, wc)})
     return RC_OK
 
 
@@ -241,18 +295,29 @@ def cmd_build_excel(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     from cdf_gco_crms.rounds.round_expansion import mark_titles_issued
     pw = _load_state(a.workbook, a)
-    out = Path(a.out_dir) / Path(a.workbook).name
+    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
+    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / name)
+    if out is None:
+        return RC_REFUSED
+    if a.issue and wc:
+        _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED",
+               "detail": "--issue freezes titles as ISSUED; that is an issue act and cannot be done on a working copy"})
+        return RC_REFUSED
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
     issued = mark_titles_issued(pw.state) if a.issue else 0
-    build_workbook(pw.state, out)
-    _emit({"status": "OK", "output": str(out), "issued_titles": issued, "warnings": pw.warnings})
+    build_workbook(pw.state, out, working_copy=wc)
+    _emit({"status": "OK", "output": str(out), "issued_titles": issued, "warnings": pw.warnings, **_gate_report(auth, wc)})
     return RC_OK
 
 
 def cmd_build_word(a):
+    from cdf_gco_crms.release.authorization_gate import mark_working_copy_docx
     pw = _load_state(a.workbook, a)
-    out = Path(a.out)
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out))
+    if out is None:
+        return RC_REFUSED
     out.parent.mkdir(parents=True, exist_ok=True)
     if a.source:
         try:
@@ -261,12 +326,17 @@ def cmd_build_word(a):
             _emit({"status": "NOT_AVAILABLE", "detail": "cdf_gco_crms.word.document_comments is not installed"})
             return RC_INPUT
         rep = comment_document(a.source, pw.state, out, round_no=a.round)
-        _emit({"status": "OK", "output": str(out), "report": getattr(rep, "__dict__", rep)})
+        if wc:
+            mark_working_copy_docx(out)
+        _emit({"status": "OK", "output": str(out), "report": getattr(rep, "__dict__", rep), **_gate_report(auth, wc)})
         return RC_OK
     from cdf_gco_crms.word.word_sync import build_review_docx, reconcile
     build_review_docx(pw.state, out, round_no=a.round)
+    if wc:
+        mark_working_copy_docx(out)
     sync = reconcile(out, a.workbook, round_no=a.round)
-    _emit({"status": "OK" if sync.ok else "FAIL", "output": str(out), "checks": getattr(sync, "checks", None)})
+    _emit({"status": "OK" if sync.ok else "FAIL", "output": str(out), "checks": getattr(sync, "checks", None),
+           **_gate_report(auth, wc)})
     return RC_OK if sync.ok else RC_FAIL
 
 
@@ -361,26 +431,30 @@ def _challenge_record(a):
     from cdf_gco_crms.assurance import challenge as CH
     from cdf_gco_crms.assurance.evidence import EvidenceRegistry
     from cdf_gco_crms.assurance.personas import RecipientPersona
-    from cdf_gco_crms.references.index import ReferenceIndex
+    from cdf_gco_crms.references.synthetic_index import load_reference_index
     pw = _load_state(a.workbook, a)
     st = pw.state
     reg = EvidenceRegistry()
     reg.add_document_text(a.docx)
     dept = a.department or st.document.owning_department or ""
-    persona = RecipientPersona.from_index(ReferenceIndex.load(), dept, reg)
-    return CH, st, reg, CH.run_challenge(st, reg, persona)
+    index = load_reference_index(synthetic="always" if getattr(a, "synthetic_reference", False) else "never")
+    persona = RecipientPersona.from_index(index, dept, reg)
+    return CH, st, reg, CH.run_challenge(st, reg, persona), index.mode
 
 
 def cmd_review(a):
     """19A pre-issue challenge of every drafted observation; the record stays internal (build/adversarial)."""
-    CH, st, reg, rec = _challenge_record(a)
+    from cdf_gco_crms.release.authorization_gate import record_review
+    CH, st, reg, rec, mode = _challenge_record(a)
     out = Path(a.record or f"build/adversarial/challenge_{st.document.code}_R{st.current_round}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(rec.to_json(), encoding="utf-8")
+    gate = record_review(st, rec, out, reference_mode=mode, gate_dir=_gate_dir(a), command=a.cmd)
     blockers = rec.blockers()
     _emit({"status": "BLOCKED" if blockers else "CLEAR", "record": str(out), "independence": rec.independence,
            "role_isolation": rec.role_isolation, "chains_verified": rec.verify_chains(), "dispositions": rec.dispositions,
-           "cycles_used": rec.cycles_used, "blockers": blockers,
+           "cycles_used": rec.cycles_used, "blockers": blockers, "reference_mode": mode,
+           "gate_record": str(Path(_gate_dir(a)) / f"{gate['fingerprint']}.json"), "fingerprint": gate["fingerprint"],
            "note": "an issue is refused while a blocker stands; only a verified reviewer decision record clears it (19A.9)"})
     return RC_FAIL if blockers else RC_OK
 
@@ -398,7 +472,8 @@ def cmd_adjudicate(a):
     """Apply recorded, signed reviewer decisions to the blockers of a re-run challenge (deterministic ids)."""
     import base64
     from cdf_gco_crms.assurance.objection_engine import HumanDecision
-    CH, st, reg, rec = _challenge_record(a)
+    from cdf_gco_crms.release.authorization_gate import record_review
+    CH, st, reg, rec, mode = _challenge_record(a)
     items = json.loads(Path(a.decisions).read_text(encoding="utf-8"))
     items = items["decisions"] if isinstance(items, dict) else items
     decisions = []
@@ -416,8 +491,17 @@ def cmd_adjudicate(a):
     out = Path(a.record or f"build/adversarial/challenge_{st.document.code}_R{st.current_round}_adjudicated.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(rec.to_json(), encoding="utf-8")
-    _emit({"status": "CLEAR" if not res["remaining_blockers"] else "BLOCKED", "record": str(out), **res})
+    gate = record_review(st, rec, out, reference_mode=mode, gate_dir=_gate_dir(a), command="adjudicate",
+                         decisions_applied=len(res.get("applied", [])))
+    _emit({"status": "CLEAR" if not res["remaining_blockers"] else "BLOCKED", "record": str(out), "reference_mode": mode,
+           "gate_record": str(Path(_gate_dir(a)) / f"{gate['fingerprint']}.json"), "fingerprint": gate["fingerprint"], **res})
     return RC_OK if not res["remaining_blockers"] else RC_FAIL
+
+
+def _gate_args(p):
+    p.add_argument("--working-copy", action="store_true",
+                   help="when the release gate does not clear, write a marked WORKING-COPY instead of refusing")
+    p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
 
 
 def main(argv=None):
@@ -427,6 +511,7 @@ def main(argv=None):
     p = sub.add_parser("append"); p.add_argument("returned"); p.add_argument("input"); p.add_argument("out_dir")
     p.add_argument("--delivered"); p.add_argument("--name")
     p = sub.add_parser("rebuild"); p.add_argument("workbook"); p.add_argument("out_dir"); p.add_argument("--name")
+    _gate_args(p)
     p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir")
     p = sub.add_parser("verify"); p.add_argument("workbook"); p.add_argument("--workdir", default="build/verify_cli")
     p.add_argument("--name")
@@ -436,10 +521,13 @@ def main(argv=None):
     p = sub.add_parser("ingest"); p.add_argument("workbook"); p.add_argument("--json"); p.add_argument("--name")
     p = sub.add_parser("finalize-titles"); p.add_argument("workbook"); p.add_argument("decisions"); p.add_argument("out_dir")
     p.add_argument("--issue", action="store_true"); p.add_argument("--allow-partial", action="store_true"); p.add_argument("--name")
+    _gate_args(p)
     p = sub.add_parser("build-excel"); p.add_argument("workbook"); p.add_argument("out_dir")
     p.add_argument("--issue", action="store_true"); p.add_argument("--name")
+    _gate_args(p)
     p = sub.add_parser("build-word"); p.add_argument("workbook"); p.add_argument("out"); p.add_argument("--round", type=int)
     p.add_argument("--source"); p.add_argument("--name")
+    _gate_args(p)
     p = sub.add_parser("import-owner-return"); p.add_argument("delivered"); p.add_argument("returned")
     p.add_argument("--docx-delivered"); p.add_argument("--docx-returned"); p.add_argument("--json"); p.add_argument("--name")
     p = sub.add_parser("audit-history"); p.add_argument("round_dir"); p.add_argument("out_dir"); p.add_argument("--external")
@@ -451,6 +539,9 @@ def main(argv=None):
     for name in ("review", "challenge", "adjudicate"):
         p = sub.add_parser(name); p.add_argument("workbook"); p.add_argument("--docx", required=True)
         p.add_argument("--department"); p.add_argument("--record"); p.add_argument("--name")
+        p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
+        p.add_argument("--synthetic-reference", action="store_true",
+                       help="use the public SYNTHETIC reference fixture (such a review never authorises an issue)")
         if name == "adjudicate":
             p.add_argument("decisions"); p.add_argument("--trust-store", help="JSON {key_id: base64 raw Ed25519 public key}")
     a = ap.parse_args(argv)

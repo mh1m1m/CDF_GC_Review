@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from cdf_gco_crms.branding import brand_tokens as BT
 from cdf_gco_crms.branding.contrast import contrast_ratio
 from cdf_gco_crms.branding.guide_page_check import PRINTED_PAGE_12, check_page12, page_surface
@@ -13,8 +15,10 @@ from cdf_gco_crms.regression import registers as RG
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE12 = ROOT / "sources" / "v7.12" / "guide_page12.png"
+needs_page12 = pytest.mark.skipif(not PAGE12.is_file(), reason="design-guide page render not on disk (institutional asset)")
 
 
+@needs_page12
 def test_page12_printed_hex_matches_render():
     checks = check_page12(PAGE12)
     assert len(checks) == 7 and all(c.equal for c in checks), [(c.name, c.printed, c.sampled) for c in checks]

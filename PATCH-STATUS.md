@@ -1,13 +1,19 @@
 # PATCH-STATUS — CDF–GCO–CRMS v7.12 (60 patches)
 
-Generated 2026-10-23T14:33:58+00:00.
+Generated 2026-10-23T17:05:21+00:00.
 Engineering status: **ENGINEERING_COMPLETE**. Release classification: **PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING**.
+
+Classification by dimension:
+
+- Deterministic engineering: **COMPLETE — rule-based engine, gates and regression suite; evidence on disk**
+- Multi-agent AI: **NOT_VERIFIED — no live, isolated Black Team / Red Advocate / Adjudicator agents in the product; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED; forensic audit verdict DETERMINISTIC_AGENT_SIMULATION_ONLY)**
+- Institutional approval: **PENDING — authentic documented authority, Article 00.8 reference-case replay and the mandatory gates outside this engine are not supplied; never granted by a tool**
 
 | Status | Count |
 |---|---|
 | BLOCKED_EXTERNAL | 3 |
-| NOT_VERIFIED | 5 |
-| PASS | 52 |
+| NOT_VERIFIED | 8 |
+| PASS | 49 |
 
 | ID | Stream | Title | Backlog before | Status | Evidence | Note |
 |---|---|---|---|---|---|---|
@@ -22,7 +28,7 @@ Engineering status: **ENGINEERING_COMPLETE**. Release classification: **PRODUCTI
 | V712-009 | 02 Excel | Generalized round generator | PARTIAL | **PASS** | TEST 01–06 (rounds 1,2,3,5,10,20) + perf 200×20 and 500×5; tests/test_regression.py: 25 passed, 0 failed |  |
 | V712-010 | 02 Excel | Header-driven schema recovery | PARTIAL | **PASS** | rounds/round_parser.discover: header-driven blocks, SchemaError on missing/reordered columns (TEST 09); migrated v7.10/v7.11 files interpreted (TEST 13, migration stage) |  |
 | V712-011 | 02 Excel | Approved title registry persisted in official pipeline | MISSING | **PASS** | title states NONE/DRAFT/PROPOSED/APPROVED/ISSUED, TitleEvidence (reviewer, ISO date, decision ref); forged status demoted on read; tests/test_titles.py: 6 passed, 0 failed |  |
-| V712-012 | 02 Excel | Legacy title backfill firewall | PARTIAL | **PASS** | legacy observations keep their Internal_ID; fallback shown as 'ملخص آلي غير معتمد: …'; no retroactive approval without a recorded decision (finalize_titles) |  |
+| V712-012 | 02 Excel | Legacy title backfill firewall | PARTIAL | **PASS** | legacy observations keep their Internal_ID; fallback shown as the neutral 'الملاحظة #NN'; no retroactive approval without a recorded decision (finalize_titles) |  |
 | V712-013 | 02 Excel | Title-led action table and detail panel | PARTIAL | **PASS** | dashboard table = 7 columns of 10.4A.11 led by the title; queue shows the title; detail panel keeps 'الموضع عند الإصدار' and 'الموضع الحالي'; rows keyed by Internal_ID (TEST 11 sort) |  |
 | V712-014 | 02 Excel | Six KPI cards and authoritative formulas | PARTIAL | **PASS** | 22 recalculated views, 140364 formulas, 0 mismatches against the Python oracle; G-DASH-03=PASS; G-DASH-16=PASS |  |
 | V712-015 | 02 Excel | Closure-event and transition engine | PARTIAL | **PASS** | model/lifecycle: closed, conditional, requires-edit, reopen, reclose; TEST 25/27 closure round and reopened follow-up; no owner claim counts as closure |  |
@@ -45,16 +51,16 @@ Engineering status: **ENGINEERING_COMPLETE**. Release classification: **PRODUCTI
 | V712-032 | 03 Word | Tracked changes and silent edit diffs | NOT_DONE | **PASS** | diff_returned: tracked changes, silent edits, deleted/altered comments, moved anchors; tests/test_word_lifecycle.py: 20 passed, 0 failed |  |
 | V712-033 | 03 Word | Closed-text integrity and reviewer wording | NOT_DONE | **PASS** | closed_text_integrity: INTACT/MOVED_IDENTICAL/CHANGED/MISSING, blocks output; tests/test_word_lifecycle.py: 20 passed, 0 failed |  |
 | V712-034 | 03 Word | End-to-end owner return workflow | NOT_DONE | **PASS** | round 1 → owner return (Word + Excel) → round 2 → round 3 with linked artefacts; tests/test_e2e.py: 8 passed, 0 failed |  |
-| V712-035 | 03 Word | Word render and inspection | PARTIAL | **PASS** | Word files rendered in LibreOffice, Calibri runs, relationships verified; tests/test_e2e.py: 8 passed, 0 failed |  |
+| V712-035 | 03 Word | Word render and inspection | PARTIAL | **NOT_VERIFIED** | Word files rendered in LibreOffice, Calibri runs, relationships verified; tests/test_e2e.py: 8 passed, 0 failed | LibreOffice render only; fidelity in Microsoft Word desktop not verified in this environment (forensic review, disputed status) |
 | V712-036 | 03 Word | Conflict handling and rollback | NOT_DONE | **PASS** | atomic_output + check_package: duplicate REFs, mismatches, broken relationships block; originals kept; tests/test_word_lifecycle.py: 20 passed, 0 failed |  |
 | V712-037 | 04 Adversarial | Verified evidence registry | PARTIAL | **PASS** | assurance/evidence.EvidenceRegistry: SHA, page/paragraph, excerpt, version, approval class; fake id → KeyError; tests/test_challenge.py: 26 passed, 0 failed |  |
 | V712-038 | 04 Adversarial | Department persona source precedence | PARTIAL | **PASS** | personas.RecipientPersona: PROPOSED_NOT_APPROVED mandates never approval authority; tests/test_references.py: 18 passed, 0 failed |  |
-| V712-039 | 04 Adversarial | Grounded Black Team | MOCK_ONLY | **PASS** | challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic engine; tests/test_challenge.py: 26 passed, 0 failed | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
-| V712-040 | 04 Adversarial | Evidence-bound Red Advocate | MOCK_ONLY | **PASS** | evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
+| V712-039 | 04 Adversarial | Grounded Black Team | MOCK_ONLY | **NOT_VERIFIED** | challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic rules in one process, no live Black Team agent (forensic audit: DETERMINISTIC_AGENT_SIMULATION_ONLY); tests/test_challenge.py: 26 passed, 0 failed | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
+| V712-040 | 04 Adversarial | Evidence-bound Red Advocate | MOCK_ONLY | **NOT_VERIFIED** | evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence; deterministic rules, no live Red Advocate agent; adjudicated revisions not yet applied to the register (forensic audit R-04) | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
 | V712-041 | 04 Adversarial | Six productive cycles per independent objection | PARTIAL | **PASS** | six productive cycles per objection, paraphrase duplicate prevention, append-only hash chain; tests/test_assurance.py: 34 passed, 0 failed |  |
 | V712-042 | 04 Adversarial | Isolated independent adjudicator | NOT_VERIFIED | **NOT_VERIFIED** | independence recorded as SINGLE_PROCESS_RULE_BASED (19A.2, 23.1) | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
 | V712-043 | 04 Adversarial | Human decision proof | PARTIAL | **PASS** | TitleEvidence / HumanDecision: reviewer, timestamp, decision reference, verification status; a boolean is refused (finalize-titles, check_decision_record) |  |
-| V712-044 | 04 Adversarial | Integrate challenge into pre-issue pipeline | NOT_DONE | **PASS** | pre-issue pipeline: challenge → human decisions → titles → Word/Excel; blockers refuse publication (CLI review / issue path); tests/test_e2e.py: 8 passed, 0 failed |  |
+| V712-044 | 04 Adversarial | Integrate challenge into pre-issue pipeline | NOT_DONE | **PASS** | pre-issue pipeline: challenge → human decisions → titles → Word/Excel; the release gate (cdf_gco_crms/release/authorization_gate) refuses build-excel/build-word/rebuild/finalize-titles while no CLEAR record exists for exactly this content; round1/append write marked working copies; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_e2e.py: 8 passed, 0 failed |  |
 | V712-045 | 04 Adversarial | Confidentiality and audit retention | PARTIAL | **PASS** | confidentiality_scan over requester workbook and Word: no evidence ids, reviewer names or register terms |  |
 | V712-046 | 04 Adversarial | Live AI versus deterministic fixture report | NOT_VERIFIED | **NOT_VERIFIED** | held-out fixture set evaluated by the deterministic engine (evaluate_held_out) | no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED) |
 | V712-047 | 05 Protocol | Full v7.11 → v7.12 consolidation | PARTIAL | **PASS** | full consolidated text 2438 lines (v7.11: 2365), 66 declared edits; crosswalk 864 entries, rows not PASS 0, unexplained removed 0, xref unresolved 0; tests/test_protocol.py: 40 passed, 0 failed |  |
@@ -64,7 +70,7 @@ Engineering status: **ENGINEERING_COMPLETE**. Release classification: **PRODUCTI
 | V712-051 | 05 Protocol | Full design guide source correction | PARTIAL | **PASS** | D.7/D.10/D.11 brand sources corrected, AMB-150/AMB-160 audit trail kept, page-12 evidence exact |  |
 | V712-052 | 05 Protocol | 100 decisions and reader-facing instruction fit | PARTIAL | **PASS** | decisions traceability (deliverables/CDF-GCO-CRMS-v7.12-DECISIONS-TRACEABILITY.xlsx): {'MAPPED': 79, 'DOCUMENTED_EXCEPTION': 21}; every exception carries its reason |  |
 | V712-053 | 06 Validation | Original v7.11 regression rerun | NOT_VERIFIED | **PASS** | TEST 01–20 (+12b, 19b) rerun in the v7.12 engine; tests/test_regression.py: 25 passed, 0 failed |  |
-| V712-054 | 06 Validation | Saved 5-round native regression | PARTIAL | **PASS** | migrated 5-round file: 42 observations, 5 rounds, 1032 cells (24 columns × 43 rows incl. header) compared, 0 differences; lineage audit of the Batch 10 rounds: {'checks': 55, 'pass': 48, 'fail': 6, 'not_applicable': 1}, owner inputs 200 itemised, GCO-cell edits 0 | the 6 failing lineage checks are the v7.11 Word files themselves (no reply threads, no follow-up for reopened rows #12/#20/#29 in R4 and #28 in R5), which v7.12 regenerates (G-SYNC-9); not a historical data change |
+| V712-054 | 06 Validation | Saved 5-round native regression | PARTIAL | **PASS** | migrated 5-round file: 42 observations, 5 rounds, 1032 cells (24 columns × 43 rows incl. header) compared, 0 differences; lineage audit of the Batch 10 rounds: {'checks': 55, 'pass': 48, 'fail': 6, 'not_applicable': 1, 'fail_baseline_input_limitation': 6, 'fail_engine': 0}, owner inputs 200 itemised, GCO-cell edits 0 | the 6 failing lineage checks are the v7.11 Word files themselves (no reply threads, no follow-up for reopened rows #12/#20/#29 in R4 and #28 in R5), which v7.12 regenerates (G-SYNC-9); not a historical data change |
 | V712-055 | 06 Validation | Production end-to-end case | NOT_DONE | **PASS** | tests/test_e2e.py + CLI demo-e2e (OK): rounds 1,2,3,5 with reopening and conditional close; tests/test_e2e.py: 8 passed, 0 failed |  |
 | V712-056 | 06 Validation | Security and fault-injection suite | NOT_DONE | **PASS** | security suite: hostile packages, formula injection, duplicates, malformed Word; tests/test_security.py: 4 passed, 0 failed |  |
 | V712-057 | 06 Validation | Article 00.8 reference-case replay | NOT_VERIFIED | **BLOCKED_EXTERNAL** | Article 00.8 reference-case package (20 October 2026) not supplied; no replay possible |  |

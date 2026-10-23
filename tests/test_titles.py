@@ -43,9 +43,11 @@ def test_proposed_title_is_never_shown_as_approved():
     st = _state()
     o = st.observations[0]
     assert o.title_status == S.TITLE_PROPOSED
-    shown = TD.display_title(o.title, o.title_status, "نوصي بتقييد الصلاحية.")
-    assert shown.startswith(S.TITLE_FALLBACK_TAG) and o.title not in shown
-    assert TD.display_title(None, S.TITLE_NONE, "") == S.TITLE_FALLBACK_TAG
+    shown = TD.display_title(o.title, o.title_status, o.reader_no)
+    assert shown == S.title_fallback(o.reader_no) and o.title not in shown and "نوصي" not in shown
+    assert TD.display_title(None, S.TITLE_NONE, "7") == "الملاحظة #07"
+    assert TD.display_title(None, S.TITLE_NONE, "120") == "الملاحظة #120"
+    assert TD.display_title("x", S.TITLE_DRAFT, "3") == "الملاحظة #03"
 
 
 def test_finalize_titles_requires_human_proof_and_keeps_ids():
@@ -91,7 +93,7 @@ def test_title_survives_rebuild_and_dashboard_shows_only_approved(tmp_path):
     hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
     disp = [hs.cell(row=r, column=hdr["obs.title_disp"]).value for r in range(2, 6)]
     assert disp[1] == "عنوان مقترح رقم 2"
-    assert all(d.startswith(S.TITLE_FALLBACK_TAG) for i, d in enumerate(disp) if i != 1)
+    assert all(d == S.title_fallback(i + 1) for i, d in enumerate(disp) if i != 1)
 
 
 def test_tampered_approval_is_demoted_on_read(tmp_path):

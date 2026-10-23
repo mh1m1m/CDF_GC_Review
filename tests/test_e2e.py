@@ -26,7 +26,6 @@ from cdf_gco_crms.ingestion.workbook_reader import parse_workbook
 from cdf_gco_crms.model.entities import GText, RoundAssessment
 from cdf_gco_crms.qa import lo_engine
 from cdf_gco_crms.reconciliation.historical import merge_returned
-from cdf_gco_crms.references.index import ReferenceIndex
 from cdf_gco_crms.regression import synthetic as SY
 from cdf_gco_crms.rounds.round_expansion import NewObservation, RoundInput, apply_round, build_round1
 from cdf_gco_crms.word import document_comments as DC
@@ -70,12 +69,12 @@ def _assess(state, r, values):
 
 
 @pytest.fixture(scope="module")
-def case(tmp_path_factory):
+def case(tmp_path_factory, reference_index):
     d = tmp_path_factory.mktemp("e2e")
     doc = SY.fixture_document("ETE")
     doc.owning_department = DEPT
     st1 = build_round1(doc, base_obs(N), date="2026-01-15", document_version="الإصدار 0.1")
-    return {"dir": d, "states": {1: st1}, "files": {}, "docx": {}, "reports": {}}
+    return {"dir": d, "states": {1: st1}, "files": {}, "docx": {}, "reports": {}, "index": reference_index}
 
 
 def _signed_decision(decision_id, observation_id, outcome, priv):
@@ -114,7 +113,7 @@ def _issue(case, r, state, *, prior_docx=None, src_docx=None):
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     d = case["dir"]
-    idx = ReferenceIndex.load()
+    idx = case["index"]
     reg = EvidenceRegistry()
     reg.add_document_text(src_docx or case["docx"]["base"])
     persona = RecipientPersona.from_index(idx, DEPT, reg)
@@ -275,7 +274,7 @@ def test_e2e_blocker_is_cleared_only_by_a_verified_human_decision(case, tmp_path
     victim = st1.ordered()[3].internal_id
     doc = build_reviewed_doc(st1, tmp_path / "short.docx", omit=(victim,))
     reg = EvidenceRegistry(); reg.add_document_text(doc)
-    persona = RecipientPersona.from_index(ReferenceIndex.load(), DEPT, reg)
+    persona = RecipientPersona.from_index(case["index"], DEPT, reg)
     rec = CH.run_challenge(st1, reg, persona)
     blk = rec.blockers()
     assert blk and {b["internal_id"] for b in blk} == {victim} and "CLAUSE_NOT_FOUND" in {b["kind"] for b in blk}

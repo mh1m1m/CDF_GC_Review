@@ -48,17 +48,16 @@ def summary(comment_text: str, limit: int = SUMMARY_MAX) -> str:
     return ""
 
 
-def display_title(title: str | None, title_status: str, comment_text: str) -> str:
+def display_title(title: str | None, title_status: str, reader_no) -> str:
     """Title shown on the dashboard (10.4A.16).
 
     An APPROVED/ISSUED title is shown as recorded. Anything else falls back to
-    the mechanical first-sentence summary, visibly tagged so that no reader
-    takes an engine extract for a GCO-approved title.
+    the neutral label "الملاحظة #NN" (reader number): no engine extract of the
+    observation text is ever shown where a GCO-approved title belongs.
     """
     if title_status in S.TITLE_SHOWN_STATES and title and title.strip():
         return " ".join(title.split())
-    fallback = summary(comment_text)
-    return f"{S.TITLE_FALLBACK_TAG}: {fallback}" if fallback else S.TITLE_FALLBACK_TAG
+    return S.title_fallback(reader_no)
 
 
 ACTION_OPENERS = ("نوصي", "نأمل", "نرجو", "نقترح", "نؤكد", "يُستبدل", "يُحذف", "تُضاف", "إحلال", "إضافة",

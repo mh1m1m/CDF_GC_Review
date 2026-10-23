@@ -27,6 +27,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CLASS_BASELINE = "BASELINE_INPUT_LIMITATION"
+COVERING_V712_RULE = "tests/test_regression.py::test_25_reopened_row_gets_followup and tests/test_e2e.py::test_e2e_round3_reopening"
+COVERING_THREADS = "tests/test_regression.py::test_12b_word_reply_threads (native w15 reply threads, G-SYNC-9) and tests/test_e2e.py"
+
 sys.path.insert(0, str(ROOT))
 
 from cdf_gco_crms.config import round_schema as S  # noqa: E402
@@ -143,11 +147,22 @@ def audit(round_dir: Path, out_dir: Path, external: Path | None) -> dict:
                               f"{sr.gco_comments} GCO comments with REF; " + "; ".join(f"{k}={v}" for k, v in core.items())))
         rep["checks"].append((f"R{r}_WORD_COUNT_V711_RULE", got_r == v711_expected,
                               f"round-{r} comments {got_r} = rows not closed at the start of the round plus new rows {v711_expected} (10.2 as issued in v7.11)"))
-        rep["checks"].append((f"R{r}_WORD_COUNT_V712_RULE", got_r == sr.expected,
-                              f"v7.12 rule (16.1, AMB-164) expects {sr.expected}: reopened rows without a follow-up {reopened if got_r < sr.expected else []}"))
-        rep["checks"].append((f"R{r}_WORD_THREADS", None if r == 1 else sr.checks.get("G-SYNC-9 follow-ups threaded"),
-                              "v7.11 file: follow-ups are top-level comments (threads are a v7.12 requirement, G-SYNC-9); "
-                              f"{threaded} replies found" if r > 1 else "round 1 has no follow-ups"))
+        # The two v7.12-rule checks below are expected to FAIL on v7.11 baseline Word files: those files were issued under
+        # the v7.11 rule (no follow-up for a reopened row, no reply threads). The failure is classified as a
+        # BASELINE_INPUT_LIMITATION of the input, not a defect of the v7.12 engine, and each is covered by a v7.12
+        # regression test that proves the engine's own output satisfies the rule (TEST 12b threads, TEST 25 / test_e2e
+        # reopened rows). The status is kept FAIL so that the limitation stays visible; it is never converted to PASS.
+        v712_ok = got_r == sr.expected
+        rep["checks"].append((f"R{r}_WORD_COUNT_V712_RULE", v712_ok,
+                              f"v7.12 rule (16.1, AMB-164) expects {sr.expected}: reopened rows without a follow-up {reopened if got_r < sr.expected else []}"
+                              + ("" if v712_ok else f"; {CLASS_BASELINE}: v7.11 baseline file issued under the v7.11 rule; "
+                                 f"covering v7.12 tests {COVERING_V712_RULE}")))
+        threads_ok = None if r == 1 else sr.checks.get("G-SYNC-9 follow-ups threaded")
+        rep["checks"].append((f"R{r}_WORD_THREADS", threads_ok,
+                              ("v7.11 file: follow-ups are top-level comments (threads are a v7.12 requirement, G-SYNC-9); "
+                               f"{threaded} replies found" if r > 1 else "round 1 has no follow-ups")
+                              + ("" if threads_ok in (True, None) else f"; {CLASS_BASELINE}: v7.11 baseline file has no reply threads; "
+                                 f"covering v7.12 tests {COVERING_THREADS}")))
     # dynamic five-round dashboard: recalculate the round-5 register for every selected round
     from cdf_gco_crms.qa.recalc_verify import check_view
     last = states[rounds[-1]]
@@ -192,7 +207,12 @@ def audit(round_dir: Path, out_dir: Path, external: Path | None) -> dict:
         rep["checks"].append(("EXTERNAL_COUNTS_MATCH", ext_counts == eng_counts, f"external {ext_counts}; engine {eng_counts}"))
     rep["external"] = ext
     rep["summary"] = {"checks": len(rep["checks"]), "pass": sum(1 for c in rep["checks"] if c[1] is True),
-                      "fail": sum(1 for c in rep["checks"] if c[1] is False), "not_applicable": sum(1 for c in rep["checks"] if c[1] is None)}
+                      "fail": sum(1 for c in rep["checks"] if c[1] is False), "not_applicable": sum(1 for c in rep["checks"] if c[1] is None),
+                      "fail_baseline_input_limitation": sum(1 for c in rep["checks"] if c[1] is False and CLASS_BASELINE in c[2]),
+                      "fail_engine": sum(1 for c in rep["checks"] if c[1] is False and CLASS_BASELINE not in c[2])}
+    rep["classification_note"] = (f"FAIL checks tagged {CLASS_BASELINE} are limitations of the v7.11 baseline input files (issued under the "
+                                  "v7.11 rules), not defects of the v7.12 engine; each names the v7.12 regression tests that cover the rule "
+                                  "on the engine's own output. They are reported as FAIL, never converted to PASS.")
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "CDF-GCO-CRMS-v7.12-LINEAGE-VALIDATION.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     write_xlsx(rep, out_dir / "CDF-GCO-CRMS-v7.12-LINEAGE-VALIDATION.xlsx")
@@ -204,6 +224,8 @@ def write_xlsx(rep: dict, path: Path):
     t = rep["totals"]
     summary = [["Source directory", rep["source_dir"]], ["Rounds", len(rep["rounds"])],
                ["Checks", f"{rep['summary']['pass']} PASS, {rep['summary']['fail']} FAIL, {rep['summary']['not_applicable']} NOT_APPLICABLE of {rep['summary']['checks']}"],
+               ["FAIL classification", f"{rep['summary'].get('fail_baseline_input_limitation', 0)} BASELINE_INPUT_LIMITATION (v7.11 input files), "
+                                       f"{rep['summary'].get('fail_engine', 0)} engine"],
                ["Protected cells changed (fixed block, GCO cells, all pairs)", t["gco_cell_edits"]],
                ["Late owner edits of earlier rounds", t["late_owner_edits"]],
                ["Owner completions of the just-issued round (placeholder to response)", t["owner_completions_itemised"]],

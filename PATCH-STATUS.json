@@ -1,8 +1,13 @@
 {
  "schema": "CDF-v7.12-PATCH-STATUS-1",
- "generated": "2026-10-23T14:33:58+00:00",
+ "generated": "2026-10-23T17:05:21+00:00",
  "engineering_status": "ENGINEERING_COMPLETE",
  "release_classification": "PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING",
+ "classification": {
+  "deterministic_engineering": "COMPLETE — rule-based engine, gates and regression suite; evidence on disk",
+  "multi_agent_ai": "NOT_VERIFIED — no live, isolated Black Team / Red Advocate / Adjudicator agents in the product; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED; forensic audit verdict DETERMINISTIC_AGENT_SIMULATION_ONLY)",
+  "institutional_approval": "PENDING — authentic documented authority, Article 00.8 reference-case replay and the mandatory gates outside this engine are not supplied; never granted by a tool"
+ },
  "operational_approval": "NOT_GRANTED — requires authentic documented authority, Article 00.8 PASS and every mandatory gate PASS outside this engine",
  "separately_reported": {
   "BLOCKED_EXTERNAL": [
@@ -14,13 +19,16 @@
    "V712-020",
    "V712-023",
    "V712-029",
+   "V712-035",
+   "V712-039",
+   "V712-040",
    "V712-042",
    "V712-046"
   ]
  },
  "counts": {
-  "PASS": 52,
-  "NOT_VERIFIED": 5,
+  "PASS": 49,
+  "NOT_VERIFIED": 8,
   "BLOCKED_EXTERNAL": 3
  },
  "patches": [
@@ -159,7 +167,7 @@
   {
    "id": "V712-012",
    "status": "PASS",
-   "evidence": "legacy observations keep their Internal_ID; fallback shown as 'ملخص آلي غير معتمد: …'; no retroactive approval without a recorded decision (finalize_titles)",
+   "evidence": "legacy observations keep their Internal_ID; fallback shown as the neutral 'الملاحظة #NN'; no retroactive approval without a recorded decision (finalize_titles)",
    "note": "",
    "title": "Legacy title backfill firewall",
    "stream": "02 Excel",
@@ -434,9 +442,9 @@
   },
   {
    "id": "V712-035",
-   "status": "PASS",
+   "status": "NOT_VERIFIED",
    "evidence": "Word files rendered in LibreOffice, Calibri runs, relationships verified; tests/test_e2e.py: 8 passed, 0 failed",
-   "note": "",
+   "note": "LibreOffice render only; fidelity in Microsoft Word desktop not verified in this environment (forensic review, disputed status)",
    "title": "Word render and inspection",
    "stream": "03 Word",
    "priority": "P1",
@@ -482,8 +490,8 @@
   },
   {
    "id": "V712-039",
-   "status": "PASS",
-   "evidence": "challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic engine; tests/test_challenge.py: 26 passed, 0 failed",
+   "status": "NOT_VERIFIED",
+   "evidence": "challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic rules in one process, no live Black Team agent (forensic audit: DETERMINISTIC_AGENT_SIMULATION_ONLY); tests/test_challenge.py: 26 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Grounded Black Team",
    "stream": "04 Adversarial",
@@ -494,8 +502,8 @@
   },
   {
    "id": "V712-040",
-   "status": "PASS",
-   "evidence": "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence",
+   "status": "NOT_VERIFIED",
+   "evidence": "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence; deterministic rules, no live Red Advocate agent; adjudicated revisions not yet applied to the register (forensic audit R-04)",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Evidence-bound Red Advocate",
    "stream": "04 Adversarial",
@@ -543,7 +551,7 @@
   {
    "id": "V712-044",
    "status": "PASS",
-   "evidence": "pre-issue pipeline: challenge → human decisions → titles → Word/Excel; blockers refuse publication (CLI review / issue path); tests/test_e2e.py: 8 passed, 0 failed",
+   "evidence": "pre-issue pipeline: challenge → human decisions → titles → Word/Excel; the release gate (cdf_gco_crms/release/authorization_gate) refuses build-excel/build-word/rebuild/finalize-titles while no CLEAR record exists for exactly this content; round1/append write marked working copies; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_e2e.py: 8 passed, 0 failed",
    "note": "",
    "title": "Integrate challenge into pre-issue pipeline",
    "stream": "04 Adversarial",
@@ -663,7 +671,7 @@
   {
    "id": "V712-054",
    "status": "PASS",
-   "evidence": "migrated 5-round file: 42 observations, 5 rounds, 1032 cells (24 columns × 43 rows incl. header) compared, 0 differences; lineage audit of the Batch 10 rounds: {'checks': 55, 'pass': 48, 'fail': 6, 'not_applicable': 1}, owner inputs 200 itemised, GCO-cell edits 0",
+   "evidence": "migrated 5-round file: 42 observations, 5 rounds, 1032 cells (24 columns × 43 rows incl. header) compared, 0 differences; lineage audit of the Batch 10 rounds: {'checks': 55, 'pass': 48, 'fail': 6, 'not_applicable': 1, 'fail_baseline_input_limitation': 6, 'fail_engine': 0}, owner inputs 200 itemised, GCO-cell edits 0",
    "note": "the 6 failing lineage checks are the v7.11 Word files themselves (no reply threads, no follow-up for reopened rows #12/#20/#29 in R4 and #28 in R5), which v7.12 regenerates (G-SYNC-9); not a historical data change",
    "title": "Saved 5-round native regression",
    "stream": "06 Validation",

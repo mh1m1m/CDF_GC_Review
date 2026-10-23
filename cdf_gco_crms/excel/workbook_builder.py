@@ -96,7 +96,7 @@ def assemble(wb, state: ReviewState, data_ws, schema: RoundSchema, rows: dict[st
     return an, view, reg, refs, dash
 
 
-def set_properties(wb, state: ReviewState, build_time: dt.datetime):
+def set_properties(wb, state: ReviewState, build_time: dt.datetime, *, working_copy: bool = False):
     p = wb.properties
     p.creator = W.AUTHOR
     p.lastModifiedBy = W.AUTHOR
@@ -104,14 +104,18 @@ def set_properties(wb, state: ReviewState, build_time: dt.datetime):
     p.created = build_time.astimezone(dt.timezone.utc).replace(tzinfo=None)
     p.modified = p.created
     p.subject = None
-    p.keywords = "بيانات تجريبية" if state.document.is_demo else None
+    keywords = ["بيانات تجريبية"] if state.document.is_demo else []
+    if working_copy:                          # release gate: an unauthorised build is marked in the package itself
+        from ..release.authorization_gate import WORKING_COPY_KEYWORD, WORKING_COPY_MARK
+        keywords.append(WORKING_COPY_KEYWORD)
+    p.keywords = "؛ ".join(keywords) if keywords else None
     p.description = None
-    p.category = None
+    p.category = WORKING_COPY_MARK if working_copy else None
 
 
 def build_workbook(state: ReviewState, out_path, *, view_state: DashboardViewState | None = None,
                    write_cache: bool = True, build_time: dt.datetime | None = None, logo_path=None,
-                   guidance: bool = True) -> BuildResult:
+                   guidance: bool = True, working_copy: bool = False) -> BuildResult:
     build_time = build_time or dt.datetime.now(RIYADH)
     wb = Workbook()
     wb.remove(wb.active)
@@ -119,7 +123,7 @@ def build_workbook(state: ReviewState, out_path, *, view_state: DashboardViewSta
     rows = {o.internal_id: 2 + i for i, o in enumerate(state.ordered())}
     an, view, reg, refs, dash = assemble(wb, state, data_ws, schema, rows, view_state=view_state,
                                          logo_path=logo_path)
-    set_properties(wb, state, build_time)
+    set_properties(wb, state, build_time, working_copy=working_copy)
     out_path = Path(out_path)
     save_atomic(wb, out_path, reg.expected(view) if write_cache else None, build_time)
     return BuildResult(out_path, state, schema, an, view, reg, refs, dash, data_ws.title, rows, write_cache, build_time)
