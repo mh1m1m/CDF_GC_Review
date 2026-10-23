@@ -48,17 +48,17 @@ def summary(comment_text: str, limit: int = SUMMARY_MAX) -> str:
     return ""
 
 
-def display_title(title: str | None, title_status: str, comment_text: str) -> str:
-    """Title shown on the dashboard (10.4A.16).
+def display_title(title: str | None, title_status: str, comment_text: str,
+                  reader_no: str | None = None) -> str:
+    """Use only an authorized title; otherwise show a neutral observation reference.
 
-    An APPROVED/ISSUED title is shown as recorded. Anything else falls back to
-    the mechanical first-sentence summary, visibly tagged so that no reader
-    takes an engine extract for a GCO-approved title.
+    The mechanical summary remains available for internal analytics but MUST NOT
+    appear as a substitute for a GCO-approved title in the executive dashboard.
     """
     if title_status in S.TITLE_SHOWN_STATES and title and title.strip():
         return " ".join(title.split())
-    fallback = summary(comment_text)
-    return f"{S.TITLE_FALLBACK_TAG}: {fallback}" if fallback else S.TITLE_FALLBACK_TAG
+    number = str(reader_no).strip() if reader_no is not None else "--"
+    return f"{S.TITLE_FALLBACK_TAG}{number.zfill(2) if number.isdecimal() else '--'}
 
 
 ACTION_OPENERS = ("نوصي", "نأمل", "نرجو", "نقترح", "نؤكد", "يُستبدل", "يُحذف", "تُضاف", "إحلال", "إضافة",
