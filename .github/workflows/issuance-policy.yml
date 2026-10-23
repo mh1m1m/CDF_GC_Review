@@ -1,0 +1,31 @@
+name: Public-safe CLI release gate
+
+on:
+  push:
+    branches:
+      - "fix/v712-fail-closed-cli"
+  pull_request:
+    branches:
+      - "development/v7.12-production-engineering"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  issuance-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-lock.txt
+      - name: Compile changed modules
+        run: python -m compileall -q main.py cdf_gco_crms/ qa_public/
+      - name: Run public-safe issuance tests
+        run: python -m unittest discover -s qa_public -p "test_*.py" -v
+      - name: Verify approved-title fallback regression
+        run: python -m pytest -q tests/test_titles.py

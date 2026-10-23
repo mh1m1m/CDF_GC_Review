@@ -59,6 +59,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from cdf_gco_crms.assurance.issuance_gate import (  # noqa: E402
+    DRAFT_CLASSIFICATION, IssuanceDenied, authorize_cli_export,
+)
 from cdf_gco_crms.config import workbook_settings as W  # noqa: E402
 from cdf_gco_crms.model.entities import Document, GText, RoundAssessment, Segment  # noqa: E402
 from cdf_gco_crms.rounds.round_expansion import NewObservation, RoundInput, apply_round, build_round1  # noqa: E402
@@ -76,6 +79,11 @@ def _new(o):
     return NewObservation(o["location"], o["quote"], _text(o["comment"]), o.get("reason"))
 
 
+def _draft_output(path, a):
+    return authorize_cli_export(path, internal_draft=getattr(a, 'internal_draft', False),
+                                issuance_requested=getattr(a, 'issue', False))
+
+
 def cmd_round1(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     spec = json.loads(Path(a.input).read_text(encoding="utf-8"))
@@ -84,7 +92,7 @@ def cmd_round1(a):
                    owning_department=d.get("owning_department"), is_demo=bool(d.get("is_demo")))
     st = build_round1(doc, [_new(o) for o in spec["observations"]], date=spec.get("date"),
                       document_version=d.get("cover_version"))
-    out = Path(a.out_dir) / f"{W.file_stem(doc.name, 1)}.xlsx"
+    out = _draft_output(Path(a.out_dir) / f"{W.file_stem(doc.name, 1)}.xlsx", a)
     res = build_workbook(st, out)
     print(out)
     return res
@@ -122,7 +130,7 @@ def cmd_append(a):
                       for x in spec.get("assessments", [])],
                      [_new(o) for o in spec.get("new_observations", [])])
     new_state, rep = apply_round(state, rin)
-    out = Path(a.out_dir) / f"{W.file_stem(new_state.document.name, new_state.current_round)}.xlsx"
+    out = _draft_output(Path(a.out_dir) / f"{W.file_stem(new_state.document.name, new_state.current_round)}.xlsx", a)
     build_workbook(new_state, out)
     report.update({"action": rep.action, "carried_closed": len(rep.carried_closed), "assessed": len(rep.assessed),
                    "reopened": rep.reopened, "new": rep.new_ids, "output": str(out)})
@@ -132,7 +140,7 @@ def cmd_append(a):
 def cmd_rebuild(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     pw = _load_state(a.workbook, a)
-    out = Path(a.out_dir) / Path(a.workbook).name
+    out = _draft_output(Path(a.out_dir) / Path(a.workbook).name, a)
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
     build_workbook(pw.state, out)
@@ -228,7 +236,7 @@ def cmd_finalize_titles(a):
         _emit({"status": "REFUSED", "refused": rep.refused, "detail": "no output written; use --allow-partial to apply the accepted decisions"})
         return RC_REFUSED
     issued = mark_titles_issued(new) if a.issue else 0
-    out = Path(a.out_dir) / Path(a.workbook).name
+    out = _draft_output(Path(a.out_dir) / Path(a.workbook).name, a)
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
     build_workbook(new, out)
@@ -241,7 +249,7 @@ def cmd_build_excel(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     from cdf_gco_crms.rounds.round_expansion import mark_titles_issued
     pw = _load_state(a.workbook, a)
-    out = Path(a.out_dir) / Path(a.workbook).name
+    out = _draft_output(Path(a.out_dir) / Path(a.workbook).name, a)
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
     issued = mark_titles_issued(pw.state) if a.issue else 0
@@ -252,7 +260,7 @@ def cmd_build_excel(a):
 
 def cmd_build_word(a):
     pw = _load_state(a.workbook, a)
-    out = Path(a.out)
+    out = _draft_output(Path(a.out), a)
     out.parent.mkdir(parents=True, exist_ok=True)
     if a.source:
         try:
@@ -423,11 +431,11 @@ def cmd_adjudicate(a):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("round1"); p.add_argument("input"); p.add_argument("out_dir")
+    p = sub.add_parser("round1"); p.add_argument("input"); p.add_argument("out_dir"); p.add_argument("--internal-draft", action="store_true")
     p = sub.add_parser("append"); p.add_argument("returned"); p.add_argument("input"); p.add_argument("out_dir")
-    p.add_argument("--delivered"); p.add_argument("--name")
-    p = sub.add_parser("rebuild"); p.add_argument("workbook"); p.add_argument("out_dir"); p.add_argument("--name")
-    p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir")
+    p.add_argument("--delivered"); p.add_argument("--name"); p.add_argument("--internal-draft", action="store_true")
+    p = sub.add_parser("rebuild"); p.add_argument("workbook"); p.add_argument("out_dir"); p.add_argument("--name"); p.add_argument("--internal-draft", action="store_true")
+    p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir"); p.add_argument("--internal-draft", action="store_true")
     p = sub.add_parser("verify"); p.add_argument("workbook"); p.add_argument("--workdir", default="build/verify_cli")
     p.add_argument("--name")
     p = sub.add_parser("gates"); p.add_argument("workbook"); p.add_argument("--previous"); p.add_argument("--docx")
@@ -435,11 +443,11 @@ def main(argv=None):
     p = sub.add_parser("inventory"); p.add_argument("files", nargs="+"); p.add_argument("--json")
     p = sub.add_parser("ingest"); p.add_argument("workbook"); p.add_argument("--json"); p.add_argument("--name")
     p = sub.add_parser("finalize-titles"); p.add_argument("workbook"); p.add_argument("decisions"); p.add_argument("out_dir")
-    p.add_argument("--issue", action="store_true"); p.add_argument("--allow-partial", action="store_true"); p.add_argument("--name")
+    p.add_argument("--issue", action="store_true"); p.add_argument("--allow-partial", action="store_true"); p.add_argument("--name"); p.add_argument("--internal-draft", action="store_true")
     p = sub.add_parser("build-excel"); p.add_argument("workbook"); p.add_argument("out_dir")
-    p.add_argument("--issue", action="store_true"); p.add_argument("--name")
+    p.add_argument("--issue", action="store_true"); p.add_argument("--name"); p.add_argument("--internal-draft", action="store_true")
     p = sub.add_parser("build-word"); p.add_argument("workbook"); p.add_argument("out"); p.add_argument("--round", type=int)
-    p.add_argument("--source"); p.add_argument("--name")
+    p.add_argument("--source"); p.add_argument("--name"); p.add_argument("--internal-draft", action="store_true")
     p = sub.add_parser("import-owner-return"); p.add_argument("delivered"); p.add_argument("returned")
     p.add_argument("--docx-delivered"); p.add_argument("--docx-returned"); p.add_argument("--json"); p.add_argument("--name")
     p = sub.add_parser("audit-history"); p.add_argument("round_dir"); p.add_argument("out_dir"); p.add_argument("--external")
@@ -454,16 +462,40 @@ def main(argv=None):
         if name == "adjudicate":
             p.add_argument("decisions"); p.add_argument("--trust-store", help="JSON {key_id: base64 raw Ed25519 public key}")
     a = ap.parse_args(argv)
+    # Central CLI preflight: no input parsing or output creation before the gate.
+    # This does not replace the institutional authorization service required for
+    # production; it makes every regular exporting CLI command fail closed now.
+    export_commands = {"round1", "append", "rebuild", "migrate", "finalize-titles",
+                       "build-excel", "build-word"}
+    if a.cmd in export_commands:
+        try:
+            authorize_cli_export(Path("preflight.xlsx"),
+                                 internal_draft=getattr(a, "internal_draft", False),
+                                 issuance_requested=getattr(a, "issue", False))
+        except IssuanceDenied as exc:
+            _emit({"status": "REFUSED", "detail": str(exc),
+                   "classification": DRAFT_CLASSIFICATION, "no_output_generated": True})
+            return RC_REFUSED
     if a.cmd == "migrate":
+        try:
+            authorize_cli_export(Path(a.out_dir) / "migration.xlsx", internal_draft=a.internal_draft)
+        except IssuanceDenied as exc:
+            _emit({"status": "REFUSED", "detail": str(exc)})
+            return RC_REFUSED
         from migrate_to_v712 import main as mig
-        return mig([a.source, a.out_dir])
+        return mig([a.source, str(Path(a.out_dir) / "INTERNAL_DRAFT_ONLY")])
     if a.cmd in ("review", "challenge", "adjudicate"):
         return {"review": cmd_review, "challenge": cmd_challenge, "adjudicate": cmd_adjudicate}[a.cmd](a)
     fn = {"round1": cmd_round1, "append": cmd_append, "rebuild": cmd_rebuild, "verify": cmd_verify, "gates": cmd_gates,
           "inventory": cmd_inventory, "ingest": cmd_ingest, "finalize-titles": cmd_finalize_titles,
           "build-excel": cmd_build_excel, "build-word": cmd_build_word, "import-owner-return": cmd_import_owner_return,
           "audit-history": cmd_audit_history, "qa": cmd_qa, "demo-e2e": cmd_demo_e2e, "release": cmd_release}[a.cmd]
-    return fn(a)
+    try:
+        return fn(a)
+    except IssuanceDenied as exc:
+        _emit({"status": "REFUSED", "classification": DRAFT_CLASSIFICATION,
+               "detail": str(exc), "no_output_generated": True})
+        return RC_REFUSED
 
 
 if __name__ == "__main__":

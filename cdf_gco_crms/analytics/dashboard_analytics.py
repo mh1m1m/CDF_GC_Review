@@ -69,7 +69,7 @@ class ObsA:
     summary: str
     title: str = ""              # recorded title text ('' when none)
     title_status: str = S.TITLE_NONE
-    title_disp: str = ""         # what the dashboard shows: approved title or tagged mechanical fallback
+    title_disp: str = ""         # approved title or neutral observation number only
     title_by: str = ""
     title_on: str = ""
     title_ref: str = ""
@@ -112,7 +112,7 @@ class Analytics:
                      comment=plain_text(o.comment), summary=TD.summary(plain_text(o.comment)))
             a.title = o.title or ""
             a.title_status = o.title_status
-            a.title_disp = TD.display_title(o.title, o.title_status, plain_text(o.comment))
+            a.title_disp = TD.display_title(o.title, o.title_status, plain_text(o.comment), reader_no=o.reader_no)
             if o.title_evidence is not None:
                 a.title_by, a.title_on, a.title_ref = o.title_evidence.reviewer, o.title_evidence.date, o.title_evidence.decision_ref
             self._fill_long(a, o)
