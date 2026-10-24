@@ -91,7 +91,7 @@ class SessionVerifier:
 
 
 def build_server(
-    application: ApplicationService, *, port=8766, transport="streamable-http"
+    application: ApplicationService, *, port=8766, transport="streamable-http", security=None
 ):
     server = FastMCP(
         "CDF Governance Intelligence",
@@ -100,6 +100,7 @@ def build_server(
         json_response=True,
         stateless_http=True,
         max_request_body_size=131072,
+        transport_security=security,
         instructions="Synthetic development only. MAT is advisory. Tools never authorize institutional issuance.",
     )
     for name, (action, role, mutation) in TOOLS.items():

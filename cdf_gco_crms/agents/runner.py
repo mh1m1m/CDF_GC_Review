@@ -67,6 +67,8 @@ class AgentRunner:
         assert_transmission_allowed(payload, self.provider)
         if self.invocation_observer:
             self.invocation_observer(request,execution_id,self.execution_source)
+        if self.execution_source == PV.SOURCE_SUPERVISED_CLI and hasattr(self.trace, "progress"):
+            self.provider.progress_observer = lambda snapshot: self.trace.progress(execution_id, snapshot)
         started = time.perf_counter()
         last_error = None
         for attempt in range(1, self.max_attempts + 1):
@@ -79,7 +81,7 @@ class AgentRunner:
                 resp = self._stamp(self._failure(request, execution_id, last_error, self.provider.name, self.provider.model,
                                                  self.provider.mode, latency_ms=int((time.perf_counter() - started) * 1000)),
                                    request, failed=True)
-                self.trace.record(resp, attempts=attempt, **trace_extra)
+                self.trace.record(resp, attempts=attempt, executor_diagnostic=exc.diagnostics, **trace_extra)
                 return resp
             latency = int((time.perf_counter() - started) * 1000)
             if result.refused:
@@ -98,7 +100,7 @@ class AgentRunner:
                                  result.usage, error=None if not errors else "schema validation failed",
                                  schema_errors=errors, evidence_refs=_evidence_refs(output) if output else [])
             self._stamp(resp, request, provider_request_id=result.provider_request_id, failed=bool(errors))
-            self.trace.record(resp, attempts=attempt, **trace_extra)
+            self.trace.record(resp, attempts=attempt, executor_receipt=result.execution_receipt, **trace_extra)
             return resp
         resp = self._stamp(self._failure(request, execution_id, last_error or "exhausted", self.provider.name, self.provider.model,
                                          self.provider.mode), request, failed=True)

@@ -35,3 +35,8 @@ All source fixes await independent review. No institutional acceptance inferred.
 - CP-02: Bounded deterministic intent recognition is not a general language model planner. Policy/framework/charter methodologies need approved templates; targeted observation-subset debate is explicitly unsupported.
 - CP-03: New review records use synthetic session identities, not verified human presence or signed institutional dispositions. Existing CAL-01/02 profile amendment/supersession issues and independent human-label validation remain open.
 - CP-04: Online backup and staging verification are local operational evidence only. Approved production restore, retention/legal policy, tenant IdP/OAuth, external audit anchoring, live inference and institutional activation remain external prerequisites.
+
+- CON-01: BLOCKED_EXTERNAL — native Codex diagnostic observed HTTP 403/connection/reconnect errors and no completion. Exact denied destination/provider-side outcome is unverified; operator must reconcile access/network policy before a separately authorized new request. Existing ambiguous requests are not replayed.
+- CON-02: BLOCKED_EXTERNAL — approve/provision public MCP DNS/TLS, external OAuth issuer/JWKS and exact registered client identities. The new resource server's local security tests do not establish deployment or authorization-server/client compatibility.
+- CON-03: BLOCKED_EXTERNAL — actual ChatGPT/Claude account registration and correlated authenticated calls unavailable. Independent SDK connections must remain separately classified.
+- CON-04: BLOCKED_EXTERNAL — live-model case reconciliation, native exports and provider-side receipt reconciliation require a successful authorized real execution. No new mock/UI run may replace that evidence.

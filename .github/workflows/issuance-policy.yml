@@ -10,6 +10,7 @@ on:
       - "development/v7.12-production-engineering"
   pull_request:
     branches:
+      - "codex/phase-ii-copilot"
       - "codex/unified-execution"
       - "codex/institutional-dual-mode"
       - "codex/visual-intelligence"
@@ -137,7 +138,7 @@ jobs:
       - name: Static scan of new API and projection boundary
         run: |
           mkdir -p build/security
-          python -m bandit -r cdf_gco_crms/copilot cdf_gco_crms/intelligence cdf_gco_crms/institutional cdf_gco_crms/execution cdf_gco_crms/interfaces cdf_gco_crms/agents/providers/openai_adapter.py cdf_gco_crms/agents/providers/cli_adapter.py apps/api -f json -o build/security/bandit.json
+          python -m bandit -r cdf_gco_crms/copilot cdf_gco_crms/intelligence cdf_gco_crms/institutional cdf_gco_crms/execution cdf_gco_crms/interfaces cdf_gco_crms/agents/providers/openai_adapter.py cdf_gco_crms/agents/providers/cli_adapter.py cdf_gco_crms/agents/providers/cli_receipts.py cdf_gco_crms/acceptance/connectivity.py apps/api -f json -o build/security/bandit.json
       - name: Audit runtime dependency advisory data
         run: python -m pip_audit -r requirements-execution.txt --vulnerability-service pypi --format json -o build/security/pip-audit.json
       - uses: actions/setup-node@v4

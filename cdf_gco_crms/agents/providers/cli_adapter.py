@@ -46,6 +46,7 @@ class SupervisedCLIAdapter(ProviderAdapter):
             if self.executor == "codex-cli":
                 command = [
                     executable,
+                    "--no-daemon",
                     "exec",
                     "--ephemeral",
                     "--ignore-user-config",
@@ -78,6 +79,9 @@ class SupervisedCLIAdapter(ProviderAdapter):
                     "--tools",
                     "",
                 ]
+            if os.getenv("CDF_CLI_MODEL"):
+                # A configured selector must actually reach the executor.
+                command[1:1] = ["--model", self.config.model]
             env = os.environ.copy()
             env.pop("CDF_CALIBRATION_DEV_TOKEN", None)
             process = subprocess.Popen(
@@ -87,24 +91,23 @@ class SupervisedCLIAdapter(ProviderAdapter):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
                 start_new_session=True,
             )
-            try:
-                stdout, stderr = process.communicate(
-                    request.system + "\n\n" + request.user_text,
-                    timeout=self.config.timeout_seconds,
-                )
-            except subprocess.TimeoutExpired as exc:
-                kill_tree(process.pid)
-                process.communicate()
-                raise ProviderFailure(
-                    "Supervised CLI timed out", kind="CLI_TIMEOUT"
-                ) from exc
+            from .cli_receipts import collect
+
+            stdout, diagnostic = collect(
+                process,
+                request.system + "\n\n" + request.user_text,
+                executor=self.executor,
+                timeout=self.config.timeout_seconds,
+                kill=kill_tree,
+                observer=getattr(self, "progress_observer", None),
+            )
             if process.returncode:
                 raise ProviderFailure(
                     "Supervised CLI failed; exit " + str(process.returncode),
                     kind="CLI_EXECUTION_FAILED",
+                    diagnostics=diagnostic,
                 )
             if len(stdout) > 2_000_000:
                 raise ProviderFailure(
@@ -135,6 +138,13 @@ class SupervisedCLIAdapter(ProviderAdapter):
                         "CLI completion receipt missing", kind="CLI_RECEIPT_MISSING"
                     )
                 usage = turn.get("usage", {})
+                diagnostic.update(
+                    phase="VERIFIED_NATIVE_COMPLETION",
+                    inference_verified=True,
+                    output_sha256=__import__("hashlib")
+                    .sha256(output.read_bytes())
+                    .hexdigest(),
+                )
                 return ProviderResult(
                     output.read_text(),
                     "CODEX:" + thread,
@@ -142,6 +152,7 @@ class SupervisedCLIAdapter(ProviderAdapter):
                     TokenUsage(
                         usage.get("input_tokens", 0), usage.get("output_tokens", 0)
                     ),
+                    execution_receipt=diagnostic,
                 )
             try:
                 result = json.loads(stdout)
@@ -158,9 +169,13 @@ class SupervisedCLIAdapter(ProviderAdapter):
                     "Claude CLI completion receipt missing", kind="CLI_RECEIPT_MISSING"
                 )
             usage = result.get("usage", {})
+            diagnostic.update(
+                phase="VERIFIED_NATIVE_COMPLETION", inference_verified=True
+            )
             return ProviderResult(
                 json.dumps(result["structured_output"]),
                 "CLAUDE:" + result["session_id"],
                 self.model,
                 TokenUsage(usage.get("input_tokens", 0), usage.get("output_tokens", 0)),
+                execution_receipt=diagnostic,
             )
