@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+ARG LIBREOFFICE_VERSION=4:25.2.3-2+deb13u8
+ENV DEBIAN_FRONTEND=noninteractive \
+    SAL_USE_VCLPLUGIN=svp \
+    CDF_AI_PROVIDER="" \
+    PYTHONDONTWRITEBYTECODE=1
+# Optional combined CA bundle for a managed proxy; never stored in an image layer.
+RUN --mount=type=secret,id=proxy_ca \
+    set -eu; \
+    ca=/etc/ssl/certs/ca-certificates.crt; \
+    if [ -s /run/secrets/proxy_ca ]; then ca=/run/secrets/proxy_ca; fi; \
+    apt-get -o Acquire::https::CaInfo="$ca" update; \
+    apt-get -o Acquire::https::CaInfo="$ca" install -y --no-install-recommends \
+      libreoffice-calc="$LIBREOFFICE_VERSION" \
+      libreoffice-writer="$LIBREOFFICE_VERSION" \
+      libreoffice-impress="$LIBREOFFICE_VERSION" \
+      fonts-noto-core fonts-crosextra-carlito fontconfig; \
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir -p /opt/cdf-runtime; \
+    dpkg-query -W > /opt/cdf-runtime/packages.tsv; \
+    printf '%s\n' 'python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704' > /opt/cdf-runtime/base-image.txt; \
+    /usr/bin/soffice --version | tee /opt/cdf-runtime/libreoffice.txt; \
+    grep -Eq '^LibreOffice [0-9]+\.[0-9]+' /opt/cdf-runtime/libreoffice.txt; \
+    ! grep -Eiq 'alpha|beta|nightly|dev|rc[0-9]' /opt/cdf-runtime/libreoffice.txt
+COPY requirements-lock.txt requirements-calibration.txt /opt/cdf-runtime/requirements/
+RUN --mount=type=secret,id=proxy_ca \
+    set -eu; \
+    if [ -s /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    python -m pip install --no-cache-dir -r /opt/cdf-runtime/requirements/requirements-calibration.txt 'httpx>=0.27,<1'; \
+    python -m pip freeze > /opt/cdf-runtime/python-packages.txt
+WORKDIR /repo
+CMD ["python", "tools/libreoffice_smoke.py", "--report", "build/libreoffice/smoke.json"]
