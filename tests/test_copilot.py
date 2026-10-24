@@ -440,3 +440,9 @@ def test_final_wording_appears_in_editable_draft_exports_without_replacing_sourc
         book["Observations"]["J2"].value == text
         and book["Observations"]["B2"].value != text
     )
+
+
+def test_completed_workflow_cannot_be_reclassified_as_cancelled(cp):
+    first=call(cp,'start',text='authority analysis',idempotency_key='completed-flow-001')
+    with pytest.raises(Conflict,match='COMPLETED_WORKFLOW'):
+        call(cp,'cancel',workflow_id=first['workflow_id'],expected_version=str(first['version']),idempotency_key='cancel-complete-001')
