@@ -5,10 +5,12 @@ on:
     branches:
       - "fix/v712-fail-closed-cli"
       - "feature/v712-live-multi-agent-runtime"
+      - "feature/v712-mat-professional-dna-agent"
       - "development/v7.12-production-engineering"
   pull_request:
     branches:
       - "development/v7.12-production-engineering"
+      - "feature/v712-live-multi-agent-runtime"
       - "main"
   workflow_dispatch:
 
