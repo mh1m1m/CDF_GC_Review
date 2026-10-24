@@ -100,6 +100,7 @@ class CalibrationStore:
                 event_hash TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_events_case ON events(case_id, event_id);
+            CREATE TABLE IF NOT EXISTS case_grants (case_id TEXT NOT NULL REFERENCES cases(case_id), reviewer_id TEXT NOT NULL, PRIMARY KEY(case_id, reviewer_id));
         """)
         if os.name == "posix":
             os.chmod(self.path, 0o600)
@@ -124,6 +125,7 @@ class CalibrationStore:
             self.db.execute("INSERT INTO cases VALUES (?,?,?,?,?)",
                             (case_id, source_hash, digest, canonical(evidence), now_utc()))
             self._append(case_id, None, "CASE_IMPORTED", {"source_hash": source_hash, "evidence_hash": digest}, reviewer.reviewer_id)
+            self.db.execute("INSERT INTO case_grants (case_id, reviewer_id) VALUES (?, ?)", (case_id, reviewer.reviewer_id))
         return digest
 
     def _case(self, case_id: str):
