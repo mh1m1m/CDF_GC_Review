@@ -77,3 +77,16 @@ class CalibrationService:
     def events(self, case_id, user):
         self.authorize(case_id, user)
         return self.store.events(case_id, user)
+
+    def compile_profile(self, case_id, user):
+        self.authorize(case_id, user, required="DNA_RULE_APPROVER")
+        from .profile_compiler import compile_candidate
+        return compile_candidate(self.store, case_id, user)
+
+    def profiles(self, case_id, user):
+        self.authorize(case_id, user)
+        return self.store.profile_versions(case_id, user)
+
+    def activate_profile(self, case_id, version, user):
+        self.authorize(case_id, user, required="DNA_RULE_APPROVER")
+        return self.store.activate_synthetic_profile(case_id, version, user)
