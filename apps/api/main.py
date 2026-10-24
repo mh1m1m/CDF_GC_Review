@@ -138,3 +138,17 @@ def analytics(case_id: str, authorization: str | None = Header(default=None)):
 def _analyze_authorized(case_id, user):
     service.authorize(case_id, user)
     return analyze(store, case_id, user)
+
+@app.post("/api/cases/{case_id}/profiles/compile", status_code=201)
+def compile_synthetic_profile(case_id: str, authorization: str | None = Header(default=None)):
+    return call(service.compile_profile, case_id, identity(authorization))
+
+
+@app.get("/api/cases/{case_id}/profiles")
+def list_profile_versions(case_id: str, authorization: str | None = Header(default=None)):
+    return call(service.profiles, case_id, identity(authorization))
+
+
+@app.post("/api/cases/{case_id}/profiles/{version}/activate")
+def activate_profile_version(case_id: str, version: str, authorization: str | None = Header(default=None)):
+    return call(service.activate_profile, case_id, version, identity(authorization))
