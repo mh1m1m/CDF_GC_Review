@@ -33,6 +33,7 @@ function App() {
  const [error,setError]=useState(""); const [success,setSuccess]=useState("");
  const [ruleId,setRuleId]=useState("SYN-RULE-001"); const [ruleReason,setRuleReason]=useState("");
  const [ruleAction,setRuleAction]=useState("DEFER");
+ const [analyticsData,setAnalyticsData]=useState<Record<string,unknown>|null>(null);
  async function api<T>(url:string,method="GET",body?:object):Promise<T>{
    const resp=await fetch(url,{method,headers:{"Authorization":"Bearer "+token,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
    if(!resp.ok){let t="";try{t=JSON.stringify(await resp.json())}catch{}throw Error(resp.status+" "+t)}
@@ -40,6 +41,7 @@ function App() {
  }
  async function load(){setError("");try{setCases(await api<CaseSummary[]>("/api/cases"))}catch(e){setError(String(e))}}
  async function openCase(id:string){setError("");try{const [c,ev]=await Promise.all([api<CaseData>("/api/cases/"+encodeURIComponent(id)),api<EventData[]>("/api/cases/"+encodeURIComponent(id)+"/events")]);setActive(c);setEvents(ev);setFocus(0);setView("compare");}catch(e){setError(String(e))}}
+ async function loadAnalytics(){if(!active)return;try{setAnalyticsData(await api<Record<string,unknown>>("/api/cases/"+encodeURIComponent(active.case_id)+"/analytics"))}catch(e){setError(String(e))}}
  async function save(status:"DRAFT"|"SUBMITTED"){
    if(!active)return;const obs=active.observations[focus];setError("");setSuccess("");
    try{await api("/api/cases/"+encodeURIComponent(active.case_id)+"/observations/"+encodeURIComponent(obs.observation_id)+"/decisions","POST",{
@@ -68,7 +70,7 @@ function App() {
   {error&&<div role="alert" className="error">{error}</div>}{success&&<div role="status" className="success">{success}</div>}
   <nav><button onClick={()=>{setActive(null);setView("cases")}}>لوحة القضايا</button>{active&&<>
     <button onClick={()=>setView("compare")}>مقارنة الملاحظات</button>
-    <button onClick={()=>setView("analytics")}>المؤشرات</button>
+    <button onClick={()=>{setView("analytics");void loadAnalytics()}}>المؤشرات</button>
     <button onClick={()=>setView("rules")}>اعتماد قواعد DNA</button>
     <button onClick={()=>setView("history")}>سجل القرارات</button>
   </>}</nav>
@@ -90,7 +92,9 @@ function App() {
       <div className="actions"><button onClick={()=>save("DRAFT")}>حفظ مسودة</button><button className="primary" onClick={()=>save("SUBMITTED")}>إرسال قرار المعايرة</button></div></div></>}
     </section>}
     {view==="analytics"&&<section className="panel"><h2>مؤشرات المعايرة</h2><p>الأرقام أدناه مأخوذة من قاعدة البيانات، وليست أهدافاً ثابتة لأسلوب محمد التميمي.</p>
-    {Object.entries(active.statistics).map(([k,v])=><div className="row" key={k}><span>{k}</span><strong>{String(v)}</strong></div>)}</section>}
+    {Object.entries(active.statistics).map(([k,v])=><div className="row" key={k}><span>{k}</span><strong>{String(v)}</strong></div>)}
+    <h3>توزيع الأسئلة والتوصيات — مستخرج من نصوص القضية</h3>
+    {analyticsData?Object.entries(analyticsData).map(([k,v])=><div className="row" key={k}><span>{k}</span><strong>{typeof v==="object"?JSON.stringify(v):String(v)}</strong></div>):<p className="notice">لم يتم تحميل بيانات التصنيف بعد.</p>}</section>}
     {view==="rules"&&<section className="panel"><h2>مراجعة قاعدة DNA منفصلة</h2><p>اعتماد قرار على ملاحظة لا يعتمد تلقائياً قاعدة عامة. هذه واجهة مراجعة تجريبية، وليس اعتماداً مؤسسياً.</p>
      <label>معرف القاعدة<input value={ruleId} onChange={e=>setRuleId(e.target.value)}/></label>
      <label>الإجراء<select value={ruleAction} onChange={e=>setRuleAction(e.target.value)}>{["DEFER","REQUEST_MORE_EVIDENCE","REJECT","APPROVE","APPROVE_WITH_CHANGES"].map(x=><option key={x}>{x}</option>)}</select></label>
