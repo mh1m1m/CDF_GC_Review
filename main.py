@@ -475,7 +475,8 @@ def _orchestrate(a, *, draft=False, decisions=None, command="review"):
     provider = provider_from_env()
     gate_dir = _gate_dir(a)
     runner = AgentRunner(provider, TraceWriter(gate_dir.parent / "traces" / "agent-trace.jsonl")) if provider else None
-    orc = ReviewOrchestrator(index, runner=runner, gate_dir=gate_dir)
+    mat_profile = _mat_profile(a)
+    orc = ReviewOrchestrator(index, runner=runner, gate_dir=gate_dir, mat_profile=mat_profile)
     ex = orc.execute(st, a.docx, dept, decisions=decisions, trust=_trust_store(a), draft=draft,
                      record_path=getattr(a, "record", None), command=command, attestation_key=_attestation_key(a))
     return ex, index
@@ -498,7 +499,7 @@ def _emit_execution(a, ex, mode, extra=None):
                "human_decisions_applied": len(ex.human_decisions), "rejected_decisions": ex.rejected_decisions,
                "trace": ex.trace_summary, "run_id": ex.run_id, "independence_verified": ex.independence.get("verified", False),
                "independence_reasons": ex.independence.get("reasons", []), "attestation": bool(ex.attestation),
-               "purpose": gate.get("purpose"),
+               "purpose": gate.get("purpose"), "mat_advisor": (gate.get("execution_summary") or {}).get("mat_advisor", {"enabled": False}),
                "gate_record": str(Path(_gate_dir(a)) / f"{gate['fingerprint']}.json"), "fingerprint": gate["fingerprint"],
                "note": "an issue is refused while a blocker, a provider failure or a NOT_READY final review stands; "
                        "only a verified reviewer decision record clears a blocker (19A.9)"}
@@ -509,6 +510,23 @@ def _emit_execution(a, ex, mode, extra=None):
         payload["execution_json"] = a.execution_json
     _emit(payload)
     return RC_FAIL if ex.status != "CLEAR" else RC_OK
+
+
+def _mat_profile(a):
+    """MAT strategic advisor profile from --mat-profile or CDF_MAT_PROFILE (an authorised private location); the public
+    synthetic fixture only with --mat-profile synthetic. No profile → the advisory stages do not run."""
+    from cdf_gco_crms.agents.mat_profile import ProfileInvalid, ProfileNotConfigured, load_profile, synthetic_fixture_path
+    choice = getattr(a, "mat_profile", None)
+    if choice == "synthetic":
+        return load_profile(synthetic_fixture_path())
+    try:
+        return load_profile(choice)
+    except ProfileNotConfigured:
+        if choice:
+            raise
+        return None
+    except ProfileInvalid as exc:
+        raise SystemExit(f"REFUSED: MAT profile invalid: {exc}")
 
 
 def cmd_review(a):
@@ -655,6 +673,8 @@ def main(argv=None):
         p.add_argument("--execution-json", help="write the full execution record (roles, exchanges, trace summary) here")
         p.add_argument("--attestation-key", help="operator-held Ed25519 private key file (base64 or raw) that signs the release attestation")
         p.add_argument("--attestation-key-id", help="key id of the attestation key as listed in the trust store (role RELEASE_ATTESTOR)")
+        p.add_argument("--mat-profile", help="MAT strategic advisor profile: a private profile path, or 'synthetic' for the public test fixture "
+                                             "(default: CDF_MAT_PROFILE; unset → advisory stages do not run)")
         if name == "agent-review":
             p.add_argument("--draft", action="store_true", help="run the GCO drafting agent (proposals only; LIVE provider needed)")
             p.add_argument("--decisions", help="signed reviewer decision records to apply inside the pipeline")

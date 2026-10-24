@@ -30,10 +30,12 @@ from ..release.authorization_gate import (
 )
 from ..release.trust import TrustStore
 from . import roles as R
+from . import mat_advisor as MAT
 from .contracts import MODE_DETERMINISTIC, MODE_LIVE, STATUS_OK, new_id
 from .debate import Exchange, is_semantic_duplicate
 from .runner import AgentRunner
 from .tracing import TraceWriter, utc_now
+from .mat_profile import LoadedProfile
 
 INDEPENDENCE_LIVE = "ISOLATED_LIVE_CONTEXTS"
 INDEPENDENCE_RULES = "SINGLE_PROCESS_RULE_BASED"
@@ -67,6 +69,9 @@ class ReviewExecution:
     gate_record: dict | None = None
     independence: dict = field(default_factory=dict)
     attestation: dict | None = None
+    mat_advice: dict | None = None                       # MAT-01 drafting advice (candidates preserved)
+    mat_state: dict[str, MAT.MatObservationState] = field(default_factory=dict)   # Article 15 audit state per observation
+    mat_disclosure: dict | None = None
     started_utc: str = ""
     finished_utc: str = ""
 
@@ -91,15 +96,20 @@ class ReviewExecution:
                 "human_decisions": self.human_decisions, "rejected_decisions": self.rejected_decisions,
                 "guards_applied": dict(self.guards_applied), "trace_summary": self.trace_summary,
                 "independence_verification": self.independence, "attestation": self.attestation,
+                "mat_advisor": {"disclosure": self.mat_disclosure, "drafting_advice": self.mat_advice,
+                                "observation_state": {k: v.to_dict() for k, v in self.mat_state.items()}},
                 "started_utc": self.started_utc, "finished_utc": self.finished_utc}
 
 
 class ReviewOrchestrator:
-    def __init__(self, index, *, runner: AgentRunner | None = None, gate_dir=DEFAULT_GATE_DIR, max_cycles: int = MAX_CYCLES):
+    def __init__(self, index, *, runner: AgentRunner | None = None, gate_dir=DEFAULT_GATE_DIR, max_cycles: int = MAX_CYCLES,
+                 mat_profile: LoadedProfile | None = None):
         self.index = index
         self.runner = runner
         self.gate_dir = Path(gate_dir)
         self.max_cycles = max_cycles
+        # MAT strategic advisor: advisory stages only when a profile is loaded from an authorised location (Article 09)
+        self.mat = MAT.MatAdvisor(mat_profile, runner) if mat_profile is not None else None
 
     @property
     def live(self) -> bool:
@@ -126,8 +136,11 @@ class ReviewOrchestrator:
         if draft:
             ex.proposals, out = R.run_drafting(self.runner, state, registry, persona)
             self._note(ex, out)
-        # 4–9 challenge every observation
         current = state.current_round
+        # 3c MAT-01 drafting advice over the candidates (register observations of this round + drafting proposals); advisory only
+        if self.mat is not None:
+            self._mat_drafting(ex, state, registry, persona, current)
+        # 4–9 challenge every observation
         entries: list[ObservationEntry] = []
         live_objs: dict[str, CH.Objection] = {}
         for obs in state.ordered():
@@ -163,13 +176,17 @@ class ReviewOrchestrator:
         rp = Path(record_path or self.gate_dir.parent / f"challenge_{state.document.code}_R{current}_{run_id[-8:]}.json")
         rp.parent.mkdir(parents=True, exist_ok=True)
         rp.write_text(ex.record.to_json(), encoding="utf-8")
+        if self.mat is not None:                              # Article 15: every MAT state transition, next to the challenge record
+            import json as _json
+            rp.with_name(rp.stem + ".mat-state.json").write_text(_json.dumps(ex.to_dict()["mat_advisor"], ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         trace_path = str(self.runner.trace.path) if (self.runner is not None and self.runner.trace.path) else None
         ex.gate_record = record_review(state, ex.record, rp, reference_mode=getattr(self.index, "mode", "INSTITUTIONAL_SOURCES"),
                                        gate_dir=self.gate_dir, decisions_applied=len(ex.human_decisions), command=command,
                                        provider_failures=ex.provider_failures, final_review=ex.final_review,
                                        human_decisions=ex.human_decisions, source_document_sha256=ex.document_sha256,
                                        execution_summary={"run_id": run_id, "modes": ex.modes(), "independence": independence,
-                                                          "trace": ex.trace_summary, "guards": dict(ex.guards_applied)},
+                                                          "trace": ex.trace_summary, "guards": dict(ex.guards_applied),
+                                                          "mat_advisor": self._mat_summary(ex)},
                                        role_execution_proofs=ex.independence.get("proofs", []), independence=ex.independence,
                                        trace_path=trace_path,
                                        trace_head_hash=self.runner.trace.head_hash if self.runner is not None else None)
@@ -223,16 +240,20 @@ class ReviewOrchestrator:
                 persona: RecipientPersona, *, issued: bool) -> tuple[ObjectionRecord, dict]:
         exchange = Exchange(o.challenge_id)
         if not self.live:
+            mat_in = self._mat_interrogation(ex, state, obs, o, registry, persona, exchange, issued=issued)
             adv, adj = CH._argue(o, obs, registry, persona, self.max_cycles)       # the deterministic engine, unchanged
             for e in o.events:
                 exchange.turns.append({"actor": e["actor"], "claim": e["claim"], "evidence_refs": list(e["evidence_refs"]),
                                        "stance": None, "execution_id": None, "cycle": e["sequence"]})
+            self._mat_reassessment(ex, state, obs, o, registry, exchange, interrogation=mat_in, advocate=adv.to_dict(), issued=issued)
             d = adj.to_dict(); d["observation_text_sha256"] = _h(plain_text(obs.comment))
             return ObjectionRecord(o.challenge_id, o.kind, o.proposition, o.material_consequence, list(o.evidence_refs),
                                    [dict(e) for e in o.events], o.productive_cycles(), adv.to_dict(), d, o.state,
                                    o.verify_chain()), exchange.to_dict()
         exchange.add(o, "BLACK", o.proposition, list(o.evidence_refs), execution_id=o.detail.get("execution_id"))
-        adv, ro = R.run_red_advocate(self.runner, state, obs, o, registry, persona, issued=issued, prior_exchange=exchange.for_payload())
+        mat_in = self._mat_interrogation(ex, state, obs, o, registry, persona, exchange, issued=issued)
+        adv, ro = R.run_red_advocate(self.runner, state, obs, o, registry, persona, issued=issued, prior_exchange=exchange.for_payload(),
+                                     mat_advisory=exchange.advisory_view(MAT.STAGE_INTERROGATION))
         self._note(ex, ro, obs.internal_id, o.challenge_id)
         if adv is None:
             return self._provider_failure_record(o, obs, registry, "RED_ADVOCATE_PROVIDER_FAILURE"), exchange.to_dict()
@@ -251,7 +272,8 @@ class ReviewOrchestrator:
             c = counters[0]
             if not exchange.add(o, "BLACK", c.proposition, list(c.evidence_refs), execution_id=c.detail.get("execution_id")):
                 break                                                            # unproductive repeat: the objection ends as it stands
-            reply, rr = R.run_red_advocate(self.runner, state, obs, o, registry, persona, issued=issued, prior_exchange=exchange.for_payload())
+            reply, rr = R.run_red_advocate(self.runner, state, obs, o, registry, persona, issued=issued, prior_exchange=exchange.for_payload(),
+                                           mat_advisory=exchange.advisory_view(MAT.STAGE_INTERROGATION))
             self._note(ex, rr, obs.internal_id, o.challenge_id)
             if reply is None:
                 return self._provider_failure_record(o, obs, registry, "RED_ADVOCATE_PROVIDER_FAILURE"), exchange.to_dict()
@@ -262,9 +284,13 @@ class ReviewOrchestrator:
             resolved = adv.stance in ("CONCEDE", "REVISE")
         last_black = bool(exchange.turns) and exchange.turns[-1]["actor"] == "BLACK"
         unresolved = (not resolved) and (exchange.cap_hit or last_black)
+        self._mat_reassessment(ex, state, obs, o, registry, exchange, interrogation=mat_in, advocate=adv.to_dict(), issued=issued)
         adj, ao, guards = R.run_adjudicator(self.runner, state, obs, o, adv, registry, issued=issued,
-                                            exchange=exchange.for_payload(), unresolved=unresolved)
+                                            exchange=exchange.for_payload(), unresolved=unresolved,
+                                            mat_advisory=self._mat_for_adjudicator(ex, obs, exchange))
         self._note(ex, ao, obs.internal_id, o.challenge_id)
+        if self.mat is not None and ao.response is not None:
+            self._mat_state(ex, state, obs).Adjudicator_Execution_ID.append(ao.response.execution_id)
         if adj is None:
             return self._provider_failure_record(o, obs, registry, "ADJUDICATOR_PROVIDER_FAILURE"), exchange.to_dict()
         for r in adv.evidence_refs:
@@ -345,6 +371,11 @@ class ReviewOrchestrator:
                     entry = trust.keys.get(d.signing_key_id)
                     ex.human_decisions.append({**{k: getattr(d, k) for k in HumanDecision.__dataclass_fields__},
                                                "synthetic_key": bool(entry and entry.is_synthetic)})
+                    for st_ in ex.mat_state.values():
+                        if d.challenge_id in st_.Black_Team_Challenge_ID:
+                            st_.Human_Decision.append({"decision_id": d.decision_id, "challenge_id": d.challenge_id, "outcome": d.outcome})
+                            st_.Final_Observation_State = f"HUMAN_DECISION:{d.outcome}"
+                            st_.transition("HUMAN_DECISION", d.outcome, at=utc_now())
 
     def _editorial(self, ex: ReviewExecution, state: ReviewState, registry: EvidenceRegistry):
         by_id = state.by_id()
@@ -380,6 +411,88 @@ class ReviewOrchestrator:
                            "provider_request_id": ro.response.provider_request_id if ro.response else None,
                            "fingerprint": ex.fingerprint,
                            "findings": len(out.get("findings", [])), "contradictions": len(out.get("contradictions", []))}
+
+    # ------------------------------------------------------------------ MAT strategic advisor (advisory stages)
+    def _mat_state(self, ex: ReviewExecution, state: ReviewState, obs: Observation) -> MAT.MatObservationState:
+        st = ex.mat_state.get(obs.internal_id)
+        if st is None:
+            text = plain_text(obs.comment)
+            st = MAT.MatObservationState(obs.internal_id, state.current_round, text, _h(text), self.mat.profile.version)
+            ex.mat_state[obs.internal_id] = st
+        return st
+
+    def _mat_drafting(self, ex: ReviewExecution, state: ReviewState, registry: EvidenceRegistry, persona: RecipientPersona, current: int):
+        candidates = [MAT.candidate_from_observation(o) for o in state.ordered() if o.birth_round >= current]
+        candidates += [MAT.candidate_from_proposal(p, i + 1) for i, p in enumerate(ex.proposals)]
+        res = self.mat.draft(state, candidates, registry, persona)
+        self._note(ex, res.outcome)
+        ex.mat_advice = res.to_dict()
+        ex.mat_disclosure = {"prior_drafting_involvement": True, "stage": MAT.STAGE_DRAFTING, "candidates_advised": [c["observation_id"] for c in candidates],
+                             "profile_binding": self.mat.profile.binding(), "mode": res.outcome.mode, "execution_id": res.outcome.response.execution_id if res.outcome.response else None,
+                             "note": "the advisor took part before the challenge; its material reaches other roles only as labelled advisory content"}
+        by_id = state.by_id()
+        for a in (res.output or {}).get("assessments", []):
+            oid = a["observation_id"]
+            if oid in by_id:
+                st = self._mat_state(ex, state, by_id[oid])
+                st.MAT_Drafting_Recommendation, st.MAT_Proposed_Text = a.get("recommendation"), a.get("proposed_text")
+                st.MAT_DNA_Rules_Used = list(a.get("dna_rules_invoked", []))
+                st.MAT_Drafting_Execution_ID = res.outcome.response.execution_id if res.outcome.response else None
+                st.transition(MAT.STAGE_DRAFTING, a.get("recommendation", ""), execution_id=st.MAT_Drafting_Execution_ID, at=utc_now())
+
+    def _mat_interrogation(self, ex, state, obs, o, registry, persona, exchange, *, issued) -> dict | None:
+        if self.mat is None:
+            return None
+        st = self._mat_state(ex, state, obs)
+        st.Black_Team_Challenge_ID.append(o.challenge_id)
+        prior = None
+        if ex.mat_advice:
+            prior = next((a for a in ex.mat_advice["output"].get("assessments", []) if a["observation_id"] == obs.internal_id), None) if ex.mat_advice.get("output") else None
+        res = self.mat.interrogate(state, obs, o, registry, persona, prior_advice=prior, prior_turns=exchange.advisory_turns(), issued=issued)
+        self._note(ex, res.outcome, obs.internal_id, o.challenge_id)
+        if not res.ok:
+            st.transition(MAT.STAGE_INTERROGATION, f"NOT_AVAILABLE:{res.outcome.status}", at=utc_now())
+            return None
+        exchange.advise(MAT.STAGE_INTERROGATION, res.output, execution_id=res.outcome.response.execution_id if res.outcome.response else None)
+        eid = res.outcome.response.execution_id if res.outcome.response else None
+        st.MAT_Interrogation_Execution_ID.append(eid)
+        st.MAT_Interrogation_Response.append({"challenge_id": o.challenge_id, "decision": res.output["decision"], "guards": res.guards,
+                                              "withdrawal_recommendation": res.output.get("withdrawal_recommendation")})
+        st.transition(MAT.STAGE_INTERROGATION, res.output["decision"], execution_id=eid, at=utc_now())
+        return res.output
+
+    def _mat_reassessment(self, ex, state, obs, o, registry, exchange, *, interrogation, advocate, issued):
+        if self.mat is None:
+            return None
+        st = self._mat_state(ex, state, obs)
+        res = self.mat.reassess(state, obs, o, registry, interrogation=interrogation, advocate=advocate, exchange=exchange.for_payload(), issued=issued)
+        self._note(ex, res.outcome, obs.internal_id, o.challenge_id)
+        if not res.ok:
+            st.transition(MAT.STAGE_REASSESSMENT, f"NOT_AVAILABLE:{res.outcome.status}", at=utc_now())
+            return None
+        exchange.advise(MAT.STAGE_REASSESSMENT, res.output, execution_id=res.outcome.response.execution_id if res.outcome.response else None)
+        eid = res.outcome.response.execution_id if res.outcome.response else None
+        st.MAT_Reassessment_Execution_ID.append(eid)
+        st.MAT_Final_Advisory_Position.append({"challenge_id": o.challenge_id, "decision": res.output["decision"], "position_changed": res.output.get("position_changed"),
+                                               "change_reason": res.output.get("change_reason"), "guards": res.guards})
+        st.Final_Observation_State = f"ADVISORY:{res.output['decision']}"
+        st.transition(MAT.STAGE_REASSESSMENT, res.output["decision"] + (" (position changed)" if res.output.get("position_changed") else ""), execution_id=eid, at=utc_now())
+        return res.output
+
+    def _mat_for_adjudicator(self, ex, obs, exchange) -> dict | None:
+        """What the adjudicator may see of MAT: the responses, explicitly labelled advisory, plus the disclosure (Article 13)."""
+        if self.mat is None:
+            return None
+        return {"present": True, "status": "ADVISORY_ONLY_NOT_EVIDENCE", "disclosure": ex.mat_disclosure,
+                "interrogation": exchange.advisory_view(MAT.STAGE_INTERROGATION), "reassessment": exchange.advisory_view(MAT.STAGE_REASSESSMENT)}
+
+    def _mat_summary(self, ex) -> dict:
+        if self.mat is None:
+            return {"enabled": False}
+        outs = [o for o in ex.role_outcomes if o["role"] == MAT.ROLE_MAT]
+        return {"enabled": True, "profile": self.mat.profile.binding(), "disclosure": ex.mat_disclosure, "invocations": len(outs),
+                "modes": dict(Counter(o["mode"] for o in outs)), "failed": sum(1 for o in outs if o["status"] not in (STATUS_OK, "NOT_RUN")),
+                "advisory_only": True, "adjudicator_firewall": "MAT material reaches the adjudicator only as labelled advisory content; MAT never sees adjudicator output"}
 
 
 def _h(text: str) -> str:
