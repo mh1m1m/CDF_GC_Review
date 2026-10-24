@@ -1,3 +1,60 @@
+# CDF–GCO–CRMS v7.12 — CLAUDE CODE ENGINEERING HANDOFF (PR #3 remediation, 2026-10-24)
+
+## 1. Final commit SHA and PR
+- Working_Branch: feature/v712-live-multi-agent-runtime
+- Review_Baseline: e72d1448f4dc1fdf2f3ae5f741eb96e0cee716d7
+- Remediation_Commit_SHA: 39596b90e337b84b9a2efc027a87deef858f703d (code, tests, docs, register); this handoff revision is committed on top of it
+- Pull_Request_URL: https://github.com/mh1m1m/CDF_GC_Review/pull/3 (draft, open, not merged; main untouched at 361791e2)
+- GitHub_Actions (39596b90): pull_request run 40052229616 SUCCESS; push run 40052227207 SUCCESS (workflow "Public-safe test suite")
+
+## 2. Corrected source files
+| File | Change |
+|---|---|
+| cdf_gco_crms/release/attestation.py (new) | execution receipts (`verify_execution_receipt`), receipt-based independence (`verify_live_roles`), signed release attestation (`build_payload`, `sign`, `verify`), operator key loading |
+| cdf_gco_crms/release/authorization_gate.py | institutional issue requires: LIVE final review with a verified receipt bound to the fingerprint (D1); mandatory, matching source-document hash (D2); `independence.verified` (D3); valid attestation by a `RELEASE_ATTESTOR` key (D4); new reason codes; `attach_attestation`; gate record carries proofs, independence, trace path, attestation, purpose |
+| cdf_gco_crms/agents/orchestrator.py | independence classified from receipts (`ISOLATED_LIVE_CONTEXTS` only when verified, else `LIVE_CLAIMED_NOT_VERIFIED`); final review recorded with prompt/response hashes, provider and fingerprint; optional attestation signing with an operator-held key |
+| main.py | `--docx` on every issuing command (source hash passed to the gate); `--attestation-key` / `--attestation-key-id` on review, agent-review, adjudicate; output reports `independence_verified`, `attestation`, `purpose` |
+| tools/live_provider_trial.py (new) | public-safe, synthetic-only live-provider trial: configuration → connectivity → evaluation; stops at the first blocked stage with the exact reason and next action |
+| tools/patch_status.py, README.md, CHECKPOINT.md, AI_AGENT_FORENSIC_AUDIT/reports/{REMEDIATION-STATUS, ENGINEERING-EVIDENCE-REGISTER}.md | documentation and register |
+
+## 3. Tests added
+- tests/test_release_attestation.py (15): positive institutional path with simulated receipts; demo rules unchanged; D1 ×6 (deterministic READY, mock READY, forged LIVE metadata, missing receipt, outdated fingerprint, failed/refused inference); D2 ×2 (omitted hash, mismatched hash, record without hash; CLI requires `--docx`); D3 ×2 (labels vs receipts, duplicate ids, missing role, unknown evidence, substitution); D4 ×2 (unknown key, same-id different key, no attestor role, revoked, synthetic key, expired, tampered payload, replayed for other content, demo-purpose for institutional, unsigned record; decision and proof binding); key file round-trip.
+- tests/test_release_gate.py: two assertions widened to membership (an institutional synthetic-reference refusal now carries the new reasons too).
+
+## 4. Test execution results (branch head 39596b9)
+- Full suite with institutional sources on disk: 261 passed, 4 skipped (3 live-provider, 1 refusal path), 0 failed
+- Fresh public clone (`git archive`, no institutional files): 170 passed, 11 skipped, 0 failed
+- GitHub Actions on 39596b9: SUCCESS (both triggers)
+- MOCK / DETERMINISTIC / CACHED / LIVE results are kept separate in every report; skipped live tests are reported as skipped
+
+## 5. Issuance-gate negative-test results
+All refused, with the stated reason codes: no record; blocked challenge; modified observation; forged signature; revoked key; expired decision; decision reused for another observation or state; failed provider; missing final review; synthetic approval (tests/test_release_lifecycle.py, 10) — plus the fifteen of tests/test_release_attestation.py above. A locally written gate record, a forged `mode=LIVE`, a deterministic or mock READY and an omitted source hash cannot clear an institutional issue.
+
+## 6. Agent independence verification results
+- Classifier: `release/attestation.py::verify_live_roles` — every challenge-role outcome needs a trace receipt with mode LIVE, status OK, a known live provider, a provider-shaped invocation id and a response hash; Execution_IDs and Context_IDs distinct; evidence ids in the registry; no MOCK/CACHED/DETERMINISTIC substitution.
+- On this branch no run has recorded `ISOLATED_LIVE_CONTEXTS` from a real provider. The positive path is exercised with a *simulated-live adapter* (scripted JSON with real-deployment provenance shape); the tests say so. Deterministic runs classify `SINGLE_PROCESS_RULE_BASED`; mock runs `MOCK_SCRIPTED_CONTEXTS`; label-only runs `LIVE_CLAIMED_NOT_VERIFIED`.
+
+## 7. Live inference count
+- Actual_Live_Inference_Count: 0. `tools/live_provider_trial.py` was run in this environment and stopped at stage 1: `CDF_AI_PROVIDER` unset / no credential (with the provider flag set it stops at stage 2: AUTHENTICATION, no credential resolved). Model id `claude-opus-5-5` and SDK 2.3.0 are pinned; the SDK request surface (`output_config`) is checked by the trial once a client can be built.
+
+## 8. Remaining blockers
+| Priority | Blocker | Next action |
+|---|---|---|
+| P0 | No live inference; live blind score not produced | operator sets `CDF_AI_PROVIDER=anthropic` + a credential (synthetic data only; `INSTITUTIONAL_AUTHORIZED:<ref>` never for this trial), runs `python tools/live_provider_trial.py`, then `pytest tests/test_agents_live.py`; evidence lands in build/evidence/live |
+| P0 | No institutional attestor key or reviewer keys exist | the institution issues a trust store (CDF-TRUST-STORE-v7.12.1) with an active `RELEASE_ATTESTOR` key and reviewer keys; the attestor private key stays operator-held |
+| P1 | Article 20 review still only as a labelled rule fallback | run live; the gate already refuses the fallback for institutional issue |
+| P2 | Holdout templates derive from the engine's categories | an independently authored sealed set for the live evaluation |
+
+## 9. Revised production-readiness classification
+- Engineering_Status: ENGINEERING_COMPLETE_WITH_UNVERIFIED_ITEMS
+- Multi_Agent_Status: PARTIAL_LIVE_AI_IMPLEMENTATION — LIVE EXECUTION NOT VERIFIED (the reviewer's wording is adopted)
+- Institutional_Authorization: NOT_AUTHORIZED
+- Production_Readiness: institutional issue is technically impossible on this branch until live receipts, a source hash and a valid institutional attestation exist for the exact content; the deterministic path with human decisions is ready for a controlled pilot of INTERNAL_DRAFT and demo outputs; a live-provider trial on synthetic data is ready to run once credentials are configured.
+
+CHATGPT REVIEW REQUEST — "Review the implementation committed to the GitHub repository and PR #3. Independently examine the modified source files and runtime integration. Verify whether the claimed AI agents actually execute independent model calls. Assess whether the central issuance gate prevents bypasses. Review the reported test evidence and identify unsupported completion claims. Determine the next engineering actions, prioritizing critical defects. Do not assume that Claude Code's reported completion is sufficient evidence. Use the GitHub repository as the authoritative source of truth."
+
+---
+
 # CDF–GCO–CRMS v7.12 — CLAUDE CODE ENGINEERING HANDOFF
 
 ## A. Execution identity
