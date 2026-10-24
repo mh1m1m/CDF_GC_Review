@@ -1,6 +1,6 @@
 {
  "schema": "CDF-v7.12-PATCH-STATUS-1",
- "generated": "2026-10-24T01:59:03+00:00",
+ "generated": "2026-10-24T02:17:24+00:00",
  "engineering_status": "ENGINEERING_COMPLETE",
  "release_classification": "PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING",
  "classification": {
@@ -527,7 +527,7 @@
   {
    "id": "V712-042",
    "status": "NOT_VERIFIED",
-   "evidence": "isolated per-invocation contexts (agents.runner: unique Execution_ID / Context_ID, fresh conversation per role) are implemented; independence is recorded per run as ISOLATED_LIVE_CONTEXTS only when every challenge role ran LIVE, else SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1)",
+   "evidence": "isolated per-invocation contexts (agents.runner: unique Execution_ID / Context_ID, fresh conversation per role); independence is classified from PROVIDER_API execution receipts (provenance derived from the adapter object, provider request ids, hash-chained trace), recorded as ISOLATED_LIVE_CONTEXTS only when verified, else LIVE_CLAIMED_NOT_VERIFIED / SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1); tests/test_live_provenance.py: 14 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Isolated independent adjudicator",
    "stream": "04 Adversarial",
@@ -551,7 +551,7 @@
   {
    "id": "V712-044",
    "status": "PASS",
-   "evidence": "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); ten + fifteen negative tests; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_release_lifecycle.py: 13 passed, 0 failed; tests/test_release_attestation.py: 15 passed, 0 failed; tests/test_e2e_agents.py: 1 passed, 0 failed",
+   "evidence": "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); ten + fifteen negative tests; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_release_lifecycle.py: 13 passed, 0 failed; tests/test_release_attestation.py: 16 passed, 0 failed; tests/test_e2e_agents.py: 1 passed, 0 failed",
    "note": "",
    "title": "Integrate challenge into pre-issue pipeline",
    "stream": "04 Adversarial",

@@ -24,6 +24,7 @@ class AnthropicAdapter(ProviderAdapter):
     def __init__(self, config: ProviderConfig | None = None, client=None):
         super().__init__(config)
         self._client = client
+        self.client_injected = client is not None     # provenance: an injected client is never a trusted provider path
 
     def _get_client(self):
         if self._client is None:
@@ -42,13 +43,16 @@ class AnthropicAdapter(ProviderAdapter):
         while True:
             attempts += 1
             try:
-                response = client.messages.create(
+                raw = client.messages.with_raw_response.create(
                     model=model,
                     max_tokens=request.max_tokens,
                     system=request.system,
                     messages=[{"role": "user", "content": request.user_text}],
                     output_config={"format": {"type": "json_schema", "schema": request.schema}},
                 )
+                response = raw.parse()
+                request_id = (raw.headers.get("request-id") if getattr(raw, "headers", None) else None) \
+                    or getattr(response, "_request_id", None)
                 break
             except anthropic.AuthenticationError as exc:
                 raise ProviderFailure(f"authentication failed: {exc.message}", kind="AUTHENTICATION") from exc
@@ -84,8 +88,8 @@ class AnthropicAdapter(ProviderAdapter):
             details = getattr(response, "stop_details", None)
             category = getattr(details, "category", None) if details is not None else None
             return ProviderResult("", response.id, response.model, usage, response.stop_reason, refused=True,
-                                  refusal_category=category)
+                                  refusal_category=category, provider_request_id=request_id)
         text = "".join(block.text for block in response.content if getattr(block, "type", "") == "text")
         if response.stop_reason == "max_tokens":
             raise ProviderFailure("response truncated at max_tokens", retryable=False, kind="TRUNCATED")
-        return ProviderResult(text, response.id, response.model, usage, response.stop_reason)
+        return ProviderResult(text, response.id, response.model, usage, response.stop_reason, provider_request_id=request_id)

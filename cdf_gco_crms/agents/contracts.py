@@ -276,6 +276,11 @@ class AgentResponse:
     error: str | None = None
     schema_errors: list[str] = field(default_factory=list)
     evidence_refs: list[str] = field(default_factory=list)
+    execution_source: str = "FAILED"            # provenance.classify_adapter: derived from the adapter object, never declared
+    provider_request_id: str | None = None      # provider-originated (HTTP request-id); None for anything not PROVIDER_API
+    system_hash: str = ""                       # sha256 of the role instructions actually sent (role-context check)
+    fingerprint: str | None = None              # review-state fingerprint the invocation served
+    run_id: str = ""
 
     @property
     def ok(self) -> bool:
@@ -283,7 +288,8 @@ class AgentResponse:
 
     @property
     def is_live(self) -> bool:
-        return self.mode == MODE_LIVE and self.status == STATUS_OK
+        """A genuine provider inference: trusted execution source and a usable result — never a declared mode."""
+        return self.execution_source == "PROVIDER_API" and self.status == STATUS_OK
 
     def to_record(self) -> dict:
         """Article 16 evidence record (sanitised: no prompt text, no payload, no credentials)."""
@@ -292,4 +298,8 @@ class AgentResponse:
                 "Invocation_ID": self.invocation_id, "Timestamp": self.timestamp, "Prompt_Hash": self.prompt_hash,
                 "Response_Hash": self.response_hash, "Token_Usage": self.token_usage.to_dict(), "Latency_ms": self.latency_ms,
                 "Execution_Status": self.status, "Evidence_References": list(self.evidence_refs),
-                "Error": self.error, "Schema_Errors": list(self.schema_errors)}
+                "Error": self.error, "Schema_Errors": list(self.schema_errors),
+                "Execution_Source": self.execution_source, "Provider_Request_ID": self.provider_request_id,
+                "System_Hash": self.system_hash, "Review_State_Fingerprint": self.fingerprint, "Run_ID": self.run_id,
+                "Provider_Originated": ["Invocation_ID", "Provider_Request_ID", "Model", "Token_Usage"],
+                "Locally_Generated": ["Execution_ID", "Context_ID", "Prompt_Hash", "Response_Hash", "Timestamp", "Latency_ms"]}

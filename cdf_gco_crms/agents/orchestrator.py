@@ -113,7 +113,7 @@ class ReviewOrchestrator:
         started = utc_now()
         run_id = new_id("RUN")
         if self.runner is not None:
-            self.runner.trace.run_id = run_id
+            self.runner.bind(run_id, state_fingerprint(state))
         # 1–3 execution record, state hash, evidence package
         registry = EvidenceRegistry()
         registry.add_document_text(document)
@@ -171,7 +171,8 @@ class ReviewOrchestrator:
                                        execution_summary={"run_id": run_id, "modes": ex.modes(), "independence": independence,
                                                           "trace": ex.trace_summary, "guards": dict(ex.guards_applied)},
                                        role_execution_proofs=ex.independence.get("proofs", []), independence=ex.independence,
-                                       trace_path=trace_path)
+                                       trace_path=trace_path,
+                                       trace_head_hash=self.runner.trace.head_hash if self.runner is not None else None)
         if attestation_key is not None:
             # Directive 4: the operator-held attestor key vouches for this record; the gate verifies it against the trust store
             key_bytes, key_id = attestation_key
@@ -303,7 +304,9 @@ class ReviewOrchestrator:
         challenge_modes = {o["mode"] for o in ex.role_outcomes if o["role"] in challenge_roles}
         trace_records = list(self.runner.trace.records) if self.runner is not None else []
         registry_ids = {e.id for e in registry.items()}
-        verification = ATT.verify_live_roles(ex.role_outcomes, trace_records, registry_ids=registry_ids)
+        verification = ATT.verify_live_roles(ex.role_outcomes, trace_records, registry_ids=registry_ids, run_id=ex.run_id,
+                                             fingerprint=ex.fingerprint, expected_head=self.runner.trace.head_hash if self.runner else None)
+        verification["execution_source"] = self.runner.execution_source if self.runner is not None else "DETERMINISTIC_RULES"
         if challenge_modes and challenge_modes <= {MODE_LIVE}:
             if verification["verified"]:
                 return (INDEPENDENCE_LIVE, ISOLATION_LIVE,
@@ -373,6 +376,8 @@ class ReviewOrchestrator:
                            "prompt_hash": ro.response.prompt_hash if ro.response else None,
                            "response_hash": ro.response.response_hash if ro.response else None,
                            "provider": ro.response.provider if ro.response else None,
+                           "execution_source": ro.response.execution_source if ro.response else "DETERMINISTIC_RULES",
+                           "provider_request_id": ro.response.provider_request_id if ro.response else None,
                            "fingerprint": ex.fingerprint,
                            "findings": len(out.get("findings", [])), "contradictions": len(out.get("contradictions", []))}
 

@@ -54,6 +54,14 @@ R_ROLE_MISSING = "REQUIRED_ROLE_NOT_EXECUTED"
 R_IDS_NOT_UNIQUE = "EXECUTION_IDS_NOT_UNIQUE"
 R_CONTEXTS_NOT_UNIQUE = "CONTEXT_IDS_NOT_UNIQUE"
 R_EVIDENCE_UNKNOWN = "EVIDENCE_REFERENCE_NOT_IN_REGISTRY"
+R_RECEIPT_SOURCE = "EXECUTION_RECEIPT_SOURCE_NOT_PROVIDER_API"
+R_RECEIPT_REQUEST_ID = "EXECUTION_RECEIPT_PROVIDER_REQUEST_ID_MISSING"
+R_RECEIPT_RUN = "EXECUTION_RECEIPT_FROM_OTHER_RUN"
+R_RECEIPT_FINGERPRINT = "EXECUTION_RECEIPT_BOUND_TO_OTHER_REVIEW_STATE"
+R_RECEIPT_SYSTEM = "EXECUTION_RECEIPT_ROLE_CONTEXT_MISMATCH"
+R_TRACE_CHAIN = "EXECUTION_TRACE_CHAIN_BROKEN"
+R_TRACE_HEAD = "EXECUTION_TRACE_HEAD_MISMATCH"
+R_PROVIDER_IDS_NOT_UNIQUE = "PROVIDER_REQUEST_IDS_NOT_UNIQUE"
 # attestation reasons
 R_ATT_SCHEMA = "ATTESTATION_SCHEMA_UNKNOWN"
 R_ATT_KEY_UNKNOWN = "ATTESTATION_KEY_UNKNOWN"
@@ -88,8 +96,20 @@ def load_trace(path) -> list[dict]:
     return out
 
 
-def receipt_problems(record: dict | None, *, role: str, response_hash: str | None = None) -> list[str]:
-    """Why a trace line is not an acceptable live execution receipt for ``role`` (empty = acceptable)."""
+def expected_system_hash(role: str) -> str:
+    from ..agents import context_builder as CB
+    from ..agents.provenance import system_hash
+    return system_hash(CB.SYSTEM[role])
+
+
+def receipt_problems(record: dict | None, *, role: str, response_hash: str | None = None, run_id: str | None = None,
+                     fingerprint: str | None = None) -> list[str]:
+    """Why a trace line is not an acceptable live execution receipt for ``role`` (empty = acceptable).
+
+    The decisive field is ``Execution_Source`` (derived by the runner from the adapter object): only PROVIDER_API
+    counts, and it must carry a provider-originated request id. A declared mode, a provider name or a
+    provider-shaped invocation id written by a fixture satisfies none of this.
+    """
     if record is None:
         return [R_RECEIPT_MISSING]
     out = []
@@ -97,6 +117,16 @@ def receipt_problems(record: dict | None, *, role: str, response_hash: str | Non
         out.append(R_RECEIPT_ROLE)
     if record.get("Mode") != "LIVE":
         out.append(R_RECEIPT_NOT_LIVE)
+    if record.get("Execution_Source") != "PROVIDER_API":
+        out.append(f"{R_RECEIPT_SOURCE}:{record.get('Execution_Source')}")
+    if not record.get("Provider_Request_ID"):
+        out.append(R_RECEIPT_REQUEST_ID)
+    if run_id and record.get("Run_ID") != run_id:
+        out.append(R_RECEIPT_RUN)
+    if fingerprint and record.get("Review_State_Fingerprint") != fingerprint:
+        out.append(R_RECEIPT_FINGERPRINT)
+    if role in CHALLENGE_ROLES + (FINAL_ROLE,) and record.get("System_Hash") != expected_system_hash(role):
+        out.append(R_RECEIPT_SYSTEM)
     if record.get("Execution_Status") != "OK":
         out.append(R_RECEIPT_NOT_OK)
     if str(record.get("Provider", "")).lower() not in KNOWN_LIVE_PROVIDERS:
@@ -120,21 +150,43 @@ def find_receipt(trace_records: list[dict], execution_id: str) -> dict | None:
 
 
 def verify_execution_receipt(trace_records: list[dict], execution_id: str | None, role: str,
-                             response_hash: str | None = None) -> list[str]:
+                             response_hash: str | None = None, run_id: str | None = None,
+                             fingerprint: str | None = None) -> list[str]:
     if not execution_id:
         return [R_RECEIPT_MISSING]
-    return receipt_problems(find_receipt(trace_records, execution_id), role=role, response_hash=response_hash)
+    return receipt_problems(find_receipt(trace_records, execution_id), role=role, response_hash=response_hash,
+                            run_id=run_id, fingerprint=fingerprint)
+
+
+def verify_trace(trace_records: list[dict], expected_head: str | None) -> list[str]:
+    """The trace must be an intact hash chain whose head is the one the gate record (and attestation) name."""
+    from ..agents.provenance import verify_chain
+    if not trace_records:
+        return [R_RECEIPT_MISSING]
+    ok, head, why = verify_chain(trace_records)
+    if not ok:
+        return [f"{R_TRACE_CHAIN}:{why}"]
+    if expected_head and head != expected_head:
+        return [R_TRACE_HEAD]
+    return []
 
 
 # ------------------------------------------------------------------ independence (Directive 3)
 def verify_live_roles(role_outcomes: list[dict], trace_records: list[dict], *, required_roles=CHALLENGE_ROLES,
-                      registry_ids: set[str] | None = None) -> dict:
-    """Independence from evidence: every required role's outcomes carry a verified live receipt, ids are unique,
-    no MOCK/CACHED/DETERMINISTIC result stands in, and cited evidence exists in the registry."""
+                      registry_ids: set[str] | None = None, run_id: str | None = None, fingerprint: str | None = None,
+                      expected_head: str | None = None) -> dict:
+    """Independence from evidence: every required role's outcomes carry a verified PROVIDER_API receipt (bound to
+    this run and review state, with the role's own instructions), ids and provider request ids are unique, no
+    MOCK / CACHED / SIMULATED / DETERMINISTIC result stands in, cited evidence exists in the registry, and the
+    trace chain is intact. Separate identifiers alone never establish independence."""
     reasons: list[str] = []
     proofs: list[dict] = []
     seen_exec: list[str] = []
     seen_ctx: list[str] = []
+    seen_req: list[str] = []
+    chain = verify_trace(trace_records, expected_head)
+    if chain:
+        reasons.extend(chain)
     present = {o.get("role") for o in role_outcomes}
     for role in required_roles:
         if role not in present:
@@ -146,24 +198,28 @@ def verify_live_roles(role_outcomes: list[dict], trace_records: list[dict], *, r
             reasons.append(f"{R_ROLE_NOT_LIVE}:{o.get('role')}:{o.get('mode')}")
             continue
         rec = find_receipt(trace_records, o.get("execution_id"))
-        problems = receipt_problems(rec, role=o["role"])
+        problems = receipt_problems(rec, role=o["role"], run_id=run_id, fingerprint=fingerprint)
         if problems:
             reasons.extend(f"{p}:{o.get('execution_id')}" for p in problems)
             continue
         seen_exec.append(o["execution_id"])
         seen_ctx.append(rec.get("Context_ID"))
+        seen_req.append(rec.get("Provider_Request_ID"))
         if registry_ids is not None:
             unknown = [r for r in rec.get("Evidence_References", []) if r not in registry_ids]
             if unknown:
                 reasons.append(f"{R_EVIDENCE_UNKNOWN}:{o['execution_id']}:{len(unknown)}")
         proofs.append({"role": o["role"], "execution_id": o["execution_id"], "context_id": rec.get("Context_ID"),
-                       "invocation_id": rec.get("Invocation_ID"), "provider": rec.get("Provider"), "model": rec.get("Model"),
+                       "invocation_id": rec.get("Invocation_ID"), "provider_request_id": rec.get("Provider_Request_ID"),
+                       "execution_source": rec.get("Execution_Source"), "provider": rec.get("Provider"), "model": rec.get("Model"),
                        "prompt_hash": rec.get("Prompt_Hash"), "response_hash": rec.get("Response_Hash"),
                        "observation_id": o.get("observation_id"), "challenge_id": o.get("challenge_id")})
     if len(seen_exec) != len(set(seen_exec)):
         reasons.append(R_IDS_NOT_UNIQUE)
     if len(seen_ctx) != len(set(seen_ctx)):
         reasons.append(R_CONTEXTS_NOT_UNIQUE)
+    if len(seen_req) != len(set(seen_req)):
+        reasons.append(R_PROVIDER_IDS_NOT_UNIQUE)
     return {"verified": not reasons and bool(proofs), "reasons": sorted(set(reasons)), "proofs": proofs,
             "live_executions": len(proofs)}
 
@@ -188,6 +244,9 @@ def build_payload(gate_record: dict, *, purpose: str, now: dt.datetime | None = 
             "challenge_record_sha256": gate_record.get("challenge_record_sha256"),
             "role_proofs_digest": _proof_digest(gate_record.get("role_execution_proofs") or []),
             "role_proofs_count": len(gate_record.get("role_execution_proofs") or []),
+            "trace_head_hash": gate_record.get("trace_head_hash"),
+            "live_executions": (gate_record.get("independence") or {}).get("live_executions", 0),
+            "note": "an attestation authenticates the record; it does not make unverified execution claims true",
             "final_review": {k: fr.get(k) for k in ("execution_id", "response_hash", "recommendation", "mode", "fingerprint")},
             "human_decision_ids": sorted(d.get("decision_id", "") for d in gate_record.get("human_decisions") or []),
             "run_id": (gate_record.get("execution_summary") or {}).get("run_id"),
@@ -270,6 +329,8 @@ def verify(att: dict | ReleaseAttestation | None, trust_store: TrustStore | None
             reasons.append(R_ATT_PROOFS)
         if sorted(p.get("human_decision_ids") or []) != sorted(d.get("decision_id", "") for d in gate_record.get("human_decisions") or []):
             reasons.append(R_ATT_DECISIONS)
+        if p.get("trace_head_hash") != gate_record.get("trace_head_hash"):
+            reasons.append(R_TRACE_HEAD)
     return sorted(set(reasons))
 
 

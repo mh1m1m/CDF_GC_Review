@@ -27,6 +27,7 @@ Last update 2026-10-23T17:07:45+00:00 (UTC).
   INTERNAL_DRAFT__ naming unified with PR #2; --internal-draft ≡ --working-copy; --trust-store on issuing commands.
 - Tests: TEST 35–39 added; live tests skip without a provider. No live inference executed in this environment.
 - PR #3 review remediation: live final-review receipts, mandatory source hash, receipt-based independence, signed release attestation (release/attestation.py; tests/test_release_attestation.py, 15 tests); tools/live_provider_trial.py.
+- Live-inference provenance: execution source derived from the adapter object, provider request ids, hash-chained traces, receipt binding (agents/provenance.py; tests/test_live_provenance.py, 14 tests). Live inference count still 0.
 - Resume: `git fetch origin feature/v712-live-multi-agent-runtime`; `python -m pytest tests qa_public -q`; to run live layers set
   CDF_AI_PROVIDER=anthropic and a credential (operator-held), then `python -m pytest tests/test_agents_live.py -q` and
   `python main.py evaluate-holdout --json build/holdout-live.json`.

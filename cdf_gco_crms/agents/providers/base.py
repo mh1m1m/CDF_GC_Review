@@ -43,6 +43,7 @@ class ProviderResult:
     stop_reason: str | None = None
     refused: bool = False
     refusal_category: str | None = None
+    provider_request_id: str | None = None     # the provider's HTTP request id (reconcilable with provider-side logs)
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ class ProviderAdapter:
     """Base class. ``mode`` is fixed per adapter class and reported on every response."""
     name: str = "base"
     mode: str = MODE_MOCK
+    client_injected: bool = False               # True when a test harness supplied the client: never PROVIDER_API
 
     def __init__(self, config: ProviderConfig | None = None):
         self.config = config or ProviderConfig()

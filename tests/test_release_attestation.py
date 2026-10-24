@@ -48,9 +48,34 @@ FINAL_READY = {"release_recommendation": "READY", "findings": [], "unresolved_cr
                "jurisdiction_consistent": True, "unsupported_or_excessive": [], "summary": "ok"}
 
 
+class TrustedTestAdapter(MockAdapter):
+    """Stands in for the registered provider class ONLY while a test monkeypatches
+    ``provenance.trusted_live_adapter_types`` (the ``trusted`` fixture). Scripted JSON with provider-originated-
+    looking ids (message id, request id). Production code never registers it; it is not a live inference."""
+    name = "anthropic"
+    mode = C.MODE_LIVE
+
+    def __init__(self, script):
+        super().__init__(ProviderConfig(provider="anthropic", model="claude-opus-5-5-test",
+                                        data_authorization="INSTITUTIONAL_AUTHORIZED:TEST-SIMULATION"), script=script)
+
+    def complete(self, request):
+        res = super().complete(request)
+        return ProviderResult(res.text, f"msg_t{self._n:06d}", self.model, res.usage, res.stop_reason, refused=res.refused,
+                              refusal_category=res.refusal_category, provider_request_id=f"req_t{self._n:06d}")
+
+
+@pytest.fixture
+def trusted(monkeypatch):
+    from cdf_gco_crms.agents import provenance as PV
+    monkeypatch.setattr(PV, "trusted_live_adapter_types", lambda: (TrustedTestAdapter,))
+    return TrustedTestAdapter
+
+
 class SimulatedLiveAdapter(MockAdapter):
-    """Scripted responses with the provenance shape of a real live deployment (mode LIVE, provider 'anthropic',
-    'msg_' invocation ids). NOT a live inference: used to exercise receipt verification only."""
+    """Scripted responses that *declare* the shape of a live deployment (mode LIVE, provider 'anthropic', 'msg_'
+    invocation ids) without being the registered adapter: the provenance layer classifies it SIMULATED_LIVE and
+    nothing it produces counts as live inference (tests/test_live_provenance.py)."""
     name = "anthropic"
     mode = C.MODE_LIVE
 
@@ -110,10 +135,9 @@ class Attestor:
         return (self.raw, self.key_id)
 
 
-def _institutional_run(tmp_path, *, adapter=None, attestor=None, demo=False, gate="gate"):
+def _institutional_run(tmp_path, *, adapter, attestor=None, demo=False, gate="gate"):
     st = _state(demo=demo)
     docx = build_reviewed_doc(st, tmp_path / "case.docx")
-    adapter = adapter or SimulatedLiveAdapter(_script())
     runner = AgentRunner(adapter, TraceWriter(tmp_path / f"{gate}-trace.jsonl"))
     ex = ReviewOrchestrator(synthetic_reference_index(), runner=runner, gate_dir=tmp_path / gate).execute(
         st, docx, now=NOW, attestation_key=attestor.key if attestor else None)
@@ -126,21 +150,28 @@ def _authorize(st, docx, tmp_path, store, *, gate="gate", now=NOW, source=True):
 
 
 # ================================================================== the positive institutional path
-def test_institutional_issue_clears_only_with_live_receipts_source_hash_and_attestation(tmp_path):
+def test_institutional_issue_clears_only_with_live_receipts_source_hash_and_attestation(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     assert ex.status == "CLEAR" and ex.record.independence == INDEPENDENCE_LIVE and ex.independence["verified"]
-    assert ex.final_review["mode"] == "LIVE" and ex.attestation and ex.gate_record["purpose"] == G.PURPOSE_INSTITUTIONAL
+    assert ex.final_review["mode"] == "LIVE" and ex.final_review["execution_source"] == "PROVIDER_API"
+    assert ex.attestation and ex.gate_record["purpose"] == G.PURPOSE_INSTITUTIONAL
     # a SYNTHETIC reference index still blocks a non-demo document: the remaining reason must be exactly that one
     auth = _authorize(st, docx, tmp_path, att.store())
     assert auth.reasons == [G.R_SYNTHETIC], auth.reasons
-    # the simulated receipts never count as live inference in the trace summary of a real provider? they are MOCK-scripted:
-    # the adapter is explicit about it — the trace reports provider 'anthropic' mode LIVE because the adapter simulates one.
-    assert ex.trace_summary["actual_live_inference_count"] == len(ex.role_outcomes), "simulated receipts look live; the attestation key is what an operator controls"
+
+
+def test_simulated_live_adapter_never_clears_an_institutional_issue(tmp_path):
+    att = Attestor()
+    st, docx, ex = _institutional_run(tmp_path, adapter=SimulatedLiveAdapter(_script()), attestor=att)
+    assert ex.trace_summary["actual_live_inference_count"] == 0 and ex.trace_summary["simulated_live_count"] == len(ex.role_outcomes)
+    assert not ex.independence["verified"] and ex.record.independence != INDEPENDENCE_LIVE
+    r = _authorize(st, docx, tmp_path, att.store()).reasons
+    assert any(x.startswith(G.R_FINAL_REVIEW_NOT_LIVE) for x in r) and any(x.startswith(G.R_INDEPENDENCE_NOT_VERIFIED) for x in r)
 
 
 def test_demo_document_keeps_the_previous_rules(tmp_path):
-    st, docx, ex = _institutional_run(tmp_path, demo=True, adapter=AgentRunner and MockAdapter(script=_script()))
+    st, docx, ex = _institutional_run(tmp_path, demo=True, adapter=MockAdapter(script=_script()))
     assert ex.record.independence == INDEPENDENCE_MOCK
     assert G.authorize(st, tmp_path / "gate").ok, "a demo document needs no live receipt, source hash or attestation"
 
@@ -178,17 +209,17 @@ def test_d1_forged_live_metadata_without_receipt_is_refused(tmp_path):
     assert any(r.startswith(G.R_ATTESTATION_INVALID) for r in reasons), "the attestation no longer matches the edited record"
 
 
-def test_d1_missing_execution_receipt_is_refused(tmp_path):
+def test_d1_missing_execution_receipt_is_refused(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     Path(ex.gate_record["trace_path"]).unlink()              # the receipt file is gone
     reasons = _authorize(st, docx, tmp_path, att.store()).reasons
     assert any(r.startswith(G.R_FINAL_REVIEW_RECEIPT) and ATT.R_RECEIPT_MISSING in r for r in reasons)
 
 
-def test_d1_final_review_bound_to_another_review_state_is_refused(tmp_path):
+def test_d1_final_review_bound_to_another_review_state_is_refused(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     p = G.gate_record_path(ex.fingerprint, tmp_path / "gate")
     rec = json.loads(p.read_text(encoding="utf-8"))
     rec["final_review"]["fingerprint"] = "0" * 64
@@ -199,7 +230,7 @@ def test_d1_final_review_bound_to_another_review_state_is_refused(tmp_path):
 
 def test_d1_failed_or_refused_final_review_inference_is_refused(tmp_path):
     for kind in ("fail", "refuse"):
-        adapter = SimulatedLiveAdapter(_script())
+        adapter = SimulatedLiveAdapter(_script())      # failure/refusal paths need no trusted provenance
         (adapter.fail_roles if kind == "fail" else adapter.refuse_roles).add(C.ROLE_FINAL)
         att = Attestor()
         st, docx, ex = _institutional_run(tmp_path, adapter=adapter, attestor=att, gate=f"gate-{kind}")
@@ -209,9 +240,9 @@ def test_d1_failed_or_refused_final_review_inference_is_refused(tmp_path):
 
 
 # ================================================================== Directive 2 — mandatory source binding
-def test_d2_omitting_the_source_hash_cannot_bypass_the_binding(tmp_path):
+def test_d2_omitting_the_source_hash_cannot_bypass_the_binding(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     reasons = _authorize(st, docx, tmp_path, att.store(), source=False).reasons
     assert G.R_SOURCE_DOCUMENT_REQUIRED in reasons
     other = build_reviewed_doc(st, tmp_path / "other.docx", omit=(st.ordered()[0].internal_id,))   # a different document version
@@ -244,7 +275,7 @@ def test_d2_cli_issue_requires_the_reviewed_document(tmp_path, capsys):
 
 
 # ================================================================== Directive 3 — independence from receipts
-def test_d3_independence_requires_receipts_not_labels(tmp_path):
+def test_d3_independence_requires_receipts_not_labels(tmp_path, trusted):
     st, docx, ex = _institutional_run(tmp_path, adapter=MockAdapter(script=_script()))
     assert ex.record.independence == INDEPENDENCE_MOCK and not ex.independence["verified"]
     # a run that labels its outcomes LIVE but whose trace holds MOCK receipts is LIVE_CLAIMED_NOT_VERIFIED
@@ -255,15 +286,16 @@ def test_d3_independence_requires_receipts_not_labels(tmp_path):
     v2 = ATT.verify_live_roles(forged, trace)
     assert not v2["verified"] and any(ATT.R_RECEIPT_NOT_LIVE in r for r in v2["reasons"])
     # duplicate execution ids are refused even when every receipt verifies
-    st2, docx2, ex2 = _institutional_run(tmp_path, gate="gate2")
+    st2, docx2, ex2 = _institutional_run(tmp_path, adapter=trusted(_script()), gate="gate2")
     trace2 = ATT.load_trace(ex2.gate_record["trace_path"])
+    kw = dict(run_id=ex2.run_id, fingerprint=ex2.fingerprint)
     dup = ex2.role_outcomes + [dict(ex2.role_outcomes[0])]
-    assert ATT.R_IDS_NOT_UNIQUE in ATT.verify_live_roles(dup, trace2)["reasons"]
+    assert ATT.R_IDS_NOT_UNIQUE in ATT.verify_live_roles(dup, trace2, **kw)["reasons"]
     # a missing required role is refused
     only_black = [o for o in ex2.role_outcomes if o["role"] == "BLACK_TEAM"]
-    assert any(r.startswith(ATT.R_ROLE_MISSING) for r in ATT.verify_live_roles(only_black, trace2)["reasons"])
+    assert any(r.startswith(ATT.R_ROLE_MISSING) for r in ATT.verify_live_roles(only_black, trace2, **kw)["reasons"])
     # evidence ids outside the registry are refused
-    assert any(r.startswith(ATT.R_EVIDENCE_UNKNOWN) for r in ATT.verify_live_roles(ex2.role_outcomes, trace2, registry_ids=set())["reasons"])
+    assert any(r.startswith(ATT.R_EVIDENCE_UNKNOWN) for r in ATT.verify_live_roles(ex2.role_outcomes, trace2, registry_ids=set(), **kw)["reasons"])
     assert ex2.record.independence == INDEPENDENCE_LIVE and ex2.independence["verified"]
 
 
@@ -276,9 +308,9 @@ def test_d3_mixed_substitution_is_not_independent(tmp_path):
 
 
 # ================================================================== Directive 4 — release attestation
-def test_d4_attestation_rejections(tmp_path):
+def test_d4_attestation_rejections(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     gate = tmp_path / "gate"
     ok_reasons = _authorize(st, docx, tmp_path, att.store()).reasons
     assert ok_reasons == [G.R_SYNTHETIC]
@@ -296,7 +328,7 @@ def test_d4_attestation_rejections(tmp_path):
     assert any(ATT.R_ATT_KEY_INACTIVE in x for x in r)
     # synthetic attestor key never for institutional
     syn = Attestor("SYNTHETIC_ATTESTOR", synthetic=True)
-    st_s, docx_s, ex_s = _institutional_run(tmp_path, attestor=syn, gate="gate-syn")
+    st_s, docx_s, ex_s = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=syn, gate="gate-syn")
     r = G.authorize(st_s, tmp_path / "gate-syn", trust_store=syn.store(), now=NOW, source_document_sha256=G.sha256_file(docx_s)).reasons
     assert any(ATT.R_ATT_KEY_SYNTHETIC in x for x in r)
     # expired
@@ -310,25 +342,25 @@ def test_d4_attestation_rejections(tmp_path):
     r = _authorize(st, docx, tmp_path, att.store()).reasons
     assert any(ATT.R_ATT_SIGNATURE in x for x in r)
     # replayed for other content: the attestation of this run attached to another run's record
-    st2, docx2, ex2 = _institutional_run(tmp_path, attestor=None, gate="gate2")
+    st2, docx2, ex2 = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=None, gate="gate2")
     G.attach_attestation(ex2.fingerprint, ex.attestation, tmp_path / "gate2")
     r = G.authorize(st2, tmp_path / "gate2", trust_store=att.store(), now=NOW, source_document_sha256=G.sha256_file(docx2)).reasons
     assert any(ATT.R_ATT_RECORD in x or ATT.R_ATT_FINGERPRINT in x or ATT.R_ATT_FINAL_REVIEW in x for x in r)
     # a demo-purpose attestation presented for an institutional issue
-    st3, docx3, ex3 = _institutional_run(tmp_path, attestor=att, demo=True, gate="gate3")
+    st3, docx3, ex3 = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att, demo=True, gate="gate3")
     assert ex3.attestation["payload"]["purpose"] == ATT.PURPOSE_DEMO
     r = G.authorize(st3, tmp_path / "gate3", trust_store=att.store(), now=NOW, source_document_sha256=G.sha256_file(docx3),
                     purpose=G.PURPOSE_INSTITUTIONAL).reasons
     assert any(ATT.R_ATT_PURPOSE in x for x in r)
     # no self-granted authority: a record written without any attestation key
-    st4, docx4, ex4 = _institutional_run(tmp_path, gate="gate4")
+    st4, docx4, ex4 = _institutional_run(tmp_path, adapter=trusted(_script()), gate="gate4")
     assert G.R_ATTESTATION_MISSING in G.authorize(st4, tmp_path / "gate4", trust_store=att.store(), now=NOW,
                                                   source_document_sha256=G.sha256_file(docx4)).reasons
 
 
-def test_d4_attestation_binds_human_decisions_and_proofs(tmp_path):
+def test_d4_attestation_binds_human_decisions_and_proofs(tmp_path, trusted):
     att = Attestor()
-    st, docx, ex = _institutional_run(tmp_path, attestor=att)
+    st, docx, ex = _institutional_run(tmp_path, adapter=trusted(_script()), attestor=att)
     p = G.gate_record_path(ex.fingerprint, tmp_path / "gate")
     rec = json.loads(p.read_text(encoding="utf-8"))
     rec["human_decisions"] = [{"decision_id": "D-FAKE", "signing_key_id": "x", "observation_id": "y"}]

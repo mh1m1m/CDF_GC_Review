@@ -117,6 +117,7 @@ def build_rows() -> list[dict]:
     bl_t = tests_ok(T, "test_blind_evaluation")
     e2a_t = tests_ok(T, "test_e2e_agents")
     at_t = tests_ok(T, "test_release_attestation")
+    pv_t = tests_ok(T, "test_live_provenance")
     live_t = T.get("test_agents_live") or {}
     live_ran = bool(live_t.get("pass")) and live_t.get("fail", 0) == 0
     global LIVE_RAN
@@ -225,9 +226,10 @@ def build_rows() -> list[dict]:
                   f"release.dispositions.apply_dispositions with a verified human decision (ledger, rollback); {lc_t[1]}",
                   "" if live_ran else EXT["live agents"]))
     rows.append(R("V712-041", S(ch_t[0] and as_t[0]), f"six productive cycles per objection, paraphrase duplicate prevention, append-only hash chain; {as_t[1]}"))
-    rows.append(R("V712-042", "PASS" if live_ran else "NOT_VERIFIED", "isolated per-invocation contexts (agents.runner: unique Execution_ID / "
-                  "Context_ID, fresh conversation per role) are implemented; independence is recorded per run as ISOLATED_LIVE_CONTEXTS only when "
-                  "every challenge role ran LIVE, else SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1)",
+    rows.append(R("V712-042", "PASS" if (live_ran and pv_t[0]) else "NOT_VERIFIED", "isolated per-invocation contexts (agents.runner: unique Execution_ID / "
+                  "Context_ID, fresh conversation per role); independence is classified from PROVIDER_API execution receipts (provenance derived from the "
+                  "adapter object, provider request ids, hash-chained trace), recorded as ISOLATED_LIVE_CONTEXTS only when verified, else "
+                  f"LIVE_CLAIMED_NOT_VERIFIED / SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1); {pv_t[1]}",
                   "" if live_ran else EXT["live agents"]))
     rows.append(R("V712-043", S(ttl_t[0] and as_t[0]), "TitleEvidence / HumanDecision: reviewer, timestamp, decision reference, verification status; "
                   "a boolean is refused (finalize-titles, check_decision_record)"))

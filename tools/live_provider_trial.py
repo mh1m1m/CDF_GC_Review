@@ -78,7 +78,10 @@ def stage_connectivity(report: dict, out: Path) -> AgentRunner | None:
                       {"label": "SYNTHETIC_TEST_CASE", "observation": {"comment": "probe"}, "evidence": []}, max_tokens=512)
     rec = resp.to_record()
     report["connectivity"] = {k: rec[k] for k in ("Execution_ID", "Context_ID", "Provider", "Model", "Mode", "Invocation_ID",
-                                                  "Execution_Status", "Token_Usage", "Latency_ms", "Error")}
+                                                  "Execution_Source", "Provider_Request_ID", "Execution_Status", "Token_Usage",
+                                                  "Latency_ms", "Error")}
+    if resp.status == C.STATUS_OK and (rec["Execution_Source"] != "PROVIDER_API" or not rec["Provider_Request_ID"]):
+        report["connectivity"]["warning"] = "response is not a trusted PROVIDER_API receipt with a provider request id; receipts will not verify"
     if resp.status != C.STATUS_OK:
         kind = (resp.error or "").split(":")[0]
         nxt = {"AUTHENTICATION": "provide a credential (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN / `ant auth login`)",

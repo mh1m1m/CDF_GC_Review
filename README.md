@@ -98,6 +98,28 @@ institutional trust store, never in the repository.
 Live-provider trial (public-safe, synthetic only): `python tools/live_provider_trial.py` — stops at the first
 blocked stage (configuration → connectivity → evaluation) and prints the exact reason and next action.
 
+### Live-inference provenance (what counts as a live call)
+
+`cdf_gco_crms/agents/provenance.py` derives an **execution source** from the adapter object the runtime was built
+with, never from a declared mode or a self-reported provider name:
+
+| Source | Meaning | Counts as live inference |
+|---|---|---|
+| `PROVIDER_API` | the registered Anthropic adapter class, built from configuration, with a provider-originated request id | yes (status OK) |
+| `PROVIDER_API_UNTRUSTED_CLIENT` | the registered class with an injected client (test harness) | no |
+| `SIMULATED_LIVE` | any other adapter that declares `mode=LIVE` (test fixtures that imitate a provider) | no |
+| `MOCK_SCRIPT`, `CACHED_REPLAY`, `DETERMINISTIC_RULES`, `FAILED` | scripted, replayed, rules, no usable result | no |
+
+Every trace line is hash-chained (`prev_hash` / `line_hash`); the chain head is stored in the gate record and
+signed into the attestation. Each line separates **provider-originated** evidence (`Invocation_ID` = provider
+message id, `Provider_Request_ID` = HTTP request id reconcilable with the provider's logs, server-echoed model and
+usage) from **locally generated** telemetry (Execution_ID, Context_ID, hashes, timestamps), and is bound to the
+run, the review-state fingerprint and the hash of the role's own instructions. A receipt verifies only when it is
+`PROVIDER_API`, carries a request id, belongs to this run and fingerprint, and the chain is intact
+(`tests/test_live_provenance.py`). `actual_live_inference_count` counts `PROVIDER_API` + OK only; simulated,
+cached and mock calls are counted separately. A valid attestor signature authenticates the record; it never
+turns unverified execution claims into verified ones.
+
 ## Build and evidence tools
 
     python tools/build_deliverables.py         # stages: demo migration verify render gates tests registers references results protocol decisions

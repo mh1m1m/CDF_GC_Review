@@ -129,7 +129,7 @@ def record_review(state: ReviewState, record, record_path, *, reference_mode: st
                   final_review: dict | None = None, human_decisions: list[dict] | None = None,
                   source_document_sha256: str | None = None, execution_summary: dict | None = None,
                   role_execution_proofs: list[dict] | None = None, independence: dict | None = None,
-                  trace_path: str | None = None, attestation: dict | None = None) -> dict:
+                  trace_path: str | None = None, attestation: dict | None = None, trace_head_hash: str | None = None) -> dict:
     """Write the gate record of a challenge run for the content of ``state`` (overwrites the previous one).
 
     ``final_review`` is ``{"recommendation": READY|NOT_READY|READY_WITH_CONDITIONS, "mode": LIVE|DETERMINISTIC|...,
@@ -154,7 +154,7 @@ def record_review(state: ReviewState, record, record_path, *, reference_mode: st
         "execution_summary": execution_summary,
         "role_execution_proofs": list(role_execution_proofs or []),
         "independence": independence or {"verified": False, "reasons": ["NOT_EVALUATED"], "live_executions": 0},
-        "trace_path": trace_path, "attestation": attestation,
+        "trace_path": trace_path, "trace_head_hash": trace_head_hash, "attestation": attestation,
         "purpose": PURPOSE_DEMO if state.document.is_demo else PURPOSE_INSTITUTIONAL,
         "challenge_record": str(record_path), "challenge_record_sha256": sha256_file(record_path),
         "recorded_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
@@ -231,10 +231,12 @@ def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR, *, trust_store=None
             reasons.append(f"{R_FINAL_REVIEW_NOT_READY}:{fr.get('recommendation')}")
         elif institutional:
             # Directive 1: the receipt, not the label, proves a live Article 20 review of exactly this content
-            if fr.get("mode") != "LIVE":
-                reasons.append(f"{R_FINAL_REVIEW_NOT_LIVE}:{fr.get('mode')}")
-            problems = ATT.verify_execution_receipt(ATT.load_trace(rec.get("trace_path")), fr.get("execution_id"), ATT.FINAL_ROLE,
-                                                    fr.get("response_hash"))
+            if fr.get("mode") != "LIVE" or fr.get("execution_source") != "PROVIDER_API":
+                reasons.append(f"{R_FINAL_REVIEW_NOT_LIVE}:{fr.get('mode')}/{fr.get('execution_source')}")
+            trace = ATT.load_trace(rec.get("trace_path"))
+            problems = ATT.verify_trace(trace, rec.get("trace_head_hash")) + \
+                ATT.verify_execution_receipt(trace, fr.get("execution_id"), ATT.FINAL_ROLE, fr.get("response_hash"),
+                                             run_id=(rec.get("execution_summary") or {}).get("run_id"), fingerprint=fp)
             if problems:
                 reasons.append(f"{R_FINAL_REVIEW_RECEIPT}:{'|'.join(problems)}")
             if fr.get("fingerprint") != fp:

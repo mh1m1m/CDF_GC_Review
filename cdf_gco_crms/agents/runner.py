@@ -15,6 +15,7 @@ from .contracts import (
     MODE_DETERMINISTIC, SCHEMAS, STATUS_OK, STATUS_PROVIDER_FAILURE, STATUS_REFUSED, STATUS_SCHEMA_INVALID,
     AgentRequest, AgentResponse, TokenUsage, canonical_json, new_id, sha256_text, validate,
 )
+from . import provenance as PV
 from .providers.base import ProviderAdapter, ProviderFailure
 from .security import assert_context_isolated, assert_transmission_allowed
 from .tracing import TraceWriter, utc_now
@@ -25,10 +26,31 @@ class AgentRunner:
         self.provider = provider
         self.trace = trace or TraceWriter()
         self.max_attempts = max(1, max_attempts)
+        self.execution_source = PV.classify_adapter(provider)     # derived once from the object, never from a label
+        self.run_id = self.trace.run_id
+        self.fingerprint: str | None = None
 
     @property
     def available(self) -> bool:
         return self.provider is not None
+
+    @property
+    def trusted_live(self) -> bool:
+        return self.execution_source == PV.SOURCE_PROVIDER_API
+
+    def bind(self, run_id: str, fingerprint: str | None) -> None:
+        """Bind every following invocation to a run and the review-state fingerprint it serves."""
+        self.run_id = run_id
+        self.trace.run_id = run_id
+        self.fingerprint = fingerprint
+
+    def _stamp(self, resp: AgentResponse, request: AgentRequest, *, provider_request_id=None, failed=False) -> AgentResponse:
+        resp.execution_source = PV.SOURCE_FAILED if failed else self.execution_source
+        resp.provider_request_id = provider_request_id if self.execution_source == PV.SOURCE_PROVIDER_API else None
+        resp.system_hash = PV.system_hash(request.system)
+        resp.fingerprint = self.fingerprint
+        resp.run_id = self.run_id
+        return resp
 
     def run(self, role: str, system: str, payload: dict, *, schema: dict | None = None, max_tokens: int = 4096,
             agent_id: str | None = None, model: str | None = None, **trace_extra) -> AgentResponse:
@@ -38,7 +60,7 @@ class AgentRunner:
                                agent_id=agent_id or f"AGENT-{role}", max_tokens=max_tokens, model=model)
         execution_id = new_id("EXEC")
         if self.provider is None:
-            resp = self._failure(request, execution_id, "no provider configured", "none", "none", MODE_DETERMINISTIC)
+            resp = self._stamp(self._failure(request, execution_id, "no provider configured", "none", "none", MODE_DETERMINISTIC), request, failed=True)
             self.trace.record(resp, **trace_extra)
             return resp
         assert_transmission_allowed(payload, self.provider)
@@ -51,8 +73,9 @@ class AgentRunner:
                 last_error = f"{exc.kind}: {exc}"
                 if exc.retryable and attempt < self.max_attempts:
                     continue
-                resp = self._failure(request, execution_id, last_error, self.provider.name, self.provider.model,
-                                     self.provider.mode, latency_ms=int((time.perf_counter() - started) * 1000))
+                resp = self._stamp(self._failure(request, execution_id, last_error, self.provider.name, self.provider.model,
+                                                 self.provider.mode, latency_ms=int((time.perf_counter() - started) * 1000)),
+                                   request, failed=True)
                 self.trace.record(resp, attempts=attempt, **trace_extra)
                 return resp
             latency = int((time.perf_counter() - started) * 1000)
@@ -61,6 +84,7 @@ class AgentRunner:
                                      self.provider.name, result.model, STATUS_REFUSED, None, request.prompt_hash,
                                      sha256_text(""), result.invocation_id, utc_now(), latency, result.usage,
                                      error=f"provider refusal: {result.refusal_category}")
+                self._stamp(resp, request, provider_request_id=result.provider_request_id, failed=True)
                 self.trace.record(resp, attempts=attempt, **trace_extra)
                 return resp
             output, errors = _parse(result.text, schema)
@@ -70,10 +94,11 @@ class AgentRunner:
                                  request.prompt_hash, sha256_text(result.text), result.invocation_id, utc_now(), latency,
                                  result.usage, error=None if not errors else "schema validation failed",
                                  schema_errors=errors, evidence_refs=_evidence_refs(output) if output else [])
+            self._stamp(resp, request, provider_request_id=result.provider_request_id, failed=bool(errors))
             self.trace.record(resp, attempts=attempt, **trace_extra)
             return resp
-        resp = self._failure(request, execution_id, last_error or "exhausted", self.provider.name, self.provider.model,
-                             self.provider.mode)
+        resp = self._stamp(self._failure(request, execution_id, last_error or "exhausted", self.provider.name, self.provider.model,
+                                         self.provider.mode), request, failed=True)
         self.trace.record(resp, **trace_extra)
         return resp
 
