@@ -266,6 +266,11 @@ def test_apply_dispositions_requires_authorised_decision_and_keeps_history(tmp_p
     assert len(res1.rejected) == 2 and not res1.changed
     # (c) an authorised UPHELD_WITH_REVISION applies the recorded revision to a copy, with ledger and provenance
     d = s.decision(target.internal_id, "UPHELD_WITH_REVISION", fingerprint=ex.fingerprint)
+    from cdf_gco_crms.release.dispositions import revision_digest
+    obj = next(o for e in ex.record.entries for o in e.objections if e.internal_id == target.internal_id)
+    d = replace(d, challenge_id=obj.challenge_id,
+                revision_sha256=revision_digest(obj.challenge_id, obj.advocacy.get("revised_comment"), obj.advocacy.get("revised_quote")))
+    d = replace(d, signature_b64=base64.b64encode(s.priv.sign(d.signature_payload())).decode())
     ledger = tmp_path / "ledger.jsonl"
     res = apply_dispositions(st, ex.record, [d], s.store(), expected_fingerprint=ex.fingerprint, now=NOW, ledger_path=ledger)
     assert res.applied and res.changed and res.conflicts == []

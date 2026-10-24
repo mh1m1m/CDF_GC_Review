@@ -299,6 +299,14 @@ def verify(att: dict | ReleaseAttestation | None, trust_store: TrustStore | None
             reasons.append(R_ATT_KEY_NOT_ATTESTOR)
         if entry.status != STATUS_ACTIVE:
             reasons.append(f"{R_ATT_KEY_INACTIVE}:{entry.status}")
+        key_from, key_until = parse_iso(entry.valid_from), parse_iso(entry.valid_until)
+        if ((entry.valid_from and key_from is None) or (entry.valid_until and key_until is None)
+                or (key_from and key_until and key_from > key_until)):
+            reasons.append("ATTESTATION_KEY_VALIDITY_INVALID")
+        if key_from and now < key_from:
+            reasons.append("ATTESTATION_KEY_NOT_YET_VALID")
+        if key_until and now > key_until:
+            reasons.append("ATTESTATION_KEY_EXPIRED")
         if entry.is_synthetic and purpose == PURPOSE_INSTITUTIONAL:
             reasons.append(R_ATT_KEY_SYNTHETIC)
         try:

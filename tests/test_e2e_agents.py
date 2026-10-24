@@ -101,6 +101,10 @@ def test_e2e_unseen_document_through_agents_decision_gate_and_artifacts(tmp_path
     store = T.TrustStore(); store.keys["SYNTHETIC_TEST_KEY"] = T.KeyEntry("SYNTHETIC_TEST_KEY", pub, roles=("GCO reviewer",), synthetic=True)
     d = HumanDecision("D-1", target.internal_id, "UPHELD_WITH_REVISION", "م. مراجع (تجريبي)", "GCO reviewer", "DEC-1",
                       dt.datetime.now(dt.timezone.utc).isoformat(), "E-1", "VERIFIED_HUMAN_RECORD", "SYNTHETIC_TEST_KEY", "", ex.fingerprint, "")
+    from cdf_gco_crms.release.dispositions import revision_digest
+    obj = next(o for e in ex.record.entries for o in e.objections if e.internal_id == target.internal_id)
+    d = replace(d, challenge_id=obj.challenge_id,
+                revision_sha256=revision_digest(obj.challenge_id, obj.advocacy.get("revised_comment"), obj.advocacy.get("revised_quote")))
     d = replace(d, signature_b64=base64.b64encode(priv.sign(d.signature_payload())).decode())
     from cdf_gco_crms.release.dispositions import apply_dispositions
     res = apply_dispositions(st, ex.record, [d], store, expected_fingerprint=ex.fingerprint, ledger_path=gate / "ledger.jsonl")

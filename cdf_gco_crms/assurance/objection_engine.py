@@ -102,12 +102,19 @@ class HumanDecision:
     review_state_fingerprint: str = ""     # binds the decision to the exact reviewed content (release gate, 13.3)
     valid_until: str = ""                  # ISO expiry; default validity window applies when empty (trust.py)
 
+    revision_sha256: str = ""               # exact replacement proposal, signed for text-changing decisions
+    challenge_id: str = ""                  # identifies the approved objection
+
     def signature_payload(self) -> bytes:
         body = {"decision_id": self.decision_id, "observation_id": self.observation_id, "decision": self.decision,
                 "reviewer": self.reviewer, "role": self.role, "reference": self.reference,
                 "timestamp": self.timestamp, "evidence_ref": self.evidence_ref}
         if self.review_state_fingerprint:          # signed when present, so a bound decision cannot be re-targeted
             body["review_state_fingerprint"] = self.review_state_fingerprint
+        if self.revision_sha256:
+            body["revision_sha256"] = self.revision_sha256
+        if self.challenge_id:
+            body["challenge_id"] = self.challenge_id
         if self.valid_until:
             body["valid_until"] = self.valid_until
         return json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()

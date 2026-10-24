@@ -50,6 +50,13 @@ class ApplyResult:
                 "ledger_entries": len(self.ledger_entries)}
 
 
+def revision_digest(challenge_id: str, revised_comment, revised_quote) -> str:
+    """Digest the exact proposal a human must sign; null and empty stay distinct."""
+    payload = {"challenge_id": challenge_id, "revised_comment": revised_comment, "revised_quote": revised_quote}
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                                     separators=(",", ":")).encode()).hexdigest()
+
+
 def _entry_for(record, internal_id: str, challenge_id: str | None):
     for e in record.entries:
         if e.internal_id != internal_id:
@@ -91,7 +98,7 @@ def apply_dispositions(state: ReviewState, record, decisions: list, trust: Trust
         if obs is None:
             result.rejected.append({"decision_id": d.decision_id, "reason": "OBSERVATION_NOT_IN_STATE"})
             continue
-        entry, objection = _entry_for(record, d.observation_id, (challenge_map or {}).get(d.decision_id))
+        entry, objection = _entry_for(record, d.observation_id, d.challenge_id or (challenge_map or {}).get(d.decision_id))
         if objection is None:
             result.rejected.append({"decision_id": d.decision_id, "reason": "NO_CHALLENGE_FOR_OBSERVATION"})
             continue
@@ -107,6 +114,10 @@ def apply_dispositions(state: ReviewState, record, decisions: list, trust: Trust
         after_comment, after_quote = before_comment, before_quote
         if d.decision in TEXT_CHANGING:
             rc, rq = objection.advocacy.get("revised_comment"), objection.advocacy.get("revised_quote")
+            expected_revision = revision_digest(objection.challenge_id, rc, rq)
+            if not d.challenge_id or d.challenge_id != objection.challenge_id or d.revision_sha256 != expected_revision:
+                result.rejected.append({"decision_id": d.decision_id, "reason": "SIGNED_REVISION_BINDING_REQUIRED"})
+                continue
             if not rc and not rq:
                 result.rejected.append({"decision_id": d.decision_id, "reason": "NO_AUTHORISED_REVISION_TEXT_IN_RECORD"})
                 continue
