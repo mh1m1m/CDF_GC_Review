@@ -13,6 +13,7 @@ from openpyxl import load_workbook
 
 from .store import CalibrationError, CalibrationStore, ReviewerContext
 from .input_safety import check_ooxml_zip
+from .materiality import material_review_flags
 
 MAX_XLSX_BYTES = 20 * 1024 * 1024
 
@@ -98,7 +99,7 @@ def preview_xlsx(path: str | Path) -> dict:
                 "document_article":_read_cell(row,loc["document_article"]),
                 "document_anchor":_read_cell(row,loc["document_anchor"]),
                 "manual_review":bool(_read_cell(row,loc["manual_review"])),
-                "material_categories":[],"documented_withdrawal":False,
+                "material_categories": material_review_flags(original, str(_read_cell(row,loc["document_anchor"]) or ""), absent=change=="REMOVED_FROM_VERSION"),"documented_withdrawal":False,
                 "attribution_status":"NOT_VERIFIED_FROM_SPREADSHEET",
             }
             if change=="REMOVED_FROM_VERSION":
