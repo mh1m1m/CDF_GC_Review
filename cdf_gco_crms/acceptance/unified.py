@@ -304,8 +304,17 @@ class Acceptance:
                 view = await call("cdf_get_case_status", {"case_id": CASE})
                 self.mcp_fields = stable_fields(view)
                 assert self.mcp_fields == self.canonical
-                created = await call("cdf_create_case", {"case_id": CASE, "source": "synthetic-cooperation-v1", "idempotency_key": "accept-create-001"})
-                assert created["replayed"] and created["source_hash"] == self.source_hash
+                created = await call(
+                    "cdf_create_case",
+                    {
+                        "case_id": CASE,
+                        "source": "synthetic-cooperation-v1",
+                        "idempotency_key": "accept-create-001",
+                    },
+                )
+                assert (
+                    created["replayed"] and created["source_hash"] == self.source_hash
+                )
                 for tool in (
                     "cdf_get_observations",
                     "cdf_get_debate_trace",
@@ -357,6 +366,59 @@ class Acceptance:
                         polled["status"] == "COMPLETED"
                         and result["result"]["artifact_id"]
                         == self.artifacts["xlsx"]["artifact_id"]
+                    )
+                if "xlsx" in self.artifacts:
+                    fresh = await call(
+                        "cdf_generate_excel_dashboard",
+                        {
+                            "case_id": CASE,
+                            "idempotency_key": "accept-mcp-async-excel-001",
+                            "timeout": 180,
+                        },
+                    )
+                    states = [fresh["status"]]
+                    deadline = time.monotonic() + 120
+                    while time.monotonic() < deadline:
+                        polled = await call(
+                            "cdf_get_job_status",
+                            {"case_id": CASE, "job_id": fresh["job_id"]},
+                        )
+                        states.append(polled["status"])
+                        if polled["status"] in TERMINAL:
+                            break
+                        await asyncio.sleep(0.1)
+                    assert (
+                        polled["status"] == "COMPLETED" and polled["attempts"] == 1
+                    ), polled
+                    result = await call(
+                        "cdf_get_job_result",
+                        {"case_id": CASE, "job_id": fresh["job_id"]},
+                    )
+                    artifact_id = result["result"]["artifact_id"]
+                    self.artifacts["xlsx"] = self.cli(
+                        "artifact",
+                        "get",
+                        "--case",
+                        CASE,
+                        "--artifact",
+                        artifact_id,
+                        "--output",
+                        str(
+                            self.output
+                            / "synthetic-reports"
+                            / "INTERNAL_DRAFT__executive.xlsx"
+                        ),
+                    )
+                    write(
+                        self.output / "mcp-job-lifecycle.json",
+                        {
+                            "status": "PASS",
+                            "job_id": fresh["job_id"],
+                            "states_observed": states,
+                            "attempts": polled["attempts"],
+                            "artifact_id": artifact_id,
+                            "actual_model_inference": False,
+                        },
                     )
                 # A distinct MCP mutation is a draft calibration decision, excluded from submitted metric version.
                 await call(
@@ -496,7 +558,11 @@ class Acceptance:
                 timeout=180,
             )
             (self.output / "browser-results.json").write_text(result.stdout)
-            (self.output / "browser-stderr.log").write_text(result.stderr.replace(self.env["CDF_CALIBRATION_DEV_TOKEN"], "[REDACTED]"))
+            (self.output / "browser-stderr.log").write_text(
+                result.stderr.replace(
+                    self.env["CDF_CALIBRATION_DEV_TOKEN"], "[REDACTED]"
+                )
+            )
             self.commands.append({"command": command, "exit_status": result.returncode})
             assert (
                 result.returncode == 0
@@ -783,7 +849,9 @@ def main(argv=None):
                 {
                     "schema": "CDF-UNIFIED-ACCEPTANCE-v1",
                     "synthetic": True,
-                    "commit": os.getenv("CDF_ACCEPTANCE_COMMIT", "UNCOMMITTED_SNAPSHOT"),
+                    "commit": os.getenv(
+                        "CDF_ACCEPTANCE_COMMIT", "UNCOMMITTED_SNAPSHOT"
+                    ),
                     "files": manifest,
                     "limitations": [
                         "NO_EXTERNAL_CLIENT_CONNECTION_PROVEN",

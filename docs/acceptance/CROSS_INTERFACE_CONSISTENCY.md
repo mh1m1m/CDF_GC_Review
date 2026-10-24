@@ -7,3 +7,5 @@ The MCP client replays the original CLI review with the same actor/key and verif
 Display translations and number formatting may differ. The comparison uses DOM identifiers and numeric data attributes rather than rounded Arabic display labels. Metric timestamps are excluded because the projection legitimately recalculates presentation metadata on read. A missing metric is NULL, never an invented confidence score.
 
 `react-interface.json` is written from DOM reads, not a copy of the HTTP response. Actual screenshots and browser-downloaded bytes are separate evidence. Failed/missing interface checks fail the harness rather than filling the matrix with expected fixture values.
+
+The MCP phase also enqueues a fresh Excel export under a distinct idempotency key, observes QUEUED/RUNNING/COMPLETED through protocol calls, checks one backend attempt, and retrieves its persisted bytes through CLI and MCP. `mcp-job-lifecycle.json` records that actual asynchronous lifecycle; all interfaces then reconcile the updated artifact list. This is separate from replay of the earlier CLI export and does not invoke a model.
