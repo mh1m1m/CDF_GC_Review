@@ -16,12 +16,13 @@ def _roles(user):
 class CalibrationService:
     def __init__(self, store: CalibrationStore, case_grants: dict[str, set[str]] | None = None):
         self.store = store
-        self.case_grants = case_grants if case_grants is not None else {}
+        self.case_grants = case_grants if case_grants is not None else {}  # optional in-memory test grants, never a substitute for DB grants
 
     def authorize(self, case_id: str, user: ReviewerContext, required: str = "CALIBRATION_REVIEWER"):
         user.require(required)
-        grants = self.case_grants.get(case_id)
-        if grants is None or user.reviewer_id not in grants:
+        grants = self.case_grants.get(case_id, set())
+        db_grant = self.store.db.execute("SELECT 1 FROM case_grants WHERE case_id=? AND reviewer_id=?", (case_id, user.reviewer_id)).fetchone()
+        if user.reviewer_id not in grants and not db_grant:
             raise AccessDenied("CASE_ACCESS_DENIED")
 
     def import_case(self, case_id, source_hash, evidence, user):
@@ -34,12 +35,13 @@ class CalibrationService:
         user.require("CALIBRATION_REVIEWER")
         # Fail closed: no discoverable case list without explicit grants.
         result = []
-        for case_id, users in self.case_grants.items():
-            if user.reviewer_id in users:
-                row = self.store._case(case_id)
-                result.append({"case_id": case_id, "evidence_hash": row["evidence_hash"],
-                               "source_hash": row["source_hash"],
-                               "stats": self.store.case_statistics(case_id, user)})
+        ids = {row["case_id"] for row in self.store.db.execute("SELECT case_id FROM case_grants WHERE reviewer_id=?", (user.reviewer_id,))}
+        ids.update(k for k, users in self.case_grants.items() if user.reviewer_id in users)
+        for case_id in sorted(ids):
+            row = self.store._case(case_id)
+            result.append({"case_id": case_id, "evidence_hash": row["evidence_hash"],
+                           "source_hash": row["source_hash"],
+                           "stats": self.store.case_statistics(case_id, user)})
         return result
 
     def case(self, case_id, user):
