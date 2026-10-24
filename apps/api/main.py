@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from cdf_gco_crms.calibration.service import CalibrationService
@@ -32,7 +33,7 @@ app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0
 async def localhost_only(request: Request, call_next):
     # Do NOT trust forwarded-for headers; reject non-loopback socket clients.
     if not request.client or request.client.host not in ("127.0.0.1", "::1", "testclient"):
-        raise HTTPException(status_code=403, detail="LOOPBACK_ONLY")
+        return JSONResponse({"detail": "LOOPBACK_ONLY"}, status_code=403)
     return await call_next(request)
 
 
