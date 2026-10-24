@@ -55,20 +55,20 @@ class AnthropicAdapter(ProviderAdapter):
                     or getattr(response, "_request_id", None)
                 break
             except anthropic.AuthenticationError as exc:
-                raise ProviderFailure(f"authentication failed: {exc.message}", kind="AUTHENTICATION") from exc
+                raise ProviderFailure("authentication failed", kind="AUTHENTICATION") from exc
             except anthropic.PermissionDeniedError as exc:
-                raise ProviderFailure(f"permission denied: {exc.message}", kind="PERMISSION") from exc
+                raise ProviderFailure("permission denied", kind="PERMISSION") from exc
             except anthropic.NotFoundError as exc:
-                raise ProviderFailure(f"model or endpoint not found: {exc.message}", kind="NOT_FOUND") from exc
+                raise ProviderFailure("model or endpoint not found", kind="NOT_FOUND") from exc
             except anthropic.BadRequestError as exc:
-                raise ProviderFailure(f"bad request: {exc.message}", kind="BAD_REQUEST") from exc
+                raise ProviderFailure("bad request", kind="BAD_REQUEST") from exc
             except anthropic.RateLimitError as exc:
-                if attempts > self.config.max_retries + 1:
+                if attempts >= self.config.max_retries + 1:
                     raise ProviderFailure("rate limited after bounded retries", retryable=True, kind="RATE_LIMIT") from exc
                 wait = min(MAX_RATE_LIMIT_WAIT, float(exc.response.headers.get("retry-after", "5") or 5))
                 time.sleep(wait)
             except anthropic.APIStatusError as exc:
-                raise ProviderFailure(f"API error {exc.status_code}: {exc.message}", retryable=exc.status_code >= 500,
+                raise ProviderFailure(f"API error {exc.status_code}", retryable=exc.status_code >= 500,
                                       kind="API_STATUS") from exc
             except anthropic.APITimeoutError as exc:
                 raise ProviderFailure("request timed out", retryable=True, kind="TIMEOUT") from exc
@@ -78,9 +78,9 @@ class AnthropicAdapter(ProviderAdapter):
                 if "authentication" in str(exc).lower():
                     raise ProviderFailure("no credential resolved (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN / CLI profile)",
                                           kind="AUTHENTICATION") from exc
-                raise ProviderFailure(f"request construction failed: {exc}", kind="BAD_REQUEST") from exc
+                raise ProviderFailure("request construction failed", kind="BAD_REQUEST") from exc
             except Exception as exc:                   # never let an unexpected error look like a result
-                raise ProviderFailure(f"unexpected provider error: {type(exc).__name__}: {exc}", kind="UNEXPECTED") from exc
+                raise ProviderFailure(f"unexpected provider error: {type(exc).__name__}", kind="UNEXPECTED") from exc
         usage = TokenUsage(int(getattr(response.usage, "input_tokens", 0) or 0),
                            int(getattr(response.usage, "output_tokens", 0) or 0),
                            int(getattr(response.usage, "cache_read_input_tokens", 0) or 0))

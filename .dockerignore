@@ -6,3 +6,10 @@
 !requirements-calibration.txt
 !requirements-visual.txt
 !requirements-security.txt
+!requirements-execution.txt
+!Dockerfile.execution-acceptance
+!apps/
+!apps/web/
+!apps/web/package.json
+!apps/web/package-lock.json
+!requirements-execution-lock.txt

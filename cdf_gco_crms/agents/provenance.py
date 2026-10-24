@@ -33,8 +33,9 @@ SOURCE_MOCK = "MOCK_SCRIPT"
 SOURCE_CACHED = "CACHED_REPLAY"
 SOURCE_DETERMINISTIC = "DETERMINISTIC_RULES"
 SOURCE_FAILED = "FAILED"
+SOURCE_SUPERVISED_CLI = "SUPERVISED_CLI"
 SOURCES = (SOURCE_PROVIDER_API, SOURCE_PROVIDER_API_UNTRUSTED, SOURCE_SIMULATED_LIVE, SOURCE_MOCK, SOURCE_CACHED,
-           SOURCE_DETERMINISTIC, SOURCE_FAILED)
+           SOURCE_DETERMINISTIC, SOURCE_FAILED, SOURCE_SUPERVISED_CLI)
 TRUSTED_LIVE_SOURCES = (SOURCE_PROVIDER_API,)
 
 
@@ -42,7 +43,8 @@ def trusted_live_adapter_types() -> tuple[type, ...]:
     """The adapter classes whose responses are provider-originated. Exact class match only: a subclass that
     overrides ``complete`` is not the registered adapter."""
     from .providers.anthropic_adapter import AnthropicAdapter
-    return (AnthropicAdapter,)
+    from .providers.openai_adapter import OpenAIAdapter
+    return (AnthropicAdapter,OpenAIAdapter)
 
 
 def classify_adapter(adapter) -> str:
@@ -54,6 +56,9 @@ def classify_adapter(adapter) -> str:
     if isinstance(adapter, RecordingAdapter):
         inner = classify_adapter(adapter.inner)
         return inner if inner == SOURCE_PROVIDER_API else SOURCE_SIMULATED_LIVE
+    from .providers.cli_adapter import SupervisedCLIAdapter
+    if type(adapter) is SupervisedCLIAdapter:
+        return SOURCE_SUPERVISED_CLI if not adapter.client_injected else SOURCE_SIMULATED_LIVE
     if type(adapter) is CachedAdapter:
         return SOURCE_CACHED
     if type(adapter) in trusted_live_adapter_types():

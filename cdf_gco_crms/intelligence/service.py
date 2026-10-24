@@ -87,7 +87,7 @@ class IntelligenceService:
             release_check_at_run={'authorized': gate.ok, 'reasons': gate.reasons,
                                   'purpose': PURPOSE_INSTITUTIONAL, 'current_authority': False})
         text = snap.model_dump_json()
-        with self.store.db:
+        with self.store.transaction():
             self.store.db.execute('INSERT INTO executive_runs VALUES (?,?,?,?,?)',
                 (case_id, snap.run_id, text, hashlib.sha256(text.encode()).hexdigest(), snap.captured_at))
             self.store._append(case_id, None, 'EXECUTION_CAPTURED',

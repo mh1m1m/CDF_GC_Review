@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS node
+FROM cdf-lo-stable
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+RUN --mount=type=secret,id=proxy_ca set -eu; ca=/etc/ssl/certs/ca-certificates.crt; if [ -s /run/secrets/proxy_ca ]; then ca=/run/secrets/proxy_ca; fi; apt-get -o Acquire::https::CaInfo="$ca" update; apt-get -o Acquire::https::CaInfo="$ca" install -y --no-install-recommends chromium; rm -rf /var/lib/apt/lists/*; dpkg-query -W > /opt/cdf-runtime/execution-packages.tsv
+COPY apps/web/package.json apps/web/package-lock.json /opt/cdf-web/
+RUN --mount=type=secret,id=proxy_ca set -eu; if [ -s /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; cd /opt/cdf-web; npm ci --no-audit --no-fund
+ENV CDF_CHROMIUM_EXECUTABLE=/usr/bin/chromium
+WORKDIR /repo
+CMD ["python","-m","cdf_gco_crms.acceptance.unified","--interfaces","cli,mcp,react","--exports","word,excel,pdf","--report-dir","/evidence"]

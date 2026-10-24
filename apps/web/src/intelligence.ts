@@ -129,6 +129,7 @@ export const roleNames: Record<string, string> = {
   EDITORIAL: "التحرير المهني",
 };
 export const sourceNames: Record<string, string> = {
+  SUPERVISED_CLI: "تنفيذ CLI خاضع للإشراف؛ ليس إيصال API",
   MOCK_SCRIPT: "استجابة مبرمجة",
   DETERMINISTIC_RULES: "قواعد حتمية",
   PROVIDER_API: "اتصال مزود مسجل",

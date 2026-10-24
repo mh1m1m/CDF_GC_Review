@@ -22,8 +22,9 @@ from .tracing import TraceWriter, utc_now
 
 
 class AgentRunner:
-    def __init__(self, provider: ProviderAdapter | None, trace: TraceWriter | None = None, *, max_attempts: int = 2):
+    def __init__(self, provider: ProviderAdapter | None, trace: TraceWriter | None = None, *, max_attempts: int = 2, invocation_observer=None):
         self.provider = provider
+        self.invocation_observer=invocation_observer
         self.trace = trace or TraceWriter()
         self.max_attempts = max(1, max_attempts)
         self.execution_source = PV.classify_adapter(provider)     # derived once from the object, never from a label
@@ -64,6 +65,8 @@ class AgentRunner:
             self.trace.record(resp, **trace_extra)
             return resp
         assert_transmission_allowed(payload, self.provider)
+        if self.invocation_observer:
+            self.invocation_observer(request,execution_id,self.execution_source)
         started = time.perf_counter()
         last_error = None
         for attempt in range(1, self.max_attempts + 1):

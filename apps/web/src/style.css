@@ -1654,3 +1654,53 @@ th {
     width: 100%;
   }
 }
+
+.execution-workspace {
+  padding: 28px;
+}
+.execution-identifiers dd {
+  overflow-wrap: anywhere;
+  margin: 0 0 12px;
+}
+.execution-identifiers dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.execution-job-list,
+.execution-artifacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.execution-job-list article,
+.execution-artifacts article {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff9c;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.consistency-proof {
+  margin-top: 24px;
+}
+.execution-workspace .stats strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+.execution-workspace table {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .execution-workspace {
+    padding: 18px;
+  }
+  .execution-job-list,
+  .execution-artifacts {
+    grid-template-columns: 1fr;
+  }
+}

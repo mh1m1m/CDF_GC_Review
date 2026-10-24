@@ -91,6 +91,23 @@
       "threshold": "NOT_SPECIFIED_IN_FICTIONAL_FIXTURE",
       "approval_status": "SYNTHETIC_NOT_AUTHORITY",
       "current_authority_confirmed": false
+    },
+    {
+      "id": "SYN-DOA-COOP",
+      "number": "4",
+      "source_id": "SYN-DOA",
+      "page": 4,
+      "title": "مراجعة اتفاق تعاون تدريبي افتراضي",
+      "category": "تعاون افتراضي",
+      "roles": {
+        "وحدة افتراضية": "الإعداد",
+        "فريق تجريبي": "التوصية",
+        "لجنة تجريبية": "المراجعة"
+      },
+      "qualifiers": {},
+      "threshold": "NOT_SPECIFIED_IN_FICTIONAL_FIXTURE",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
     }
   ],
   "units": [
@@ -101,7 +118,8 @@
       "source_id": "SYN-ORG",
       "page": 1,
       "tasks": [
-        "إعداد طلبات تدريبية وتوثيق الأدلة الافتراضية"
+        "إعداد طلبات تدريبية وتوثيق الأدلة الافتراضية",
+        "تنسيق اتفاقات التعاون التدريبي الافتراضية وتوثيق طلباتها."
       ],
       "internal_contacts": [],
       "external_contacts": [],
@@ -115,7 +133,8 @@
       "source_id": "SYN-ORG",
       "page": 2,
       "tasks": [
-        "مراجعة ضوابط مختبر افتراضي"
+        "مراجعة ضوابط مختبر افتراضي",
+        "فحص ضوابط الفصل بين الإعداد والمراجعة في التعاون التدريبي الافتراضي."
       ],
       "internal_contacts": [],
       "external_contacts": [],

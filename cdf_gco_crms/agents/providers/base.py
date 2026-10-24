@@ -96,6 +96,9 @@ def provider_from_env(env: dict | None = None) -> ProviderAdapter | None:
     if cfg.provider == "anthropic":
         from .anthropic_adapter import AnthropicAdapter
         return AnthropicAdapter(cfg)
+    if cfg.provider == "openai":
+        from .openai_adapter import OpenAIAdapter
+        return OpenAIAdapter(cfg)
     if cfg.provider == "mock":
         from .mock_adapter import MockAdapter
         return MockAdapter(cfg)

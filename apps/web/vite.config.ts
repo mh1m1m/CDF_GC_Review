@@ -1,7 +1,15 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
-const forbiddenClientSecrets=Object.keys(process.env).filter(k=>/^VITE_.*(SECRET|TOKEN|PASSWORD|PRIVATE|INSTITUTIONAL|API_KEY|CREDENTIAL)/i.test(k));
-if(forbiddenClientSecrets.length) throw new Error("PRIVATE_CONFIGURATION_CANNOT_ENTER_CLIENT_BUILD: "+forbiddenClientSecrets.join(","));
+const forbiddenClientSecrets = Object.keys(process.env).filter((k) =>
+  /^VITE_.*(SECRET|TOKEN|PASSWORD|PRIVATE|INSTITUTIONAL|API_KEY|CREDENTIAL)/i.test(
+    k,
+  ),
+);
+if (forbiddenClientSecrets.length)
+  throw new Error(
+    "PRIVATE_CONFIGURATION_CANNOT_ENTER_CLIENT_BUILD: " +
+      forbiddenClientSecrets.join(","),
+  );
 export default defineConfig({
   server: {
     host: "127.0.0.1",
@@ -11,7 +19,12 @@ export default defineConfig({
         fileURLToPath(new URL("../../shared", import.meta.url)),
       ],
     },
-    proxy: { "/api": { target: "http://127.0.0.1:8765", changeOrigin: false } },
+    proxy: {
+      "/api": {
+        target: process.env.CDF_API_ORIGIN || "http://127.0.0.1:8765",
+        changeOrigin: false,
+      },
+    },
   },
   build: {
     rollupOptions: {

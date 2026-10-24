@@ -1,0 +1,6 @@
+-c requirements-execution-lock.txt
+-r requirements-visual.txt
+# Retain the installed, compatible MCP 1.x API; 2.x is deferred pending migration.
+mcp==1.30.0
+openai==3.37.0
+psutil==7.2.2
