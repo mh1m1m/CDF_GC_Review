@@ -33,6 +33,8 @@ def compile_candidate(store: CalibrationStore, case_id: str, reviewer: ReviewerC
         if event["event_type"] != "DNA_RULE_REVIEW":
             continue
         payload = json.loads(event["payload_json"])
+        # A later non-approval supersedes the old grant, never resurrect it.
+        approved.pop(payload["rule_id"], None)
         if payload.get("action") == "APPROVE":
             ids = payload.get("observation_event_hashes", [])
             if ids and all(x in submitted for x in ids):
@@ -58,6 +60,13 @@ def compile_candidate(store: CalibrationStore, case_id: str, reviewer: ReviewerC
         "evidence": store._case(case_id)["evidence_hash"]
     }).encode()).hexdigest()
     profile["version"] = "0.1.0-synthetic-cal-" + digest[:16]
+    existing = next((p for p in store.profile_versions(case_id, reviewer)
+                     if p["profile_version"] == profile["version"]), None)
+    if existing:
+        store.synthetic_profile_document(case_id, profile["version"], reviewer)  # verify stored integrity
+        return {"case_id": case_id, "profile_version": existing["profile_version"],
+                "profile_sha256": existing["profile_sha256"], "status": "PROVISIONAL",
+                "institutional_approval": "NOT_AUTHORIZED"}
     profile["generated_utc"] = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
     profile["status"] = "PROVISIONAL"
     profile["human_approval_status"] = "NOT_APPROVED"

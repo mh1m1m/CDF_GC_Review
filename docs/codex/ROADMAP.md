@@ -1,0 +1,9 @@
+# Dependency-aware roadmap
+
+1. **M0 — takeover and critical controls (this cycle).** Capture branch/CI facts, persistent memory and four reproduced fixes. Accept only with negative regressions, truthful test evidence and draft PR. LibreOffice reconciliation must be resolved or explicitly carried as failed/blocked.
+2. **M1 — complete synthetic calibration.** Depends on M0. Define version-specific rule bodies and APPROVE_WITH_CHANGES contract; ensure latest submitted evidence supersedes prior decisions; test API concurrency/retries and case changes in UI. Acceptance: persistence, rejection, immutable versions, activation/rollback and audit history through API/browser.
+3. **M2 — Word/Excel workflow.** Depends on M0. Validate importer matching, unknown removals, untrusted ZIP bounds, native DOCX anchors/comments, round-trip register and independent Excel recalculation. Use synthetic files. Acceptance: source quotes and comment identity survive round trips, no unauthorized export, verified formulas.
+4. **M3 — MAT fidelity and real-provider evaluation.** Depends on M1 and independently authorized labelled cases/provider access. Separate holdout answers from agents, measure keep/revise/withdraw and question/recommendation outcomes. Acceptance: evidence-backed metrics from real provider calls; no fabricated inference or automatic human approval.
+5. **M4 — institutional integration.** Depends on M0–M3 and explicit institutional decisions. Managed identity/roles, trust/key rotation, private storage, backup/restore, retention, observability, deployment assessment and UAT. No deployment, confidential-provider processing or official issuance until prerequisites and authorization are independently established.
+
+Continue with targeted PRs; do not rewrite the existing architecture. Production is NOT_READY; institutional authorization is NOT_AUTHORIZED.
