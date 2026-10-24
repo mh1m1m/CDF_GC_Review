@@ -297,3 +297,15 @@ class CalibrationStore:
                          {"profile_version": version, "profile_sha256": record["profile_sha256"],
                           "institutional_approval": "NOT_AUTHORIZED"}, reviewer.reviewer_id)
         return {"profile_version": version, "active": True, "institutional_approval": "NOT_AUTHORIZED"}
+
+    def synthetic_profile_document(self, case_id: str, version: str, reviewer: ReviewerContext) -> dict:
+        reviewer.require("CALIBRATION_REVIEWER")
+        self._case(case_id)
+        row = self.db.execute("SELECT profile_sha256,profile_json FROM profile_versions WHERE case_id=? AND profile_version=?",
+                              (case_id, version)).fetchone()
+        if row is None:
+            raise CalibrationError("PROFILE_VERSION_NOT_FOUND")
+        content = json.loads(row["profile_json"])
+        if fingerprint(content) != row["profile_sha256"] or not content.get("synthetic"):
+            raise CalibrationError("INVALID_SYNTHETIC_PROFILE_INTEGRITY")
+        return content
