@@ -187,6 +187,8 @@ class CalibrationStore:
         reasons = reasons or []
         evidence_refs = evidence_refs or []
         categories = frozenset(material_categories or []).union(obs.get("material_categories", []))
+        if obs.get("observed_change") == "REMOVED_FROM_VERSION" and not categories:
+            categories = categories.union({"CONTROL_FAILURE"})  # absence alone triggers caution, never proves invalidity
         if any(x not in REASONS for x in reasons):
             raise CalibrationError("INVALID_REASON_CODE")
         if not categories.issubset(MATERIAL_CATEGORIES):
