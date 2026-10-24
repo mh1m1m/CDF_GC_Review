@@ -120,7 +120,7 @@ def run_black_team(runner: AgentRunner | None, state: ReviewState, obs: Observat
 # ------------------------------------------------------------------ Agent C — red advocate
 def run_red_advocate(runner: AgentRunner | None, state: ReviewState, obs: Observation, objection: Objection,
                      registry: EvidenceRegistry, persona: RecipientPersona, *, issued: bool,
-                     prior_exchange: list[dict] | None = None) -> tuple[Advocacy | None, RoleOutcome]:
+                     prior_exchange: list[dict] | None = None, mat_advisory: dict | None = None) -> tuple[Advocacy | None, RoleOutcome]:
     if not _live(runner):
         return CH.red_advocate(objection, obs, registry), RoleOutcome(ROLE_RED, MODE_DETERMINISTIC, STATUS_OK, notes=["rule engine"])
     objection_view = {"challenge_id": objection.challenge_id, "objection_kind": objection.kind,
@@ -128,7 +128,7 @@ def run_red_advocate(runner: AgentRunner | None, state: ReviewState, obs: Observ
                       "evidence_refs": list(objection.evidence_refs),
                       "requested_correction": objection.detail.get("requested_correction")}
     payload = CB.red_advocate_payload(state, obs, objection_view, registry, persona, issued=issued,
-                                      prior_exchange=prior_exchange)
+                                      prior_exchange=prior_exchange, mat_advisory=mat_advisory)
     resp = runner.run(ROLE_RED, CB.SYSTEM[ROLE_RED], payload, observation_id=obs.internal_id,
                       challenge_id=objection.challenge_id)
     if not resp.ok:
@@ -192,7 +192,7 @@ def guard_disposition(objection: Objection, advocacy: Advocacy, adj: Adjudicatio
 
 def run_adjudicator(runner: AgentRunner | None, state: ReviewState, obs: Observation, objection: Objection,
                     advocacy: Advocacy, registry: EvidenceRegistry, *, issued: bool, exchange: list[dict] | None = None,
-                    unresolved: bool = False) -> tuple[Adjudication | None, RoleOutcome, list[str]]:
+                    unresolved: bool = False, mat_advisory: dict | None = None) -> tuple[Adjudication | None, RoleOutcome, list[str]]:
     if not _live(runner):
         adj = CH.adjudicate(objection, advocacy, registry, unresolved=unresolved)
         return adj, RoleOutcome(ROLE_ADJUDICATOR, MODE_DETERMINISTIC, STATUS_OK, notes=["rule engine"]), []
@@ -201,7 +201,7 @@ def run_adjudicator(runner: AgentRunner | None, state: ReviewState, obs: Observa
                       "evidence_refs": list(objection.evidence_refs)}
     ev_ids = sorted(set(objection.evidence_refs) | set(advocacy.evidence_refs))
     payload = CB.adjudicator_payload(state, obs, objection_view, advocacy.to_dict(), registry, issued=issued,
-                                     exchange=exchange, evidence_ids=ev_ids)
+                                     exchange=exchange, evidence_ids=ev_ids, mat_advisory=mat_advisory)
     resp = runner.run(ROLE_ADJUDICATOR, CB.SYSTEM[ROLE_ADJUDICATOR], payload, observation_id=obs.internal_id,
                       challenge_id=objection.challenge_id)
     if not resp.ok:

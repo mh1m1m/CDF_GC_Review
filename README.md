@@ -120,6 +120,18 @@ run, the review-state fingerprint and the hash of the role's own instructions. A
 cached and mock calls are counted separately. A valid attestor signature authenticates the record; it never
 turns unverified execution claims into verified ones.
 
+## MAT strategic GRC advisor (branch `feature/v712-mat-professional-dna-agent`)
+
+An advisory role that applies a reviewer's documented review method ("professional DNA") at three protocol points —
+drafting advice after the GCO drafting agent, interrogation after a Black Team objection (participation disclosed),
+reassessment after the Red Advocate (fresh context) — without changing any engine outcome: candidates are never
+removed, advisory turns never consume a debate cycle, the adjudicator sees the advisor only as labelled
+`ADVISORY_ONLY_NOT_EVIDENCE` material, and the advisor never approves or adjudicates. The profile is loaded from a
+private location (`--mat-profile PATH` or `CDF_MAT_PROFILE`); the public repository ships the forensic extraction
+tools (`tools/mat_dna/`), the schema and loader (`agents/mat_profile.py`), the agent (`agents/mat_advisor.py`), a
+synthetic profile (`tests/fixtures/mat/`) and 15 tests. The reviewer's comment history, the extracted profile and
+every DNA deliverable stay in the git-ignored `private/` tree. Design: `docs/MAT-STRATEGIC-ADVISOR.md`.
+
 ## Build and evidence tools
 
     python tools/build_deliverables.py         # stages: demo migration verify render gates tests registers references results protocol decisions
@@ -136,5 +148,5 @@ the design guide); they report what is missing rather than fail silently.
 
 `cdf_gco_crms/` engine (config, model, ingestion, rounds, reconciliation, analytics, excel, word, guidance, branding,
 migration, qa, regression, references incl. the synthetic fixture, assurance, release, agents) · `tests/` regression suite
-(TEST 01–39) · `qa_public/` PR #2 unittest entry point · `tools/` build, docs, packaging, lineage, patch status · `AI_AGENT_FORENSIC_AUDIT/` read-only audit
+(TEST 01–39 incl. TEST 36 OOXML forensics and TEST 37 MAT advisor) · `qa_public/` PR #2 unittest entry point · `tools/` build, docs, packaging, lineage, patch status · `AI_AGENT_FORENSIC_AUDIT/` read-only audit
 harness and reports · `EVIDENCE/` baseline manifest (hashes only, not tracked in the public repository).

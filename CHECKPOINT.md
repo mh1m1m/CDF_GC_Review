@@ -52,3 +52,10 @@ Last update 2026-10-23T17:07:45+00:00 (UTC).
 2. `python tools/build_deliverables.py` — rebuilds demos, migration, verification, gates, tests, protocol, decisions.
 3. `python tools/baseline_audit.py EVIDENCE && python tools/patch_status.py && python tools/build_rc.py`.
 4. Institutional inputs still missing (BLOCKED_EXTERNAL): Article 00.8 reference-case package, signed DoA, department approval of mandates, GCO reviewer sign-offs; Excel 365 / Word desktop checks (NOT_VERIFIED). Supply them outside the engine; re-run step 3 so PATCH-STATUS reflects the evidence.
+
+## Branch feature/v712-mat-professional-dna-agent
+
+MAT strategic GRC advisor (advisory stages MAT-01/02/03), OOXML comment forensics, profile schema/loader, synthetic
+profile, 15 tests (suite 291 passed / 4 skipped). The reviewer's files, the extracted register, questionnaire and profile are
+in the git-ignored `private/` tree and are never committed. Run: `python main.py review IN.xlsx --docx DOC.docx --synthetic-reference --mat-profile synthetic`.
+

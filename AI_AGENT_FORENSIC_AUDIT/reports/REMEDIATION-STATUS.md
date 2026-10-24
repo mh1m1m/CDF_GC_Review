@@ -42,3 +42,16 @@ Re-running `AI_AGENT_FORENSIC_AUDIT/runtime_callgraph.py` on this branch will sh
 |---|---|---|---|
 | A simulated adapter could be counted as live inference (receipt shape and self-reported provider identity trusted) | **REMEDIATED** | `agents/provenance.py`: execution source derived from the adapter object (exact registered class, no injected client); `PROVIDER_API` only with a provider-originated request id; `actual_live_inference_count` counts `PROVIDER_API` + OK; simulated / cached / mock counted apart; hash-chained trace with head in the gate record and attestation; receipts bound to run, fingerprint and role-instruction hash; gate and independence classifier read the source, not the mode | `tests/test_live_provenance.py` (14, incl. the regression that `SimulatedLiveAdapter` cannot increase the live count and the ten negative cases); `tests/test_release_attestation.py` (16) |
 | Positive institutional path in tests | **EXPLICIT** | exercised only through a pytest monkeypatch of the trusted-adapter registry (`TrustedTestAdapter`); production registers the Anthropic adapter alone | `tests/test_release_attestation.py::trusted` |
+
+## MAT professional DNA × strategic advisor (directive, branch `feature/v712-mat-professional-dna-agent`)
+
+| Item | Status | What exists | Proof |
+|---|---|---|---|
+| Source forensics (Phase 1) | **DONE (private)** | both Word files inspected (comments, dates, paraIds, authors, body text); evidence-based matching; 39-row register; 0 documented withdrawals; authorship user-attested under a shared account | `tools/mat_dna/ooxml_forensics.py`; `tests/test_mat_forensics.py`; private register |
+| DNA extraction (Phase 2) | **DONE (private, PROVISIONAL)** | 64-question questionnaire, distributions (91.7 % → 62.5 % recommendation family; 0 → 8.3 % direct questions; 2 conversions), writing DNA, 12 selection rules, 15 withdrawal grounds (all hypotheses or NOT_ESTABLISHED), style guide, evidence register, validation report, profile | private deliverables 1–10 |
+| Human validation boundary (Phase 3) | **OPEN** | every rule marked single-case, `mat_explicitly_approved=false`; calibration package listed in the validation report | reviewer calibration not yet performed |
+| Agent engineering (Phase 4) | **DONE** | contracts, loader, three stages, guards, fallback, traces, profile binding | `tests/test_mat_advisor.py` |
+| Protocol integration (Phase 5) | **DONE** | advisory stages at the three points; firewall; cycle control; Article 15 state; CLI | pipeline tests |
+| Validation (Phase 6) | **PARTIAL** | synthetic, adversarial, contradiction, withdrawal and e2e tests pass; fidelity scores and baselines need a second case and a live provider | NOT_RUN items named in `docs/MAT-STRATEGIC-ADVISOR.md` §7 |
+| Live inference | **NOT_EXECUTED** | no credential; `actual_live_inference_count = 0` | — |
+

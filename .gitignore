@@ -42,3 +42,6 @@ AI_AGENT_FORENSIC_AUDIT/evidence/agent_execution_records/
 AI_AGENT_FORENSIC_AUDIT/evidence/live_outputs/
 AI_AGENT_FORENSIC_AUDIT/synthetic_case_generator.py
 AI_AGENT_FORENSIC_AUDIT/reports/STATUS-FORM.md
+
+# MAT professional DNA: private corpus and analytical workspace (never published)
+private/

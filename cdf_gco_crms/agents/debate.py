@@ -58,6 +58,7 @@ class Exchange:
     turns: list[dict] = field(default_factory=list)
     unproductive: list[dict] = field(default_factory=list)
     cap_hit: bool = False
+    advisory: list[dict] = field(default_factory=list)      # MAT advisory turns: recorded, never chained, never a cycle
 
     def claims(self, actor: str) -> list[str]:
         return [t["claim"] for t in self.turns if t["actor"] == actor]
@@ -96,10 +97,36 @@ class Exchange:
                            "execution_id": execution_id, "cycle": len(self.turns) + 1})
         return True
 
+    def advise(self, stage: str, output: dict, *, execution_id: str | None = None) -> bool:
+        """Record an advisory turn (Article 14): it never touches the objection chain or the cycle count; a turn that
+        only repeats an earlier advisory position of the same stage is recorded as unproductive and not shown again."""
+        claim = str(output.get("response") or output.get("final_advisory_position") or "")
+        prior = [a["claim"] for a in self.advisory if a["stage"] == stage]
+        dup, why = is_semantic_duplicate(claim, prior) if prior else (False, "")
+        if dup:
+            self.unproductive.append({"actor": "MAT_ADVISOR", "reason": why, "claim_digest": canon(claim)[:80]})
+            return False
+        self.advisory.append({"stage": stage, "claim": claim, "decision": output.get("decision"), "proposed_wording": output.get("proposed_wording"),
+                              "withdrawal_recommendation": bool(output.get("withdrawal_recommendation")), "evidence_refs": sorted(set(output.get("verified_evidence") or output.get("evidence_refs") or [])),
+                              "execution_id": execution_id, "after_cycle": len(self.turns), "advisory_only": True})
+        return True
+
+    def advisory_turns(self) -> list[dict]:
+        return [{k: a[k] for k in ("stage", "claim", "decision", "after_cycle")} for a in self.advisory]
+
+    def advisory_view(self, stage: str) -> dict | None:
+        """The last advisory turn of a stage, labelled for other roles' payloads (never the advisor's private context)."""
+        for a in reversed(self.advisory):
+            if a["stage"] == stage:
+                return {"present": True, "status": "ADVISORY_ONLY_NOT_EVIDENCE", "stage": a["stage"], "decision": a["decision"], "claim": a["claim"],
+                        "proposed_wording": a["proposed_wording"], "withdrawal_recommendation": a["withdrawal_recommendation"],
+                        "evidence_refs": a["evidence_refs"], "after_cycle": a["after_cycle"]}
+        return None
+
     def for_payload(self) -> list[dict]:
         return [{"cycle": t["cycle"], "actor": t["actor"], "claim": t["claim"], "evidence_refs": t["evidence_refs"],
                  "stance": t["stance"]} for t in self.turns]
 
     def to_dict(self) -> dict:
         return {"challenge_id": self.challenge_id, "productive_cycles": len(self.turns), "cap_hit": self.cap_hit,
-                "unproductive_attempts": list(self.unproductive), "turns": self.for_payload()}
+                "unproductive_attempts": list(self.unproductive), "turns": self.for_payload(), "advisory_turns": list(self.advisory)}
