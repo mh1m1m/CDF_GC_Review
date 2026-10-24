@@ -7,6 +7,7 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ if len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
 DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/private/mat-calibration-dev.sqlite")).resolve()
 store = CalibrationStore(DB_PATH)
 service = CalibrationService(store)
+_DB_LOCK = threading.RLock()  # serialize SQLite operations in this single-process LOCAL DEV API
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -49,7 +51,8 @@ def identity(authorization: str | None) -> ReviewerContext:
 
 def call(fn, *args, **kwargs):
     try:
-        return fn(*args, **kwargs)
+        with _DB_LOCK:
+            return fn(*args, **kwargs)
     except AccessDenied as e:
         raise HTTPException(403, str(e)) from e
     except StaleCase as e:
