@@ -35,3 +35,31 @@ def test_reference_refresh_never_activates_candidates():
                          {'authorities':[{'id':'a','roles':{'reviewer':'approves'}},{'id':'b'}]})
     assert result['modified']==['a'] and result['added']==['b']
     assert result['activation']=='REQUIRES_AUTHORIZED_HUMAN_RECONCILIATION'
+
+
+def test_geometry_verification_rejects_fabricated_row_identity(tmp_path):
+    from cdf_gco_crms.references.authority_matrix import verify_matrix_occurrence
+    path=tmp_path/'fictional.pdf';document=pymupdf.open();page=document.new_page();page.insert_text((72,72),'Synthetic authority');document.save(path);document.close()
+    assert verify_matrix_occurrence(path,number='1.1',page=1,title='Synthetic authority') is None
+    assert verify_matrix_occurrence(path,number='1.1',page=2,title='Synthetic authority') is None
+
+
+def test_geometry_verification_binds_number_title_and_page(monkeypatch):
+    from types import SimpleNamespace
+    import pdfplumber
+    from cdf_gco_crms.references.authority_matrix import verify_matrix_occurrence
+    vertical=[{'x0':x,'x1':x,'top':50,'bottom':200} for x in (0,100,200,300)]
+    horizontal=[{'x0':0,'x1':300,'top':y,'bottom':y} for y in (50,100,200)]
+    def word(text,x,y):return {'text':text,'x0':x,'x1':x+70,'top':y,'bottom':y+10,'size':10}
+    words=[word('ةرادلإا سلجم',10,65),word('دونبلا',110,65),word('#',210,65),
+           word('دامتعلاا',10,120),word('Synthetic authority',110,120),word('1.1',210,120)]
+    page=SimpleNamespace(lines=vertical+horizontal,extract_words=lambda **kwargs:words)
+    class FictionalPDF:
+        pages=[page]
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+    monkeypatch.setattr(pdfplumber,'open',lambda path:FictionalPDF())
+    row=verify_matrix_occurrence('fictional.pdf',number='1.1',page=1,title='Synthetic authority')
+    assert row is not None and row.page==1
+    assert verify_matrix_occurrence('fictional.pdf',number='1.2',page=1,title='Synthetic authority') is None
+    assert verify_matrix_occurrence('fictional.pdf',number='1.1',page=1,title='Fabricated assignment') is None

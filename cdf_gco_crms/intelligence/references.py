@@ -5,6 +5,7 @@ approval, currency, applicability or authorization for external-provider process
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from ..references.textnorm import match_key
@@ -93,8 +94,20 @@ def attach_verified_occurrence(registry, observation_id, candidate, source: Sour
         page=int(candidate['page'])
         if page<1 or page>len(document):raise ValueError('REFERENCE_PAGE_INVALID')
         text=candidate.get('title') or candidate.get('name','')
-        if not text or match_key(text) not in match_key(document[page-1].get_text()):
-            raise ValueError('REFERENCE_OCCURRENCE_NOT_VERIFIED')
+        page_key=match_key(document[page-1].get_text())
+        matched=bool(text and match_key(text) in page_key)
+        if re.fullmatch(r'\d+\.\d+',str(candidate.get('number',''))):
+            from ..references.authority_matrix import verify_matrix_occurrence
+            row=verify_matrix_occurrence(path,number=candidate['number'],page=page,title=text)
+            if row is None:raise ValueError('REFERENCE_MATRIX_ROW_NOT_VERIFIED')
+            if candidate.get('roles') is not None and candidate['roles']!=row.roles:
+                raise ValueError('REFERENCE_ROLE_BINDING_MISMATCH')
+            text=row.title+'; '+'; '.join(body+': '+role for body,role in row.roles.items())
+            matched=True
+        else:
+            verified_tasks=[task for task in candidate.get('tasks',[]) if match_key(task) in page_key]
+            if verified_tasks:text+='; '+verified_tasks[0]
+        if not matched:raise ValueError('REFERENCE_OCCURRENCE_NOT_VERIFIED')
     item=registry.add_policy(source.id,text,approval_status='UNVERIFIED',applicability='NOT_ESTABLISHED',
         file=path.name,sha256=source.sha256,location=f'page {page}',version=source.version)
     registry.attach_basis(observation_id,item.id)

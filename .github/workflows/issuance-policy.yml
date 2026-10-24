@@ -172,12 +172,11 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run build
-          if rg -F SYNTHETIC_BUILD_ISOLATION_SENTINEL dist; then exit 1; fi
           if VITE_INSTITUTIONAL_SECRET=SYNTHETIC_REJECTION_SENTINEL npm run build > /tmp/rejected-client-secret.log 2>&1; then
             echo "Private client configuration was accepted unexpectedly"
             exit 1
           fi
-          rg -q PRIVATE_CONFIGURATION_CANNOT_ENTER_CLIENT_BUILD /tmp/rejected-client-secret.log
+          python ../../tools/check_public_bundle.py --dist dist --rejection-log /tmp/rejected-client-secret.log
       - name: Build stable document runtime
         run: docker build -f Dockerfile.libreoffice -t cdf-lo-stable .
       - name: Package and verify isolated public-only application
