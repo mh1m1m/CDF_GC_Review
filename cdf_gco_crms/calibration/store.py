@@ -196,8 +196,8 @@ class CalibrationStore:
         if action not in RULE_ACTIONS or not rule_id or not profile_version or not rationale.strip():
             raise CalibrationError("INVALID_RULE_APPROVAL")
         event_hashes = {x["event_hash"] for x in self.db.execute(
-            "SELECT event_hash FROM events WHERE case_id=? AND event_type='OBSERVATION_CALIBRATION'",
-            (case_id,))}
+            "SELECT event_hash, payload_json FROM events WHERE case_id=? AND event_type='OBSERVATION_CALIBRATION'",
+            (case_id,)) if json.loads(x["payload_json"]).get("status") == "SUBMITTED"}
         if not observation_event_hashes or not set(observation_event_hashes).issubset(event_hashes):
             raise CalibrationError("UNKNOWN_CALIBRATION_EVIDENCE")
         payload = {"rule_id": rule_id, "action": action, "rationale": rationale,
