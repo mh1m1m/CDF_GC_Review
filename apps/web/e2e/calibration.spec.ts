@@ -24,3 +24,17 @@ test("synthetic calibration persists after browser restart and denies unsubstant
   await page.getByRole("button", { name: "إرسال قرار المعايرة" }).click();
   await expect(page.getByRole("alert")).toContainText("MATERIAL_WITHDRAWAL");
 });
+
+test("Arabic RTL calibration remains usable at mobile viewport width", async ({ page }) => {
+  const token = process.env.CDF_CALIBRATION_DEV_TOKEN;
+  if (!token) throw new Error("synthetic token missing");
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto("/");
+  await expect(page.locator("main")).toHaveAttribute("dir", "rtl");
+  await page.locator('input[type="password"]').fill(token);
+  await page.getByRole("button", { name: "الاتصال وعرض القضايا" }).click();
+  await page.getByRole("button", { name: "فتح القضية" }).click();
+  await expect(page.getByRole("button", { name: "إرسال قرار المعايرة" })).toBeVisible();
+  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+  expect(horizontalOverflow).toBe(false);
+});
