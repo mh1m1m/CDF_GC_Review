@@ -157,7 +157,7 @@ def main():
     # Forwarded headers cannot upgrade plaintext requests or spoof client identity.
     uvicorn.run(
         remote_app(app, config),
-        host="0.0.0.0",
+        host="0.0.0.0",  # nosec B104
         port=args.port,
         ssl_certfile=args.tls_certfile,  # nosec B104 - explicit TLS-only public listener
         ssl_keyfile=args.tls_keyfile,
