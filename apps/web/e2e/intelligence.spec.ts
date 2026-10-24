@@ -32,6 +32,12 @@ const nav = (page: Page, name: string) =>
 test("executive metrics match backend, source distinctions, keyboard and desktop evidence", async ({
   page,
 }, info) => {
+  await page.goto("/");
+  await page.locator(".skip-link").waitFor({ state: "attached" });
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".skip-link")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#main-content$/);
   const data = await open(page);
   expect(data.actual_live_inference_count).toBe(0);
   await expect(page.locator(".orbit-core strong")).toHaveText("٠");

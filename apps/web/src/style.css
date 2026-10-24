@@ -1120,6 +1120,14 @@ th {
   background: white;
   padding: 12px;
 }
+.skip-link:not(:focus) {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0;
+}
 .skip-link:focus {
   top: 10px;
 }
