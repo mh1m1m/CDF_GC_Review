@@ -108,9 +108,9 @@ def _render_dashboard(data: dict, kind: str, *, logo: bytes) -> bytes:
         journal=wb.create_sheet('Timeline');journal.append(['الحدث','الوقت','الملاحظة'])
         journal.cell(1,4,'تراكم الأحداث المسجلة')
         for i,event in enumerate(data['timeline'],1):journal.append([event['kind'],event['at'],event['observation_id'],i])
-        lifecycle=wb.create_sheet('Observations');lifecycle.append(['المعرف','الأصل','المعاد','التغير المرصود','قرار المعايرة','التصنيف المادي','التوصية','المراجع'])
-        for item in data['observations']:lifecycle.append([item['observation_id'],item.get('original_text'),item.get('reviewed_text'),item.get('observed_change'),(item.get('calibration') or {}).get('decision'),', '.join(item.get('material_categories',[])),str(item.get('original_text') or '').partition('التوصية:')[2].strip(),', '.join(item.get('authority_reference_ids',[])+item.get('department_reference_ids',[]))])
-        lifecycle.auto_filter.ref=f'A1:H{lifecycle.max_row}';lifecycle.freeze_panes='B2'
+        lifecycle=wb.create_sheet('Observations');lifecycle.append(['المعرف','الأصل','المعاد','التغير المرصود','قرار المعايرة','التصنيف المادي','التوصية','المراجع','إجراء المراجع المحلي','الصياغة المسجلة','هوية الجلسة التجريبية','إصدار القرار'])
+        for item in data['observations']:lifecycle.append([item['observation_id'],item.get('original_text'),item.get('reviewed_text'),item.get('observed_change'),(item.get('calibration') or {}).get('decision'),', '.join(item.get('material_categories',[])),str(item.get('original_text') or '').partition('التوصية:')[2].strip(),', '.join(item.get('authority_reference_ids',[])+item.get('department_reference_ids',[])),(item.get('human_review') or {}).get('action'),(item.get('human_review') or {}).get('final_wording'),(item.get('human_review') or {}).get('actor'),(item.get('human_review') or {}).get('version')])
+        lifecycle.auto_filter.ref=f'A1:L{lifecycle.max_row}';lifecycle.freeze_panes='B2'
         sources=wb.create_sheet('ReferenceSources');sources.append(['مرجع للفهرسة فقط؛ لا يثبت إسناد الملاحظة','الإصدار','الاعتماد','السريان','عدم الاستبدال'])
         for source in catalog['sources']:sources.append([source['id'],source['version'],source['approval_status'],source['effective_date'],str(source['supersession_checked'])])
         authorities=wb.create_sheet('AuthorityMap');authorities.append(['المعرف','النشاط','الجهة','الدور الموثق','الصفحة','المصدر'])
@@ -179,6 +179,12 @@ def _render_dashboard(data: dict, kind: str, *, logo: bytes) -> bytes:
             doc.add_heading(observation['observation_id'],2)
             doc.add_paragraph('التصنيف المادي: '+', '.join(observation.get('material_categories',[])))
             doc.add_paragraph(str(observation.get('original_text') or ''))
+            human=observation.get('human_review')
+            if human:
+                doc.add_paragraph('قرار جلسة مراجعة تجريبية — ليس توقيعاً أو تصريح إصدار: '+human['action'])
+                doc.add_paragraph('الصياغة المسجلة: '+human['final_wording'])
+                doc.add_paragraph('Review version: '+human['version']+' | Actor: '+human['actor'])
+
             refs=observation.get('authority_reference_ids',[])+observation.get('department_reference_ids',[])
             doc.add_paragraph('مراجع افتراضية غير ملزمة: '+', '.join(refs))
             doc.add_paragraph('موضع النص: '+str(observation.get('location','')))

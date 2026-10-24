@@ -12,7 +12,9 @@ def select_executor(executor, *, timeout):
         from ..agents.providers.mock_adapter import MockAdapter
         from .synthetic import mock_script
 
-        return MockAdapter(script=mock_script())
+        # Explicit server-only synthetic fault injection; never a live executor substitute.
+        fail_role=os.getenv('CDF_SYNTHETIC_FAIL_ROLE') if os.getenv('CDF_ENABLE_SYNTHETIC_FAULTS')=='1' else None
+        return MockAdapter(script=mock_script(),fail_roles={fail_role} if fail_role else None)
     if executor in ("codex-cli", "claude-cli"):
         from ..agents.providers.cli_adapter import SupervisedCLIAdapter
 

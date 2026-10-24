@@ -1,0 +1,37 @@
+name: Phase II governed copilot acceptance
+on:
+  pull_request:
+    branches: [codex/unified-execution]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phase2-copilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Build the existing stable runtime and browser layer
+        run: |
+          docker build -f Dockerfile.libreoffice -t cdf-lo-stable .
+          docker build -f Dockerfile.execution-acceptance -t cdf-execution-acceptance .
+      - name: Prepare tracked public source and empty evidence directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/cdf-phase2-source" build/phase2-acceptance
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/cdf-phase2-source"
+      - name: Five real synthetic workflows across CLI MCP React and native documents
+        run: |
+          docker run --rm --init --name cdf-phase2 --user "$(id -u):$(id -g)" --network none --tmpfs /tmp:rw,nosuid,nodev,size=1024m --cap-drop ALL --security-opt no-new-privileges --env CDF_ACCEPTANCE_COMMIT="${{ github.event.pull_request.head.sha || github.sha }}" \
+            --mount "type=bind,src=$RUNNER_TEMP/cdf-phase2-source,dst=/repo" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/build/phase2-acceptance,dst=/evidence" \
+            cdf-execution-acceptance sh -c 'cp -R /opt/cdf-web/node_modules /repo/apps/web/node_modules && python -m cdf_gco_crms.acceptance.phase2 --report-dir /evidence'
+      - name: Remove only this job container
+        if: always()
+        run: docker rm -f cdf-phase2 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase2-governed-copilot-evidence
+          path: build/phase2-acceptance/

@@ -473,5 +473,5 @@ def test_actual_independent_mcp_protocol_shared_cli_case(tmp_path):
         asyncio.run(acceptance.phase_mcp(f"http://127.0.0.1:{port}/mcp"))
     assert acceptance.mcp_fields == acceptance.canonical
     assert (
-        len(json.loads((output / "mcp-tool-discovery.json").read_text())["tools"]) == 23
+        len(json.loads((output / "mcp-tool-discovery.json").read_text())["tools"]) == 24
     )

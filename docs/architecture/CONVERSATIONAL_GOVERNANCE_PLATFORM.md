@@ -1,0 +1,11 @@
+# Phase II bounded conversational platform
+
+This slice continues PR #10 at `7d4bd5c278b4b286915eeb1348d4e5b1677b910c`; the seven upstream jobs and all 25 artifact hashes were independently rechecked before modification. `CopilotService` composes the existing `ApplicationService`, orchestrator, SQLite store, calibration, intelligence and exporters. The added MCP tool, Python CLI and React workbench share those instances and records.
+
+Arabic/English intent recognition is an explicit deterministic router, not a model or a general language-understanding claim. Known requests produce authorized plans/actions, grounded records, essential-parameter questions, structured human checkpoints or blocked/unsupported results. Original document wording is never passed back into the planner as instructions. No new agent framework, vector database or model provider is installed.
+
+Ten requested workflow categories have catalogue definitions. Agreement review runs only on the existing fixed fictional cooperation source. Authority/responsibility, quality/risk and calibration templates operate on retrieved records; policy/framework/charter standards remain blocked pending validated templates and suitable source integration. Supplemental PDF/DOCX/XLSX/text extraction is real, but does not silently substitute those bytes for the engine's bound review source. General arbitrary-document governance review remains a separate development item.
+
+New operations use `/api/copilot/{operation}`, `python -m cdf_gco_crms.cli copilot ...`, and `cdf_governance_copilot` over authenticated MCP. Inputs are bounded Pydantic models; caller identities/roles, private mode switches, arbitrary commands and server file paths are absent. Existing 23 MCP tools and the original dashboard remain available. Generic MCP compatibility does not prove actual ChatGPT/Claude registration.
+
+The conversation is not the record. Workflow definitions, steps, accepted job IDs, versions, human actions and audit attribution live in SQLite. Every effect calls existing business services; no conversational phrase creates a signature, binding policy or permission to issue. All output stays synthetic and draft. See the machine-readable capability register and acceptance matrix for explicit gaps.

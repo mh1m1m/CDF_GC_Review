@@ -224,6 +224,10 @@ class IntelligenceService:
             ids = [o['observation_id'] for o in observations if category in o.get('material_categories', [])]
             heatmap.append({'category': category, 'pending': sum(i not in latest for i in ids),
                             'submitted': sum(i in latest for i in ids), 'lineage': ids})
+        human_reviews={}
+        if self.store.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cp_human'").fetchone():
+            for record in self.store.db.execute('SELECT * FROM cp_human WHERE case_id=? ORDER BY at,event_hash',(case_id,)):
+                human_reviews[record['observation_id']]={**json.loads(record['payload_json']),'version':record['event_hash'],'actor':record['actor'],'at':record['at']}
         live = sum(i['source'] == PV.SOURCE_PROVIDER_API and i['status'] == 'OK' for i in invocations)
         return {'schema': 'CDF-COMMAND-CENTER-v1', 'case_id': case_id, 'synthetic': synthetic,
             'run_id': snap.run_id if snap else None, 'captured_at': snap.captured_at if snap else None,
@@ -232,7 +236,7 @@ class IntelligenceService:
             'invocations': invocations, 'trace_integrity': chain_ok, 'actual_live_inference_count': live,
             'execution_sources': dict(Counter(i['source'] for i in invocations)),
             'objections': objections, 'stages': STAGES, 'heatmap': heatmap,
-            'observations': [{**o, 'calibration': latest.get(o['observation_id'])} for o in observations],
+            'observations': [{**o, 'calibration': latest.get(o['observation_id']), 'human_review':human_reviews.get(o['observation_id'])} for o in observations],
             'evidence': [{**e, 'excerpt': sanitize(e.get('excerpt', ''))} for e in evidence.values()],
             'evidence_links': [{'observation_id': oid, 'evidence_id': ref} for oid, refs in registry.get('basis', {}).items() for ref in refs if ref in evidence],
             'timeline': [{'id': e['event_hash'], 'kind': e['event_type'], 'at': e['created_at'],

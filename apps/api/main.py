@@ -249,6 +249,31 @@ def artifact_bytes(artifact_id: str,authorization: str | None=Header(default=Non
         'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
 
 
+# Phase II shares the same authenticated application, case grants and database.
+from cdf_gco_crms.copilot.service import CopilotService
+from cdf_gco_crms.copilot.contracts import Input as CopilotInput, Operation as CopilotOperation
+from cdf_gco_crms.copilot.http import CopilotBodyLimit
+copilot=CopilotService(application)
+app.add_middleware(CopilotBodyLimit)
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
+@app.exception_handler(RequestValidationError)
+async def private_validation_errors(request,exc):
+    if request.url.path.startswith('/api/copilot/'):
+        return JSONResponse({'detail':'COPILOT_INPUT_VALIDATION_FAILED','fields':[list(error['loc']) for error in exc.errors()]},status_code=422)
+    return await request_validation_exception_handler(request,exc)
+
+
+@app.post('/api/copilot/{operation}')
+def conversational_operation(operation: CopilotOperation, request: CopilotInput, authorization: str | None=Header(default=None)):
+    try:return copilot.execute(operation,request.model_dump(),principal(authorization),transport='REACT_COPILOT')
+    except AccessDenied as exc:raise HTTPException(403,str(exc)) from exc
+    except CalibrationError as exc:
+        if str(exc)=='RATE_LIMIT_EXCEEDED':raise HTTPException(429,'RATE_LIMIT_EXCEEDED') from exc
+        if isinstance(exc,Conflict):raise HTTPException(409,str(exc)) from exc
+        raise HTTPException(422,str(exc)) from exc
+
+
 # Optional prebuilt public UI. The demo container supplies this directory; it
 # never serves repository/private files or runtime environment values.
 if os.getenv('CDF_PUBLIC_UI_DIRECTORY'):
