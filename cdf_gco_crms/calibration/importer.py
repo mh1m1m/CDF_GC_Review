@@ -12,6 +12,7 @@ import sys
 
 from .store import CalibrationError, CalibrationStore, ReviewerContext
 from .input_safety import check_ooxml_zip
+from .materiality import material_review_flags
 
 MAX_DOCX_BYTES = 25 * 1024 * 1024
 
@@ -68,7 +69,7 @@ def build_case_from_docx(original_path: str | Path, reviewed_path: str | Path) -
             "attribution_status": m["attribution_status"],
             "primary_type_original": m["original_class"] or None,
             "primary_type_reviewed": m["reviewed_class"] or None,
-            "material_categories": [],
+            "material_categories": material_review_flags(m["original_text"], m["document_anchor"], absent=observed=="REMOVED_FROM_VERSION"),
             "documented_withdrawal": False,
         })
     return {
