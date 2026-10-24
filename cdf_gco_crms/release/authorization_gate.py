@@ -68,6 +68,15 @@ R_TRUST_STORE_REQUIRED = "TRUST_STORE_REQUIRED_FOR_RECORDED_DECISIONS"
 R_DECISION_INVALID = "HUMAN_DECISION_INVALID"
 R_DECISION_RECORD_MISSING = "HUMAN_DECISION_RECORD_MISSING"
 R_SOURCE_DOCUMENT_MISMATCH = "SOURCE_DOCUMENT_VERSION_MISMATCH"
+R_SOURCE_DOCUMENT_REQUIRED = "SOURCE_DOCUMENT_HASH_REQUIRED_FOR_INSTITUTIONAL_ISSUE"
+R_FINAL_REVIEW_NOT_LIVE = "FINAL_REVIEW_NOT_LIVE"
+R_FINAL_REVIEW_RECEIPT = "FINAL_REVIEW_EXECUTION_RECEIPT_INVALID"
+R_FINAL_REVIEW_STATE = "FINAL_REVIEW_BOUND_TO_OTHER_REVIEW_STATE"
+R_INDEPENDENCE_NOT_VERIFIED = "AGENT_INDEPENDENCE_NOT_VERIFIED"
+R_ATTESTATION_MISSING = "RELEASE_ATTESTATION_MISSING"
+R_ATTESTATION_INVALID = "RELEASE_ATTESTATION_INVALID"
+PURPOSE_INSTITUTIONAL = "INSTITUTIONAL_ISSUE"
+PURPOSE_DEMO = "DEMO_OR_INTERNAL"
 
 
 # ------------------------------------------------------------------ fingerprint
@@ -118,7 +127,9 @@ def gate_record_path(fingerprint: str, gate_dir=DEFAULT_GATE_DIR) -> Path:
 def record_review(state: ReviewState, record, record_path, *, reference_mode: str, gate_dir=DEFAULT_GATE_DIR,
                   decisions_applied: int = 0, command: str = "review", provider_failures: int = 0,
                   final_review: dict | None = None, human_decisions: list[dict] | None = None,
-                  source_document_sha256: str | None = None, execution_summary: dict | None = None) -> dict:
+                  source_document_sha256: str | None = None, execution_summary: dict | None = None,
+                  role_execution_proofs: list[dict] | None = None, independence: dict | None = None,
+                  trace_path: str | None = None, attestation: dict | None = None) -> dict:
     """Write the gate record of a challenge run for the content of ``state`` (overwrites the previous one).
 
     ``final_review`` is ``{"recommendation": READY|NOT_READY|READY_WITH_CONDITIONS, "mode": LIVE|DETERMINISTIC|...,
@@ -141,6 +152,10 @@ def record_review(state: ReviewState, record, record_path, *, reference_mode: st
         "provider_failures": int(provider_failures), "final_review": final_review,
         "human_decisions": list(human_decisions or []), "source_document_sha256": source_document_sha256,
         "execution_summary": execution_summary,
+        "role_execution_proofs": list(role_execution_proofs or []),
+        "independence": independence or {"verified": False, "reasons": ["NOT_EVALUATED"], "live_executions": 0},
+        "trace_path": trace_path, "attestation": attestation,
+        "purpose": PURPOSE_DEMO if state.document.is_demo else PURPOSE_INSTITUTIONAL,
         "challenge_record": str(record_path), "challenge_record_sha256": sha256_file(record_path),
         "recorded_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "note": ("authorisation means only that no blocker stands for exactly this content; "
@@ -149,6 +164,15 @@ def record_review(state: ReviewState, record, record_path, *, reference_mode: st
     out = gate_record_path(fp, gate_dir)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    return rec
+
+
+def attach_attestation(fingerprint: str, attestation: dict, gate_dir=DEFAULT_GATE_DIR) -> dict:
+    """Store a signed release attestation inside the gate record of ``fingerprint`` (the record stays otherwise unchanged)."""
+    p = gate_record_path(fingerprint, gate_dir)
+    rec = json.loads(p.read_text(encoding="utf-8"))
+    rec["attestation"] = attestation
+    p.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
     return rec
 
 
@@ -172,20 +196,31 @@ class Authorization:
 
 
 def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR, *, trust_store=None, now: dt.datetime | None = None,
-              source_document_sha256: str | None = None, require_final_review: bool = True) -> Authorization:
+              source_document_sha256: str | None = None, require_final_review: bool = True,
+              purpose: str | None = None) -> Authorization:
     """Decide whether the content of ``state`` may be written as an issuable file (see module docstring).
 
     Beyond the content binding, the gate re-checks at issue time: no provider failure in the review, the
     independent final review is present and READY, every human decision the record relied on is still valid
-    (trust store: key status, expiry, role, state binding; synthetic keys never for an institutional document),
-    and — when the caller names the source document — its hash matches the one the review examined.
+    (trust store: key status, expiry, role, state binding; synthetic keys never for an institutional document).
+
+    For an INSTITUTIONAL issue (``purpose`` defaults to the document's class: non-demo = institutional) the gate
+    additionally requires, from evidence rather than labels: the source document's SHA-256 supplied by the
+    caller and equal to the one the review examined; a final review that ran LIVE with a verifiable execution
+    receipt in the trace and bound to this review-state fingerprint; verified independence of the challenge
+    roles (``independence.verified``); and a release attestation signed by a trust-store key holding the
+    RELEASE_ATTESTOR role, bound to this content, in its validity interval. A deterministic or mock READY, a
+    forged LIVE label, an omitted source hash or a self-made record never clears an institutional issue.
     """
+    from . import attestation as ATT
     fp = state_fingerprint(state)
     rec = load_gate_record(state, gate_dir)
     if rec is None:
         return Authorization(False, fp, [R_NO_RECORD])
     reasons: list[str] = []
     institutional = not state.document.is_demo
+    purpose = purpose or (PURPOSE_INSTITUTIONAL if institutional else PURPOSE_DEMO)
+    institutional = institutional or purpose == PURPOSE_INSTITUTIONAL
     if rec.get("provider_failures"):
         reasons.append(f"{R_PROVIDER_FAILURE}:{rec['provider_failures']}")
     fr = rec.get("final_review")
@@ -194,8 +229,36 @@ def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR, *, trust_store=None
             reasons.append(R_FINAL_REVIEW_MISSING)
         elif fr.get("recommendation") != "READY":
             reasons.append(f"{R_FINAL_REVIEW_NOT_READY}:{fr.get('recommendation')}")
-    if source_document_sha256 and rec.get("source_document_sha256") and rec["source_document_sha256"] != source_document_sha256:
+        elif institutional:
+            # Directive 1: the receipt, not the label, proves a live Article 20 review of exactly this content
+            if fr.get("mode") != "LIVE":
+                reasons.append(f"{R_FINAL_REVIEW_NOT_LIVE}:{fr.get('mode')}")
+            problems = ATT.verify_execution_receipt(ATT.load_trace(rec.get("trace_path")), fr.get("execution_id"), ATT.FINAL_ROLE,
+                                                    fr.get("response_hash"))
+            if problems:
+                reasons.append(f"{R_FINAL_REVIEW_RECEIPT}:{'|'.join(problems)}")
+            if fr.get("fingerprint") != fp:
+                reasons.append(R_FINAL_REVIEW_STATE)
+    # Directive 2: the source document is bound, and for an institutional issue its hash is mandatory
+    if institutional and not source_document_sha256:
+        reasons.append(R_SOURCE_DOCUMENT_REQUIRED)
+    if source_document_sha256 and (not rec.get("source_document_sha256") or rec["source_document_sha256"] != source_document_sha256):
         reasons.append(R_SOURCE_DOCUMENT_MISMATCH)
+    if institutional:
+        # Directive 3: independence from receipts, never from mode labels
+        ind = rec.get("independence") or {}
+        if not ind.get("verified"):
+            reasons.append(f"{R_INDEPENDENCE_NOT_VERIFIED}:{'|'.join(ind.get('reasons') or ['NOT_EVALUATED'])[:200]}")
+        # Directive 4: an authenticated attestation binds the local record to an institution-held key
+        att = rec.get("attestation")
+        if not att:
+            reasons.append(R_ATTESTATION_MISSING)
+        else:
+            problems = ATT.verify(att, trust_store, now=now, fingerprint=fp, document_sha256=rec.get("source_document_sha256"),
+                                  challenge_record_sha256=rec.get("challenge_record_sha256"), purpose=PURPOSE_INSTITUTIONAL,
+                                  gate_record=rec)
+            if problems:
+                reasons.append(f"{R_ATTESTATION_INVALID}:{'|'.join(problems)}")
     decisions = rec.get("human_decisions") or []
     if decisions:
         if trust_store is None:

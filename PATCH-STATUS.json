@@ -1,6 +1,6 @@
 {
  "schema": "CDF-v7.12-PATCH-STATUS-1",
- "generated": "2026-10-24T01:39:25+00:00",
+ "generated": "2026-10-24T01:59:03+00:00",
  "engineering_status": "ENGINEERING_COMPLETE",
  "release_classification": "PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING",
  "classification": {
@@ -551,7 +551,7 @@
   {
    "id": "V712-044",
    "status": "PASS",
-   "evidence": "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; ten negative tests; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_release_lifecycle.py: 13 passed, 0 failed; tests/test_e2e_agents.py: 1 passed, 0 failed",
+   "evidence": "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); ten + fifteen negative tests; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_release_lifecycle.py: 13 passed, 0 failed; tests/test_release_attestation.py: 15 passed, 0 failed; tests/test_e2e_agents.py: 1 passed, 0 failed",
    "note": "",
    "title": "Integrate challenge into pre-issue pipeline",
    "stream": "04 Adversarial",

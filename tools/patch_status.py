@@ -116,6 +116,7 @@ def build_rows() -> list[dict]:
     lc_t = tests_ok(T, "test_release_lifecycle")
     bl_t = tests_ok(T, "test_blind_evaluation")
     e2a_t = tests_ok(T, "test_e2e_agents")
+    at_t = tests_ok(T, "test_release_attestation")
     live_t = T.get("test_agents_live") or {}
     live_ran = bool(live_t.get("pass")) and live_t.get("fail", 0) == 0
     global LIVE_RAN
@@ -230,10 +231,12 @@ def build_rows() -> list[dict]:
                   "" if live_ran else EXT["live agents"]))
     rows.append(R("V712-043", S(ttl_t[0] and as_t[0]), "TitleEvidence / HumanDecision: reviewer, timestamp, decision reference, verification status; "
                   "a boolean is refused (finalize-titles, check_decision_record)"))
-    rows.append(R("V712-044", S(gate_t[0] and lc_t[0] and e2a_t[0] and has("cdf_gco_crms/release/authorization_gate.py") and e2e_t[0]),
+    rows.append(R("V712-044", S(gate_t[0] and lc_t[0] and e2a_t[0] and at_t[0] and has("cdf_gco_crms/release/attestation.py") and e2e_t[0]),
                   "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; "
                   "build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, "
-                  f"re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; ten negative tests; {gate_t[1]}; {lc_t[1]}; {e2a_t[1]}"))
+                  f"re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE "
+                  f"final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); "
+                  f"ten + fifteen negative tests; {gate_t[1]}; {lc_t[1]}; {at_t[1]}; {e2a_t[1]}"))
     rows.append(R("V712-045", S(ch_t[0]), "confidentiality_scan over requester workbook and Word: no evidence ids, reviewer names or register terms"))
     rows.append(R("V712-046", "PASS" if live_ran else "NOT_VERIFIED", f"sealed public holdout (tests/fixtures/holdout, 24 cases, 8 families) scored per mode by "
                   f"agents.evaluator; DETERMINISTIC baseline reported, never a pass; the LIVE blind score needs a configured provider; {bl_t[1]}",

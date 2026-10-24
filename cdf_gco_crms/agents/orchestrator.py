@@ -24,7 +24,10 @@ from ..assurance.evidence import EvidenceRegistry
 from ..assurance.objection_engine import MAX_CYCLES, HumanDecision
 from ..assurance.personas import RecipientPersona
 from ..model.entities import Observation, ReviewState, plain_text
-from ..release.authorization_gate import DEFAULT_GATE_DIR, record_review, state_fingerprint
+from ..release import attestation as ATT
+from ..release.authorization_gate import (
+    DEFAULT_GATE_DIR, PURPOSE_DEMO, PURPOSE_INSTITUTIONAL, attach_attestation, record_review, state_fingerprint,
+)
 from ..release.trust import TrustStore
 from . import roles as R
 from .contracts import MODE_DETERMINISTIC, MODE_LIVE, STATUS_OK, new_id
@@ -36,6 +39,7 @@ INDEPENDENCE_LIVE = "ISOLATED_LIVE_CONTEXTS"
 INDEPENDENCE_RULES = "SINGLE_PROCESS_RULE_BASED"
 INDEPENDENCE_MIXED = "MIXED_LIVE_AND_RULES"
 INDEPENDENCE_MOCK = "MOCK_SCRIPTED_CONTEXTS"
+INDEPENDENCE_LIVE_UNVERIFIED = "LIVE_CLAIMED_NOT_VERIFIED"
 ISOLATION_LIVE = "VERIFIED_PER_INVOCATION_CONTEXT"
 ISOLATION_RULES = "NOT_VERIFIED"
 
@@ -61,6 +65,8 @@ class ReviewExecution:
     guards_applied: Counter = field(default_factory=Counter)
     trace_summary: dict = field(default_factory=dict)
     gate_record: dict | None = None
+    independence: dict = field(default_factory=dict)
+    attestation: dict | None = None
     started_utc: str = ""
     finished_utc: str = ""
 
@@ -84,6 +90,7 @@ class ReviewExecution:
                 "final_review": self.final_review, "final_outcome": self.final_outcome,
                 "human_decisions": self.human_decisions, "rejected_decisions": self.rejected_decisions,
                 "guards_applied": dict(self.guards_applied), "trace_summary": self.trace_summary,
+                "independence_verification": self.independence, "attestation": self.attestation,
                 "started_utc": self.started_utc, "finished_utc": self.finished_utc}
 
 
@@ -101,7 +108,8 @@ class ReviewOrchestrator:
     # ------------------------------------------------------------------ pipeline
     def execute(self, state: ReviewState, document, department: str | None = None, *, decisions: list | None = None,
                 trust: TrustStore | None = None, draft: bool = False, record_path=None, command: str = "review",
-                now: dt.datetime | None = None) -> ReviewExecution:
+                now: dt.datetime | None = None, attestation_key: tuple[bytes, str] | None = None,
+                attestation_hours: int = ATT.DEFAULT_VALID_HOURS) -> ReviewExecution:
         started = utc_now()
         run_id = new_id("RUN")
         if self.runner is not None:
@@ -140,7 +148,7 @@ class ReviewOrchestrator:
                 live_objs[o.challenge_id] = o
             scope = (objections[0].detail.get("scan_scope") if objections else CH._scan_scope(registry, persona)) or {}
             entries.append(ObservationEntry(obs.internal_id, obs.reader_no, issued, records, scope))
-        independence, isolation, statement = self._independence(ex)
+        independence, isolation, statement, ex.independence = self._independence(ex, registry)
         ex.record = ChallengeRecord(state.document.code, current, persona.to_dict(), entries, registry.to_dict(), self.max_cycles,
                                     independence=independence, role_isolation=isolation, isolation_statement=statement,
                                     _objections=live_objs)
@@ -155,12 +163,22 @@ class ReviewOrchestrator:
         rp = Path(record_path or self.gate_dir.parent / f"challenge_{state.document.code}_R{current}_{run_id[-8:]}.json")
         rp.parent.mkdir(parents=True, exist_ok=True)
         rp.write_text(ex.record.to_json(), encoding="utf-8")
+        trace_path = str(self.runner.trace.path) if (self.runner is not None and self.runner.trace.path) else None
         ex.gate_record = record_review(state, ex.record, rp, reference_mode=getattr(self.index, "mode", "INSTITUTIONAL_SOURCES"),
                                        gate_dir=self.gate_dir, decisions_applied=len(ex.human_decisions), command=command,
                                        provider_failures=ex.provider_failures, final_review=ex.final_review,
                                        human_decisions=ex.human_decisions, source_document_sha256=ex.document_sha256,
                                        execution_summary={"run_id": run_id, "modes": ex.modes(), "independence": independence,
-                                                          "trace": ex.trace_summary, "guards": dict(ex.guards_applied)})
+                                                          "trace": ex.trace_summary, "guards": dict(ex.guards_applied)},
+                                       role_execution_proofs=ex.independence.get("proofs", []), independence=ex.independence,
+                                       trace_path=trace_path)
+        if attestation_key is not None:
+            # Directive 4: the operator-held attestor key vouches for this record; the gate verifies it against the trust store
+            key_bytes, key_id = attestation_key
+            purpose = PURPOSE_DEMO if state.document.is_demo else PURPOSE_INSTITUTIONAL
+            payload = ATT.build_payload(ex.gate_record, purpose=purpose, now=now, valid_hours=attestation_hours)
+            ex.attestation = ATT.sign(payload, key_bytes, key_id).to_dict()
+            ex.gate_record = attach_attestation(ex.fingerprint, ex.attestation, self.gate_dir)
         ex.finished_utc = utc_now()
         return ex
 
@@ -277,18 +295,28 @@ class ReviewOrchestrator:
         return ObjectionRecord(o.challenge_id, o.kind, o.proposition, o.material_consequence, list(o.evidence_refs),
                                [dict(e) for e in o.events], o.productive_cycles(), adv, d, o.state, o.verify_chain())
 
-    def _independence(self, ex: ReviewExecution) -> tuple[str, str, str]:
-        challenge_modes = {o["mode"] for o in ex.role_outcomes if o["role"] in ("BLACK_TEAM", "RED_ADVOCATE", "ADJUDICATOR")}
-        execs = [o["execution_id"] for o in ex.role_outcomes if o["execution_id"]]
+    def _independence(self, ex: ReviewExecution, registry: EvidenceRegistry) -> tuple[str, str, str, dict]:
+        """Classification from receipts (Directive 3): ISOLATED_LIVE_CONTEXTS only when every challenge role's
+        outcome is backed by a verified live execution receipt in the trace, ids are unique and no substitution
+        stands in; a run whose outcomes merely say mode=LIVE is LIVE_CLAIMED_NOT_VERIFIED."""
+        challenge_roles = ("BLACK_TEAM", "RED_ADVOCATE", "ADJUDICATOR")
+        challenge_modes = {o["mode"] for o in ex.role_outcomes if o["role"] in challenge_roles}
+        trace_records = list(self.runner.trace.records) if self.runner is not None else []
+        registry_ids = {e.id for e in registry.items()}
+        verification = ATT.verify_live_roles(ex.role_outcomes, trace_records, registry_ids=registry_ids)
         if challenge_modes and challenge_modes <= {MODE_LIVE}:
-            return (INDEPENDENCE_LIVE, ISOLATION_LIVE,
-                    f"Every challenge role ran as a separate model invocation in a fresh context ({len(execs)} executions, "
-                    f"{len(set(execs))} distinct Execution_IDs); isolation verified per invocation, not across vendors.")
+            if verification["verified"]:
+                return (INDEPENDENCE_LIVE, ISOLATION_LIVE,
+                        f"Every challenge role ran as a separate model invocation in a fresh context ({verification['live_executions']} "
+                        f"verified receipts, distinct Execution_IDs and Context_IDs); isolation verified per invocation, not across vendors.",
+                        verification)
+            return (INDEPENDENCE_LIVE_UNVERIFIED, ISOLATION_RULES,
+                    f"Outcomes are labelled LIVE but the receipts do not verify: {', '.join(verification['reasons'])[:300]}", verification)
         if challenge_modes and challenge_modes <= {"MOCK", "CACHED"}:
-            return (INDEPENDENCE_MOCK, "NOT_APPLICABLE_MOCK", "Challenge roles ran on scripted or replayed responses in separate contexts; no independence is claimed.")
+            return (INDEPENDENCE_MOCK, "NOT_APPLICABLE_MOCK", "Challenge roles ran on scripted or replayed responses in separate contexts; no independence is claimed.", verification)
         if challenge_modes and MODE_LIVE in challenge_modes:
-            return (INDEPENDENCE_MIXED, ISOLATION_RULES, "Some challenge roles ran live and some as rules; independence is not claimed for the run.")
-        return (INDEPENDENCE_RULES, ISOLATION_RULES, CH.ChallengeRecord.isolation_statement)
+            return (INDEPENDENCE_MIXED, ISOLATION_RULES, "Some challenge roles ran live and some as rules; independence is not claimed for the run.", verification)
+        return (INDEPENDENCE_RULES, ISOLATION_RULES, CH.ChallengeRecord.isolation_statement, verification)
 
     def _apply_decisions(self, ex: ReviewExecution, decisions: list, trust: TrustStore | None, *, now=None):
         institutional = not ex.state.document.is_demo
@@ -342,6 +370,10 @@ class ReviewOrchestrator:
         ex.final_review = {"recommendation": out["release_recommendation"], "mode": ro.mode, "status": ro.status,
                            "execution_id": ro.response.execution_id if ro.response else None,
                            "context_id": ro.response.context_id if ro.response else None,
+                           "prompt_hash": ro.response.prompt_hash if ro.response else None,
+                           "response_hash": ro.response.response_hash if ro.response else None,
+                           "provider": ro.response.provider if ro.response else None,
+                           "fingerprint": ex.fingerprint,
                            "findings": len(out.get("findings", [])), "contradictions": len(out.get("contradictions", []))}
 
 

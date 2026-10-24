@@ -77,6 +77,27 @@ Without a configured provider every command runs the challenge roles as DETERMIN
 output (`modes`, `independence`); the live tests in `tests/test_agents_live.py` are skipped, not passed.
 **No live model inference has been executed or verified in this repository's CI or in the authoring session.**
 
+### Institutional issue: evidence, not labels (PR #3 review remediation)
+
+For a non-demo document the gate (`release/authorization_gate.py::authorize`) refuses an official issue unless all of
+the following hold, each checked from evidence at issue time:
+
+| Control | Evidence the gate reads | Refusal reason |
+|---|---|---|
+| Independent final review ran LIVE on this content | the runner's trace line for the review's Execution_ID: mode LIVE, status OK, known live provider, provider-shaped invocation id, response hash; bound to the review-state fingerprint | `FINAL_REVIEW_NOT_LIVE`, `FINAL_REVIEW_EXECUTION_RECEIPT_INVALID`, `FINAL_REVIEW_BOUND_TO_OTHER_REVIEW_STATE` |
+| Source document bound | the caller supplies `--docx`; its SHA-256 must equal the hash the review examined | `SOURCE_DOCUMENT_HASH_REQUIRED_FOR_INSTITUTIONAL_ISSUE`, `SOURCE_DOCUMENT_VERSION_MISMATCH` |
+| Agent independence verified | `release/attestation.py::verify_live_roles` over the trace: every challenge role has a live receipt, distinct Execution_IDs and Context_IDs, no MOCK/CACHED/DETERMINISTIC substitution, evidence ids in the registry | `AGENT_INDEPENDENCE_NOT_VERIFIED` |
+| Release attestation | Ed25519 signature by a trust-store key with role `RELEASE_ATTESTOR` over fingerprint, document hash, challenge-record hash, role proofs, final-review receipt, decision ids, validity interval, purpose | `RELEASE_ATTESTATION_MISSING`, `RELEASE_ATTESTATION_INVALID:<reasons>` |
+
+A deterministic or mock READY, a forged `mode=LIVE`, an omitted source hash or a locally written record never
+clears an institutional issue (`tests/test_release_attestation.py`). Demo documents and `INTERNAL_DRAFT__`
+outputs keep the previous rules. The attestation key is operator-held (`--attestation-key FILE`
+`--attestation-key-id ID` on `review` / `agent-review` / `adjudicate`); its public key and role live in the
+institutional trust store, never in the repository.
+
+Live-provider trial (public-safe, synthetic only): `python tools/live_provider_trial.py` — stops at the first
+blocked stage (configuration → connectivity → evaluation) and prints the exact reason and next action.
+
 ## Build and evidence tools
 
     python tools/build_deliverables.py         # stages: demo migration verify render gates tests registers references results protocol decisions

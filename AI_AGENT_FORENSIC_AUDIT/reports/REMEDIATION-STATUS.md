@@ -25,3 +25,13 @@ the harness.
 
 Re-running `AI_AGENT_FORENSIC_AUDIT/runtime_callgraph.py` on this branch will show `02_build-excel` and
 `03_build-word` returning rc 3 after a BLOCKED `04_review`; the recorded traces in the reports predate the gate.
+
+## PR #3 independent review (ChatGPT, 2026-10-24) — remediation
+
+| Review finding | Priority | Status | What changed | Proof |
+|---|---|---|---|---|
+| Gate does not require the final review to be LIVE | P0 | **REMEDIATED** | institutional issue requires a LIVE final review with a verifiable execution receipt in the trace (mode, status, provider, invocation id shape, response hash) bound to the review-state fingerprint; deterministic/mock READY, forged LIVE labels, missing receipts, outdated fingerprints and failed/refused inference are refused | `tests/test_release_attestation.py::test_d1_*` (6 tests) |
+| Source-document hash check conditional on the caller | P0 | **REMEDIATED** | the hash is mandatory for an institutional issue (`SOURCE_DOCUMENT_HASH_REQUIRED_FOR_INSTITUTIONAL_ISSUE`); a record without a hash cannot be issued; CLI `--docx` on every issuing command | `test_d2_*` (2 tests) |
+| Independence classified from mode labels | P1 | **REMEDIATED** | `attestation.verify_live_roles`: receipts per role, unique Execution_IDs and Context_IDs, no substitution, evidence ids checked; `ISOLATED_LIVE_CONTEXTS` only when verified, else `LIVE_CLAIMED_NOT_VERIFIED`; the gate reads `independence.verified` | `test_d3_*` (2 tests) |
+| Local gate record not authenticated | P1 | **REMEDIATED** | signed release attestation (Ed25519, trust-store role `RELEASE_ATTESTOR`) over fingerprint, document hash, challenge-record hash, role proofs, final-review receipt, decision ids, validity interval, purpose; tampered, expired, replayed, revoked, synthetic-key, wrong-purpose or unsigned records are refused | `test_d4_*` (2 tests), `test_attestation_key_file_round_trip` |
+| Live inference unverified | P0 | **OPEN** | `tools/live_provider_trial.py` prepared (configuration → connectivity → evaluation; synthetic only; credentials never read); blocked at configuration in this environment: `CDF_AI_PROVIDER` unset / no credential | trial report `build/evidence/live-trial-check/live-provider-trial.json` (local) |

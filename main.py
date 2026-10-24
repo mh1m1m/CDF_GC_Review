@@ -203,8 +203,10 @@ def _issue_or_working_copy(a, state, out):
     path when ``--working-copy`` was given; otherwise emits a refusal and returns ``(None, None, auth)`` so that the
     caller writes nothing and returns RC_REFUSED. Nothing is written by this function.
     """
-    from cdf_gco_crms.release.authorization_gate import authorize, working_copy_name
-    auth = authorize(state, _gate_dir(a), trust_store=_trust_store(a))
+    from cdf_gco_crms.release.authorization_gate import authorize, sha256_file, working_copy_name
+    src = getattr(a, "docx", None) or getattr(a, "source", None)
+    src_sha = sha256_file(src) if src and Path(src).is_file() else None
+    auth = authorize(state, _gate_dir(a), trust_store=_trust_store(a), source_document_sha256=src_sha)
     if auth.ok:
         return Path(out), False, auth
     if getattr(a, "working_copy", False):
@@ -475,7 +477,7 @@ def _orchestrate(a, *, draft=False, decisions=None, command="review"):
     runner = AgentRunner(provider, TraceWriter(gate_dir.parent / "traces" / "agent-trace.jsonl")) if provider else None
     orc = ReviewOrchestrator(index, runner=runner, gate_dir=gate_dir)
     ex = orc.execute(st, a.docx, dept, decisions=decisions, trust=_trust_store(a), draft=draft,
-                     record_path=getattr(a, "record", None), command=command)
+                     record_path=getattr(a, "record", None), command=command, attestation_key=_attestation_key(a))
     return ex, index
 
 
@@ -494,7 +496,9 @@ def _emit_execution(a, ex, mode, extra=None):
                "reference_mode": mode, "modes": ex.modes(), "final_review": ex.final_review,
                "editorial_candidates": len(ex.editorial_candidates), "proposals": len(ex.proposals),
                "human_decisions_applied": len(ex.human_decisions), "rejected_decisions": ex.rejected_decisions,
-               "trace": ex.trace_summary, "run_id": ex.run_id,
+               "trace": ex.trace_summary, "run_id": ex.run_id, "independence_verified": ex.independence.get("verified", False),
+               "independence_reasons": ex.independence.get("reasons", []), "attestation": bool(ex.attestation),
+               "purpose": gate.get("purpose"),
                "gate_record": str(Path(_gate_dir(a)) / f"{gate['fingerprint']}.json"), "fingerprint": gate["fingerprint"],
                "note": "an issue is refused while a blocker, a provider failure or a NOT_READY final review stands; "
                        "only a verified reviewer decision record clears a blocker (19A.9)"}
@@ -592,6 +596,15 @@ def _gate_args(p):
                    help="when the release gate does not clear, write a classified INTERNAL_DRAFT__ file instead of refusing")
     p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
     p.add_argument("--trust-store", help="institution-managed trust store (JSON) to re-validate recorded reviewer decisions at issue time")
+    p.add_argument("--docx", dest="docx", help="the reviewed case document; its SHA-256 must match the review record (mandatory for an institutional issue)")
+
+
+def _attestation_key(a):
+    from cdf_gco_crms.release.attestation import load_private_key
+    path = getattr(a, "attestation_key", None)
+    if not path:
+        return None
+    return load_private_key(path), getattr(a, "attestation_key_id", None) or Path(path).stem
 
 
 def main(argv=None):
@@ -640,6 +653,8 @@ def main(argv=None):
                        help="use the public SYNTHETIC reference fixture (such a review never authorises an issue)")
         p.add_argument("--trust-store", help="institution-managed trust store (JSON: legacy {key_id: b64} or CDF-TRUST-STORE-v7.12.1)")
         p.add_argument("--execution-json", help="write the full execution record (roles, exchanges, trace summary) here")
+        p.add_argument("--attestation-key", help="operator-held Ed25519 private key file (base64 or raw) that signs the release attestation")
+        p.add_argument("--attestation-key-id", help="key id of the attestation key as listed in the trust store (role RELEASE_ATTESTOR)")
         if name == "agent-review":
             p.add_argument("--draft", action="store_true", help="run the GCO drafting agent (proposals only; LIVE provider needed)")
             p.add_argument("--decisions", help="signed reviewer decision records to apply inside the pipeline")

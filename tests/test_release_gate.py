@@ -133,7 +133,7 @@ def test_synthetic_reference_review_never_authorizes_an_institutional_issue(tmp_
     gate = tmp_path / "gate"
     G.record_review(st, rec, rec_path, reference_mode="SYNTHETIC", gate_dir=gate, final_review=FINAL_READY)
     auth = G.authorize(st, gate)
-    assert not auth.ok and auth.reasons == [G.R_SYNTHETIC]
+    assert not auth.ok and G.R_SYNTHETIC in auth.reasons      # plus the institutional-issue requirements (live receipt, source hash, attestation)
     demo = _state(demo=True)
     docx_d = build_reviewed_doc(demo, tmp_path / "demo.docx")
     rec_d = _review(demo, docx_d)
@@ -263,7 +263,7 @@ def test_cli_synthetic_reference_review_never_issues_an_institutional_document(t
     rc, rep = _run(["review", wb, "--docx", str(full), "--gate-dir", gate, "--synthetic-reference"], capsys)
     assert rc == 0 and rep["status"] == "CLEAR"
     rc, rep = _run(["build-excel", wb, str(tmp_path / "issue"), "--gate-dir", gate], capsys)
-    assert rc == CLI.RC_REFUSED and rep["gate"]["reasons"] == [G.R_SYNTHETIC]
+    assert rc == CLI.RC_REFUSED and G.R_SYNTHETIC in rep["gate"]["reasons"]
 
 
 def test_cli_review_without_sources_and_without_flag_refuses(tmp_path, capsys):
