@@ -9,6 +9,7 @@ type CaseData = { case_id: string; evidence_hash: string; source_hash: string;
  observations: Observation[]; statistics: Record<string, number | boolean> };
 type EventData = { observation_id: string | null; event_type: string; payload_json: string;
  event_hash: string; created_at: string; actor: string };
+type ProfileSummary = {profile_version:string;profile_sha256:string;active:boolean;created_by:string;created_at:string};
 type CaseSummary = { case_id: string; evidence_hash: string; stats: Record<string, number | boolean> };
 const choices = [
  ["KEEP_UNCHANGED","إبقاء دون تعديل"],["KEEP_WITH_REVISIONS","إبقاء مع تعديل"],
@@ -31,16 +32,22 @@ function App() {
  const [reason,setReason]=useState(""); const [ground,setGround]=useState("W12");
  const [evidence,setEvidence]=useState(""); const [view,setView]=useState("compare");
  const [error,setError]=useState(""); const [success,setSuccess]=useState("");
- const [ruleId,setRuleId]=useState("SYN-RULE-001"); const [ruleReason,setRuleReason]=useState("");
+ const [ruleId,setRuleId]=useState("SYN-S01"); const [ruleReason,setRuleReason]=useState("");
  const [ruleAction,setRuleAction]=useState("DEFER");
  const [analyticsData,setAnalyticsData]=useState<Record<string,unknown>|null>(null);
+ const [profiles,setProfiles]=useState<ProfileSummary[]>([]);
+ const [profileData,setProfileData]=useState<Record<string,unknown>|null>(null);
  async function api<T>(url:string,method="GET",body?:object):Promise<T>{
    const resp=await fetch(url,{method,headers:{"Authorization":"Bearer "+token,...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{})});
    if(!resp.ok){let t="";try{t=JSON.stringify(await resp.json())}catch{}throw Error(resp.status+" "+t)}
    return resp.json() as Promise<T>;
  }
  async function load(){setError("");try{setCases(await api<CaseSummary[]>("/api/cases"))}catch(e){setError(String(e))}}
- async function openCase(id:string){setError("");try{const [c,ev]=await Promise.all([api<CaseData>("/api/cases/"+encodeURIComponent(id)),api<EventData[]>("/api/cases/"+encodeURIComponent(id)+"/events")]);setActive(c);setEvents(ev);setFocus(0);setView("compare");}catch(e){setError(String(e))}}
+ async function openCase(id:string, selected=0, display="compare"){setError("");try{const [c,ev]=await Promise.all([api<CaseData>("/api/cases/"+encodeURIComponent(id)),api<EventData[]>("/api/cases/"+encodeURIComponent(id)+"/events")]);setActive(c);setEvents(ev);setFocus(selected);setView(display);}catch(e){setError(String(e))}}
+ async function loadProfiles(){if(!active)return;try{setProfiles(await api<ProfileSummary[]>("/api/cases/"+encodeURIComponent(active.case_id)+"/profiles"))}catch(e){setError(String(e))}}
+ async function compileProfile(){if(!active)return;setError("");try{await api("/api/cases/"+encodeURIComponent(active.case_id)+"/profiles/compile","POST");setSuccess("أُنشئت نسخة تجريبية غير معتمدة من ملف DNA");await loadProfiles()}catch(e){setError(String(e))}}
+ async function activateProfile(version:string){if(!active)return;setError("");try{await api("/api/cases/"+encodeURIComponent(active.case_id)+"/profiles/"+encodeURIComponent(version)+"/activate","POST");setSuccess("تم تفعيل النسخة التجريبية مع تسجيل الحدث");await loadProfiles()}catch(e){setError(String(e))}}
+ async function viewProfile(version:string){if(!active)return;setError("");try{setProfileData(await api<Record<string,unknown>>("/api/cases/"+encodeURIComponent(active.case_id)+"/profiles/"+encodeURIComponent(version)));setView("writing")}catch(e){setError(String(e))}}
  async function loadAnalytics(){if(!active)return;try{setAnalyticsData(await api<Record<string,unknown>>("/api/cases/"+encodeURIComponent(active.case_id)+"/analytics"))}catch(e){setError(String(e))}}
  async function save(status:"DRAFT"|"SUBMITTED"){
    if(!active)return;const obs=active.observations[focus];setError("");setSuccess("");
@@ -50,7 +57,7 @@ function App() {
      evidence_refs:evidence.trim()?[evidence.trim()]:[],
      material_categories:obs.material_categories||[]
    });setSuccess(status==="SUBMITTED"?"حُفظ القرار وأُضيف إلى سجل التدقيق":"حُفظت المسودة");
-   await openCase(active.case_id);
+   await openCase(active.case_id,focus,"compare");
    }catch(e){setError(String(e))}
  }
  async function reviewRule(){if(!active)return;setError("");setSuccess("");
@@ -58,7 +65,7 @@ function App() {
    try{await api("/api/cases/"+encodeURIComponent(active.case_id)+"/rules/"+encodeURIComponent(ruleId)+"/review","POST",
      {action:ruleAction,rationale:ruleReason,observation_event_hashes:hashes,profile_version:"PROVISIONAL-v1"});
      setSuccess("حُفظت مراجعة القاعدة، ولم تُنشأ صلاحية إصدار أو اعتماد مؤسسي");
-     await openCase(active.case_id);setView("rules");
+     await openCase(active.case_id,focus,"rules");
    }catch(e){setError(String(e))}
  }
  const obs=active?.observations[focus]; const comparison=obs?diffTokens(obs.original_text||"",obs.reviewed_text||""):null; const decisionEvents=events.filter(e=>e.event_type==="OBSERVATION_CALIBRATION");
@@ -72,6 +79,9 @@ function App() {
     <button onClick={()=>setView("compare")}>مقارنة الملاحظات</button>
     <button onClick={()=>{setView("analytics");void loadAnalytics()}}>المؤشرات</button>
     <button onClick={()=>setView("rules")}>اعتماد قواعد DNA</button>
+    <button onClick={()=>setView("withdrawals")}>الملاحظات المستبعدة</button>
+    <button onClick={()=>{setView("profiles");void loadProfiles()}}>إصدارات DNA</button>
+    <button onClick={()=>setView("writing")}>الأسلوب المهني</button>
     <button onClick={()=>setView("history")}>سجل القرارات</button>
   </>}</nav>
   {!active?<section className="panel"><h2>القضايا المتاحة</h2><p>لا تظهر إلا القضايا المصرح بها في بيئة التجربة. لم تُستورد ملفات الصندوق الحقيقية.</p>
@@ -101,6 +111,19 @@ function App() {
      <label>المبرر<textarea value={ruleReason} onChange={e=>setRuleReason(e.target.value)}/></label>
      <p className="notice">سيتم ربط المراجعة بجميع قرارات المعايرة المقدمة في القضية؛ يجب تحسين اختيار أدلة محددة قبل اعتماد بشري فعلي.</p>
      <button className="primary" onClick={reviewRule}>حفظ مراجعة القاعدة</button></section>}
+
+    {view==="withdrawals"&&<section className="panel"><h2>ملاحظات غائبة أو مقترح سحبها</h2><p className="notice">غياب التعليق من النسخة الثانية ليس قراراً بشرياً موثقاً بسحبه.</p>{active.observations.map((o,i)=>o.observed_change==="REMOVED_FROM_VERSION"||o.material_categories?.length?<article className="row" key={o.observation_id}><div><strong>{o.observation_id}</strong><p>{o.original_text||"بدون نص"}</p><small>{o.observed_change}</small></div><button onClick={()=>{setFocus(i);setChoice("WITHDRAW");setView("compare")}}>مراجعة سبب الغياب</button></article>:null)}</section>}
+    {view==="profiles"&&<section className="panel"><h2>نسخ ملف MAT DNA</h2><p>جميع النسخ المعروضة هنا تركيبية وحالتها PROVISIONAL / NOT_APPROVED؛ لا تعادل اعتماداً مؤسسياً.</p>
+      <button className="primary" onClick={compileProfile}>تجميع نسخة تجريبية من قرارات المعايرة</button>
+      {profiles.map(p=><article className="row" key={p.profile_version}><div><strong>{p.profile_version}</strong><small>{p.active?" • النسخة التجريبية النشطة":""}</small><p>بصمة النسخة: {p.profile_sha256.slice(0,24)}...</p></div><div><button onClick={()=>viewProfile(p.profile_version)}>عرض ملف DNA</button><button disabled={p.active} onClick={()=>activateProfile(p.profile_version)}>تفعيل / رجوع لنسخة سابقة</button></div></article>)}
+      {!profiles.length&&<p className="empty">لا توجد نسخ مجمعة حتى الآن. يتطلب التجميع قرار معايرة مقدم ومراجعة قاعدة مؤيدة بأدلة.</p>}
+    </section>}
+    {view==="writing"&&<section className="panel"><h2>بصمة الأسلوب المهني</h2><p>ملف توجيهي للمحاكاة المنضبطة، ولا يجوز اعتباره أسلوب محمد التميمي المعتمد دون تحقق بشري.</p>
+      {!profileData?<p className="empty">افتح «إصدارات DNA» واختر «عرض ملف DNA» لعرض القواعد الفعلية والتصنيفات.</p>:<>
+      <h3>حالة ملف DNA</h3><p>{String(profileData["profile_id"])} · {String(profileData["status"])} · {String(profileData["human_approval_status"])}</p>
+      {["writing_patterns","question_patterns","recommendation_patterns","selection_rules","withdrawal_rules"].map(k=><div key={k}><h3>{k}</h3>{(Array.isArray(profileData[k])?profileData[k] as Record<string,unknown>[]:[]).map((p,i)=><article className="row" key={i}><span>{String(p["text"]||p["condition"]||p["ground"]||"")}</span><small>{String(p["confidence"]||"غير مثبت")} · {String(p["classification"]||"")}</small></article>)}</div>)}
+      </>}
+    </section>}
     {view==="history"&&<section className="panel"><h2>سجل القرارات غير القابل للاستبدال المباشر</h2>{events.map((e,i)=><article className="history" key={i}><strong>{e.event_type} · {e.observation_id||"القضية"}</strong><small>{e.created_at} · {e.actor}</small><pre>{JSON.stringify(JSON.parse(e.payload_json),null,2)}</pre></article>)}</section>}
   </>}
   <footer>نموذج هندسي تجريبي • لا توجد هوية مؤسسية معتمدة أو صلاحيات إصدار رسمية • لا ترسل مستندات سرية</footer>
