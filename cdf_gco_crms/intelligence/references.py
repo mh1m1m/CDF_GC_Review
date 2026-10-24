@@ -34,15 +34,21 @@ class SourceRecord(BaseModel):
     supersedes: str | None = None
     last_verified_date: str | None = None
     source_confidence: str = 'NOT_ESTABLISHED'
+    storage_location: str | None = None
+    document_date: str | None = None
+    document_date_status: str = 'NOT_VERIFIED'
+    permission_for_use: str = 'NOT_VERIFIED'
+    authenticity_status: str = 'NOT_VERIFIED'
+    accessibility_status: str = 'NOT_VERIFIED'
 
 
 def reference_candidates():
-    data = json.loads((ROOT/'shared/institutional-candidates.json').read_text())
-    for source in data['sources']:
-        SourceRecord.model_validate(source)
-    # Static extraction candidates are never promoted to binding by this projection.
-    if any(s['current_authority_confirmed'] for s in data['sources']):
-        raise ValueError('CANDIDATE_REGISTRY_CANNOT_DECLARE_CURRENT_AUTHORITY')
+    from ..institutional.providers import PublicSyntheticProvider
+    return candidate_graph(PublicSyntheticProvider().catalog())
+
+
+def candidate_graph(data):
+    # Providers establish classification before this shared graph projection.
     nodes = {"SOURCE-"+s['id']: {'id':"SOURCE-"+s['id'], 'label':s['id'], 'kind':'SOURCE'} for s in data['sources']}
     edges = []
     for entry in data['authorities']:

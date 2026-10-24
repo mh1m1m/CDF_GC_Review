@@ -82,6 +82,6 @@ def seed(db):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--db',default='build/private/mat-calibration-dev.sqlite')
+    parser.add_argument('--db',default='build/public-demo/mat-calibration-dev.sqlite')
     args=parser.parse_args()
     print('Synthetic case ready:',seed(args.db))

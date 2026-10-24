@@ -16,7 +16,7 @@ from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, Ca
 
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--db", default="build/private/mat-calibration-dev.sqlite")
+    ap.add_argument("--db", default="build/public-demo/mat-calibration-dev.sqlite")
     ap.add_argument("--case",required=True)
     ap.add_argument("--version",required=True)
     ap.add_argument("--out",required=True)

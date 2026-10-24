@@ -1,4 +1,4 @@
-"""Reproduce public extraction candidates from hash-verified, authorized PDF copies.
+"""Reproduce extraction candidates from hash-verified, authorized PDF copies.
 
 No source download, activation, approval upgrade or provider call is performed.
 """
@@ -31,7 +31,7 @@ def ingest(folder:Path,manifest:dict):
         'extraction_status':'CANDIDATE_REQUIRES_HUMAN_RECONCILIATION'} for item in matrix.items]
     units=[{**asdict(unit),'id':'ORG-'+str(i+1),'source_id':'organization','approval_status':'PROPOSED_NOT_APPROVED',
             'current_authority_confirmed':False} for i,unit in enumerate(org.units)]
-    return {'schema':'CDF-PUBLIC-REFERENCE-CANDIDATES-v1','classification':'USER_DECLARED_PUBLIC','captured_at':date.today().isoformat(),
+    return {'schema':'CDF-PUBLIC-REFERENCE-CANDIDATES-v1','classification':'AUTHORIZED_LOCAL_DEVELOPMENT_NOT_PUBLICATION_APPROVAL','captured_at':date.today().isoformat(),
             'sources':manifest['sources'],'authorities':authorities,'units':units,'sectors':[asdict(s) for s in org.sectors],
             'limitations':['EXTRACTION_IS_NOT_APPROVAL','CURRENT_AUTHORITY_NOT_CONFIRMED','THRESHOLDS_REQUIRE_RECONCILIATION','NO_EXTERNAL_PROVIDER_PROCESSING_AUTHORIZED']}
 
@@ -39,10 +39,13 @@ def ingest(folder:Path,manifest:dict):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-directory',type=Path,required=True)
-    parser.add_argument('--manifest',type=Path,default=Path('shared/reference-source-manifest.json'))
-    parser.add_argument('--output',type=Path,default=Path('build/reference-candidates.json'))
+    parser.add_argument('--manifest',type=Path,default=Path('private/reference-registry/sources.json'))
+    parser.add_argument('--output',type=Path,default=Path('private/reference-candidates.json'))
     args=parser.parse_args()
     result=ingest(args.source_directory,json.loads(args.manifest.read_text()))
+    output=args.output.resolve();root=Path(__file__).resolve().parents[1]
+    if output.is_relative_to(root) and not output.is_relative_to(root/'private'):
+        raise PermissionError('INSTITUTIONAL_OUTPUT_REQUIRES_PRIVATE_STORAGE')
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2))
     print('Extracted candidates:',len(result['authorities']),len(result['units']))

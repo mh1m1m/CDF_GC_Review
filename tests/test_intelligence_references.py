@@ -8,7 +8,7 @@ from cdf_gco_crms.assurance.evidence import EvidenceRegistry
 
 def test_reference_candidates_do_not_claim_current_authority():
     data=reference_candidates()
-    assert all(s['publication_status']=='USER_DECLARED_PUBLIC' for s in data['sources'])
+    assert all(s['publication_status']=='SYNTHETIC_PUBLIC_FIXTURE' for s in data['sources'])
     assert all(not s['current_authority_confirmed'] for s in data['sources'])
     assert all(item['page']>0 for item in data['authorities']+data['units'])
 

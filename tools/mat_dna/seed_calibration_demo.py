@@ -1,7 +1,7 @@
 """Seed fictional MAT calibration observations for LOCAL DEMO ONLY.
 
 Usage:
-  python tools/mat_dna/seed_calibration_demo.py --db build/private/mat-calibration-dev.sqlite
+  python tools/mat_dna/seed_calibration_demo.py --db build/public-demo/mat-calibration-dev.sqlite
 """
 import argparse
 import sys
@@ -41,7 +41,7 @@ DEMO = [
 ]
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--db",default="build/private/mat-calibration-dev.sqlite")
+    p.add_argument("--db",default="build/public-demo/mat-calibration-dev.sqlite")
     args=p.parse_args()
     s=CalibrationStore(args.db)
     identity=ReviewerContext("SYNTHETIC_ADMIN",

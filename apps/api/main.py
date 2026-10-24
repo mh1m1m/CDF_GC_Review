@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -24,8 +24,12 @@ if os.getenv("CDF_CALIBRATION_MODE") != "SYNTHETIC_LOCAL_DEV":
 TOKEN = os.getenv("CDF_CALIBRATION_DEV_TOKEN", "")
 if len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
     raise RuntimeError("Set a random CDF_CALIBRATION_DEV_TOKEN of at least 32 characters")
-DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/private/mat-calibration-dev.sqlite")).resolve()
+DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/public-demo/mat-calibration-dev.sqlite")).resolve()
+from cdf_gco_crms.institutional.contracts import activation_status
+from cdf_gco_crms.institutional.isolation import require_public_runtime, bind_public_database
+require_public_runtime(os.getenv('CDF_OPERATION_MODE', 'PUBLIC_SYNTHETIC_DEMO'), DB_PATH)
 store = CalibrationStore(DB_PATH)
+bind_public_database(store)
 service = CalibrationService(store)
 from cdf_gco_crms.intelligence.service import IntelligenceService
 intelligence = IntelligenceService(service)
@@ -87,6 +91,11 @@ class RuleReview(BaseModel):
     rationale: str
     observation_event_hashes: list[str]
     profile_version: str
+
+
+@app.get('/api/operating-mode')
+def operating_mode():
+    return activation_status()
 
 
 @app.get("/api/health")
@@ -187,3 +196,24 @@ def public_reference_candidates(authorization: str | None = Header(default=None)
     from cdf_gco_crms.intelligence.references import reference_candidates
     identity(authorization).require('CALIBRATION_REVIEWER')
     return reference_candidates()
+
+
+@app.get('/api/reference-candidates/lookup')
+def reference_lookup(query: str = Query(default='',max_length=240), role: str | None = Query(default=None,max_length=80),
+                     kind: str = Query(default='authority',pattern='^(authority|responsibility)$'),
+                     source_id: str | None = Query(default=None,max_length=100),
+                     authorization: str | None = Header(default=None)):
+    identity(authorization).require('CALIBRATION_REVIEWER')
+    from cdf_gco_crms.institutional.providers import PublicSyntheticProvider, ReferenceLookupService
+    lookup=ReferenceLookupService(PublicSyntheticProvider())
+    return (lookup.authorities(query,role=role,source_id=source_id) if kind=='authority'
+            else lookup.responsibilities(query,source_id=source_id))
+
+
+# Optional prebuilt public UI. The demo container supplies this directory; it
+# never serves repository/private files or runtime environment values.
+if os.getenv('CDF_PUBLIC_UI_DIRECTORY'):
+    from fastapi.staticfiles import StaticFiles
+    ui_path=Path(os.environ['CDF_PUBLIC_UI_DIRECTORY']).resolve(strict=True)
+    require_public_runtime('PUBLIC_SYNTHETIC_DEMO',ui_path)
+    app.mount('/',StaticFiles(directory=ui_path,html=True),name='public-ui')

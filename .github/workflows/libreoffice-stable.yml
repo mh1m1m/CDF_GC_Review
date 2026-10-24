@@ -8,6 +8,7 @@ on:
       - feature/v712-mat-professional-dna-agent
       - feature/v712-mat-human-calibration
       - codex/takeover-audit-and-safeguards
+      - codex/visual-intelligence
       - codex/stable-libreoffice
   workflow_dispatch:
 permissions:

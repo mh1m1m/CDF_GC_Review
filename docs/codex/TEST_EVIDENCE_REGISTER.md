@@ -75,3 +75,24 @@ Source base: 00c4f5b (PR 7), branch codex/visual-intelligence. Exact final SHA/C
 Build measurements: chart module approximately 553 kB minified / 187 kB gzip, graph module approximately 318 kB / 102 kB gzip before final formatting. Page components are lazy-loaded; these are build sizes, not field performance/SLA measurements. Graphs are bounded (source graph maximum 65 nodes); large case pagination/virtualization remains a follow-on requirement. Original actual source PDFs remain local; published candidate/asset material was explicitly declared public by the user.
 
 Final refinements: exact FastAPI 0.162.0 / Uvicorn 0.54.0 / HTTPX 0.28.1 pins match the stable container. Focused host intelligence/API/source run: 13 passed, 1 skipped (host alpha PDF/Calc acceptance). The final RTL/logo draft exporters were independently rechecked in the stable image: 2 passed, including PDF parsing and native Excel formula recalculation. Word, Excel and PDF synthetic samples were generated from one identical read model. Chart SVG coordinates are explicitly LTR inside the RTL interface; reviewed desktop/iPhone baselines then passed the five browser tests without updates (1.1m). Public candidate reproduction matched the committed JSON exactly. Final image ID: sha256:6149d2a16dab87d7f7f6405893c73bbede5a5e07cad876160fa793e1959530fe. CI results apply only after independently inspecting the exact new PR head.
+
+## Institutional dual-mode continuation
+Base b30dc5f01b5573d707c1ece77b42c1a3e690a0ae (PR #8); that base independently passed workflows 40071144261 and 40071144274. New branch codex/institutional-dual-mode.
+
+| Verification | Local result | Evidence/limit |
+|---|---|---|
+| Refreshed Drive original checks | 5/5 matched | Private revalidation register; hashes/content not included in public artifacts |
+| Private source ingestion | 141 DoA / 81 units / 15 sectors | Existing geometry/layout parsers; approval/currency unverified |
+| Stable smoke and mandatory engine checks | 3/3 smoke, 13 passed without skips | LibreOffice 25.2.3.2, network disabled |
+| Full stable-container source snapshot | 267 passed, 11 skipped, 10 subtests passed (117.21s) | Three provider and eight unavailable institutional input/asset skips; two later currency/version-history cases are covered in the focused run and final CI |
+| Final focused API/intelligence/mode tests | 25 passed, 1 skipped | Host alpha engine acceptance skipped; private scopes, fake configuration, source versions, real orchestrator hook and native export boundaries |
+| Final native document acceptance | 3 passed | Actual stable PDF parse/Calc reconciliation, native Word comments, structured tables and original x14 element |
+| TypeScript/Vite and Vitest | PASSED / 2 passed | Existing toolchain pins retained |
+| Browser and visual regression | 8 passed without baseline updates (49.9s) | Actual desktop/iPhone, gallery, historical filters/tree, calibration persistence, exports and WCAG automated scans |
+| Dedicated visual gallery | 12 required actual captures present | Running app screenshots plus independently rendered Word/Calc previews; not institutional design acceptance |
+| Public-mode container isolation | PASSED | Nonroot/no network/no private mounts; actual UI/API/reference/export exercise |
+| Frontend configuration boundary | PASSED | Backend-only sentinel absent from bundle; private client-secret prefix rejected |
+| Scoped security scans | Bandit 0; npm/PyPI 0 known advisories | Gitleaks/history-wide/manual penetration testing not claimed |
+| Institutional activation, current approval, real inference | PENDING_AUTHORIZATION / NOT_VERIFIED / NOT_RUN | No production HTTP activation, organizational SSO/UAT, verified human-label dataset or actual provider call |
+
+Actual x14 sparkline bytes survive in the delivered original XLSX; openpyxl/LibreOffice may drop or not render that extension when resaving. Microsoft Excel desktop verification remains NOT_RUN. Build/bundle measurements and graph-scale limits remain engineering observations, not field performance SLAs. Final SHA/CI evidence will be linked from the follow-up draft PR and final handoff.

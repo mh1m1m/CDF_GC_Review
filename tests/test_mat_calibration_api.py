@@ -13,7 +13,7 @@ def app_client(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     monkeypatch.setenv("CDF_CALIBRATION_MODE", "SYNTHETIC_LOCAL_DEV")
     monkeypatch.setenv("CDF_CALIBRATION_DEV_TOKEN", "a" * 48)
-    monkeypatch.setenv("CDF_CALIBRATION_DB", str(tmp_path / "private" / "pilot.sqlite"))
+    monkeypatch.setenv("CDF_CALIBRATION_DB", str(tmp_path / "public-demo" / "pilot.sqlite"))
     sys.modules.pop("apps.api.main", None)
     mod = importlib.import_module("apps.api.main")
     with TestClient(mod.app) as client:
