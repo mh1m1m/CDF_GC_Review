@@ -9,3 +9,9 @@
 - Next milestone: independent review of security corrections, then M1 calibration evidence/version lifecycle. Institutional readiness NOT_READY, authorization NOT_AUTHORIZED, real inference NOT_VERIFIED.
 
 - Final local suite with LibreOffice explicitly unavailable: 228 passed, 17 skipped, 10 subtests passed; six engine-dependent skips, three live-provider skips, eight institutional-input/asset skips. All ten new negative/idempotency regression cases passed. Tracked-file guard: 239 entries PASS. Browser download blocked by network HTTP 403; no local E2E pass claimed. Added workflow PR trigger for the calibration branch so this stacked PR receives CI.
+
+## 2026-10-24 — LibreOffice follow-up
+- Confirmed installed soffice version/build and inspected the generated macro registration. No environment installation or persistent configuration change was necessary to establish availability.
+- Reproduced the timeout on a three-cell XLSX through both project macro and ordinary conversion; CSV-to-ODS also failed. Writer text-to-PDF passed. Disabling Calc OpenCL/threading did not resolve the probe. Exact internal cause remains unverified; no project formula defect inferred.
+- Added LIBREOFFICE_DIAGNOSTIC.md, updated evidence and ENV-01. No source or test behavior changed. Keep stable Calc verification and independent spreadsheet tests as open work.
+- Independently observed all three jobs of PR 6 run 40064935332 PASSED for source f2ff9b6, including browser E2E. This does not establish Calc availability in CI.

@@ -34,3 +34,8 @@ PYTEST
 The actual run used an equivalent temporary pytest plugin. Existing skip markers classify engine-dependent tests as SKIPPED; inline optional rendering branches are not executed. This does not validate independent spreadsheet recalculation or rendering. Normal loopback/process access is needed for FastAPI TestClient; sandboxed attempts stalled and were terminated, not reported as passes.
 
 Final public-file guard: PASSED, 239 tracked entries after staging. Python compilation and staged whitespace checks passed. UI production build passed earlier; no UI source was changed. New CI result is not yet available at commit time; inspect the draft PR checks.
+
+## Follow-up — installed LibreOffice diagnostic and completed CI
+PR 6 head f2ff9b6708e6ac438ecfcd71eab737d5e3e07615: Actions run 40064935332 now PASSED in all three jobs, including browser E2E. This replaces the earlier queued status for that exact head. It does not verify LibreOffice, which the workflow does not install.
+
+LibreOffice is already installed: LibreOfficeDev 26.8.0.0.alpha0. Writer text-to-PDF passed; tiny synthetic XLSX and CSV Calc conversions timed out independently of the project workbook/macro. See LIBREOFFICE_DIAGNOSTIC.md for limits and reproduction. No new full-suite pass or spreadsheet reconciliation is claimed by this documentation-only follow-up.
