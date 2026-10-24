@@ -42,7 +42,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "group",
-        choices=["init", "status", "acceptance", *sorted({k[0] for k in COMMANDS})],
+        choices=["init", "status", "acceptance", "copilot", *sorted({k[0] for k in COMMANDS})],
     )
     parser.add_argument("action", nargs="?")
     parser.add_argument("--db", type=Path)
@@ -64,6 +64,12 @@ def main(argv=None):
     parser.add_argument("--wait", action="store_true")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--issue", action="store_true")
+    parser.add_argument('--text',default='')
+    parser.add_argument('--workflow',dest='workflow_id')
+    parser.add_argument('--expected-version')
+    parser.add_argument('--confirm-human',action='store_true')
+    parser.add_argument('--retry',action='store_true')
+    parser.add_argument('--payload-file',type=Path)
     args = parser.parse_args(argv)
     if args.group == "acceptance":
         from .acceptance.unified import main as acceptance
@@ -78,6 +84,22 @@ def main(argv=None):
             raise AccessDenied("SCOPED_DEVELOPMENT_CREDENTIAL_REQUIRED")
         service = ApplicationService(args.db, token=token)
         principal = service.authenticate(token)
+        if args.group=='copilot':
+            from .copilot.service import CopilotService
+            from .copilot.contracts import Input
+            copilot=CopilotService(service)
+            if args.payload_file:
+                if args.payload_file.stat().st_size>131072:raise CalibrationError('REQUEST_SIZE_LIMIT')
+                body=json.loads(args.payload_file.read_text())
+            else:body={key:getattr(args,key) for key in Input.model_fields if key!='action' and hasattr(args,key)}
+            result=copilot.execute(args.action,body,principal,transport='CLI_COPILOT')
+            if args.wait and result['data'].get('workflow_id'):
+                deadline=time.monotonic()+args.timeout
+                while result['data']['status'] in ('PLANNED','WAITING_FOR_JOB') and time.monotonic()<deadline:
+                    time.sleep(1);state=result['data']
+                    result=copilot.execute('resume',{'case_id':state['case_id'],'workflow_id':state['workflow_id'],'expected_version':str(state['version']),
+                        'idempotency_key':state['workflow_id']+'-resume-'+str(state['version'])},principal,transport='CLI_COPILOT')
+            print(json.dumps(result,ensure_ascii=False));return 4 if result['data'].get('status')=='FAILED' else 0
         if args.group in ("init", "status"):
             from .execution.providers import readiness
 

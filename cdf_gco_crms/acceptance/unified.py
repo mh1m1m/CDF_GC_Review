@@ -274,7 +274,7 @@ class Acceptance:
                 discovery = await client.list_tools()
                 from ..execution.contracts import TOOLS
 
-                assert set(TOOLS) == {t.name for t in discovery.tools}
+                assert set(TOOLS) <= {t.name for t in discovery.tools}
                 assert all(t.inputSchema and t.outputSchema for t in discovery.tools)
                 write(
                     self.output / "mcp-tool-discovery.json",

@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
+  MessageSquare,
   ArrowUpLeft,
   BookOpen,
   ChevronLeft,
@@ -30,6 +31,7 @@ const ExecutionWorkspace = lazy(
   () => import("./components/ExecutionWorkspace"),
 );
 const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
+const GovernanceCopilot = lazy(() => import("./components/GovernanceCopilot"));
 const Calibration = lazy(() => import("./CalibrationApp"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
 type References = {
@@ -78,6 +80,7 @@ const views = [
   ["calibration", "معايرة الملاحظات", FileCheck2],
   ["gallery", "المكتبة البصرية", ShieldCheck],
   ["execution", "التنفيذ والملفات", Activity],
+  ["copilot", "المساعد الحوكمي", MessageSquare],
 ] as const;
 const categoryNames: Record<string, string> = {
   AML: "غسل الأموال",
@@ -940,6 +943,11 @@ function App() {
                       ).then(setData)
                     }
                   />
+                </Suspense>
+              )}
+              {view === "copilot" && (
+                <Suspense fallback={<p>جارٍ تحميل المساعد…</p>}>
+                  <GovernanceCopilot caseId={data.case_id} token={token} />
                 </Suspense>
               )}
               {view === "gallery" && (

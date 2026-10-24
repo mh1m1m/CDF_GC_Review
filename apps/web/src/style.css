@@ -1704,3 +1704,13 @@ th {
     grid-template-columns: 1fr;
   }
 }
+@media (max-width: 760px) {
+  .rail {
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+  .rail button {
+    flex: 0 0 44px;
+  }
+}

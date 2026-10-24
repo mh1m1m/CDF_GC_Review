@@ -194,6 +194,23 @@ def build_server(
             )(handler)
 
         register(name, args_model, action, role, mutation)
+    from ..copilot.service import CopilotService
+    from ..copilot.contracts import Input as CopilotInput, Operation as CopilotOperation
+    copilot=CopilotService(application)
+    async def conversation(operation: CopilotOperation, request: CopilotInput, ctx: Context)->Result:
+        try:
+            access=get_access_token() if transport!='stdio' else None
+            token=os.getenv('CDF_CALIBRATION_DEV_TOKEN','') if transport=='stdio' else (access.token if access else '')
+            result=copilot.execute(operation,request.model_dump(),application.authenticate(token),transport='MCP_COPILOT_'+transport.upper())
+            if len(json.dumps(result,ensure_ascii=False).encode())>524288:raise CalibrationError('OUTPUT_LIMIT_USE_PAGINATION')
+            return Result.model_validate(result)
+        except (CalibrationError,AccessDenied,ValidationError) as exc:
+            data=Result(ok=False,operation='cdf_governance_copilot',error={'code':'INPUT_VALIDATION_FAILED' if isinstance(exc,ValidationError) else str(exc),'type':type(exc).__name__,'retryable':False}).model_dump()
+            return CallToolResult(isError=True,structuredContent=data,content=[TextContent(type='text',text=json.dumps(data))])
+    conversation.__annotations__['operation']=CopilotOperation
+    conversation.__annotations__['request']=CopilotInput
+    server.tool(name='cdf_governance_copilot',description='Bounded Arabic/English intent plans, durable synthetic workflows, grounded knowledge, versioned human decisions and admin health. Human actions require explicit structured input. No institutional activation or issuance.',
+        annotations=ToolAnnotations(readOnlyHint=False,destructiveHint=True,openWorldHint=True,idempotentHint=False),structured_output=True)(conversation)
     return server
 
 
