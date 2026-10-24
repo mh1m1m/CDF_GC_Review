@@ -145,7 +145,7 @@ def test_synthetic_reference_review_never_authorizes_an_institutional_issue(tmp_
 def test_working_copy_marking_xlsx_and_docx(tmp_path):
     st = _state()
     wc = build_workbook(st, G.working_copy_name(tmp_path / "wb.xlsx"), working_copy=True).path
-    assert wc.name.endswith(" - WORKING-COPY.xlsx") and G.xlsx_is_working_copy(wc)
+    assert G.is_working_copy_name(wc) and wc.name.startswith(G.WORKING_COPY_PREFIX) and G.xlsx_is_working_copy(wc)
     assert parse_workbook(wc).state.document.name == st.document.name     # the Title property is untouched (09.4)
     issued = build_workbook(st, tmp_path / "issued.xlsx").path
     assert not G.xlsx_is_working_copy(issued)
@@ -202,6 +202,8 @@ def test_cli_issue_refused_without_review_and_marked_with_working_copy_flag(tmp_
     assert [p.name for p in issue_dir.glob("*.xlsx")] == [out.name]
     rc, rep = _run(["build-excel", wb, str(issue_dir), "--gate-dir", gate, "--working-copy", "--issue"], capsys)
     assert rc == CLI.RC_REFUSED, "--issue (freeze titles as ISSUED) is an issue act; never on a working copy"
+    rc, rep = _run(["build-excel", wb, str(issue_dir), "--gate-dir", gate, "--internal-draft"], capsys)
+    assert rc == 0 and rep["working_copy"] is True, "--internal-draft (PR #2) is an alias of --working-copy"
     docx = tmp_path / "issue" / "r1.docx"
     rc, rep = _run(["build-word", wb, str(docx), "--gate-dir", gate], capsys)
     assert rc == CLI.RC_REFUSED and not docx.exists()

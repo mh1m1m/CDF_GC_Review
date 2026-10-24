@@ -144,9 +144,8 @@ def cmd_append(a):
 def cmd_rebuild(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     pw = _load_state(a.workbook, a)
-    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
-    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
-    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / name)
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / official_name(a.workbook).name)
     if out is None:
         return RC_REFUSED
     if out.resolve() == Path(a.workbook).resolve():
@@ -201,10 +200,21 @@ def _issue_or_working_copy(a, state, out):
         return Path(out), False, auth
     if getattr(a, "working_copy", False):
         return working_copy_name(out), True, auth
-    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "gate": auth.to_dict(),
-           "detail": "no CLEAR review record exists for exactly this content (19A.9); run `review`/`adjudicate` on it, "
-                     "or pass --working-copy to write a marked, non-issuable working copy"})
+    from cdf_gco_crms.release.authorization_gate import DRAFT_CLASSIFICATION
+    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "classification": DRAFT_CLASSIFICATION,
+           "no_output_generated": True, "gate": auth.to_dict(),
+           "detail": "RELEASE_GATE_REQUIRED: no CLEAR review record exists for exactly this content (19A.9); run `review`/"
+                     "`adjudicate` on it, or pass --internal-draft (alias --working-copy) to write a marked, non-issuable draft"})
     return None, None, auth
+
+
+def _refuse_issue_on_draft():
+    from cdf_gco_crms.release.authorization_gate import DRAFT_CLASSIFICATION
+    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "classification": DRAFT_CLASSIFICATION,
+           "no_output_generated": True,
+           "detail": "OFFICIAL_ISSUANCE_NOT_AUTHORIZED: --issue freezes titles as ISSUED; that is an issue act and is never "
+                     "done on an internal draft; a caller flag is not an authorisation (19A.9)"})
+    return RC_REFUSED
 
 
 def _gate_report(auth, working_copy):
@@ -273,15 +283,12 @@ def cmd_finalize_titles(a):
     if rep.refused and not a.allow_partial:
         _emit({"status": "REFUSED", "refused": rep.refused, "detail": "no output written; use --allow-partial to apply the accepted decisions"})
         return RC_REFUSED
-    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
-    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
-    out, wc, auth = _issue_or_working_copy(a, new, Path(a.out_dir) / name)
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, new, Path(a.out_dir) / official_name(a.workbook).name)
     if out is None:
         return RC_REFUSED
     if a.issue and wc:
-        _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED",
-               "detail": "--issue freezes titles as ISSUED; that is an issue act and cannot be done on a working copy"})
-        return RC_REFUSED
+        return _refuse_issue_on_draft()
     issued = mark_titles_issued(new) if a.issue else 0
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
@@ -295,15 +302,12 @@ def cmd_build_excel(a):
     from cdf_gco_crms.excel.workbook_builder import build_workbook
     from cdf_gco_crms.rounds.round_expansion import mark_titles_issued
     pw = _load_state(a.workbook, a)
-    from cdf_gco_crms.release.authorization_gate import WORKING_COPY_SUFFIX
-    name = Path(a.workbook).name.replace(WORKING_COPY_SUFFIX, "")
-    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / name)
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / official_name(a.workbook).name)
     if out is None:
         return RC_REFUSED
     if a.issue and wc:
-        _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED",
-               "detail": "--issue freezes titles as ISSUED; that is an issue act and cannot be done on a working copy"})
-        return RC_REFUSED
+        return _refuse_issue_on_draft()
     if out.resolve() == Path(a.workbook).resolve():
         sys.exit("the output must not overwrite the input")
     issued = mark_titles_issued(pw.state) if a.issue else 0
@@ -499,20 +503,20 @@ def cmd_adjudicate(a):
 
 
 def _gate_args(p):
-    p.add_argument("--working-copy", action="store_true",
-                   help="when the release gate does not clear, write a marked WORKING-COPY instead of refusing")
+    p.add_argument("--internal-draft", "--working-copy", dest="working_copy", action="store_true",
+                   help="when the release gate does not clear, write a classified INTERNAL_DRAFT__ file instead of refusing")
     p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("round1"); p.add_argument("input"); p.add_argument("out_dir")
+    p = sub.add_parser("round1"); p.add_argument("input"); p.add_argument("out_dir"); _gate_args(p)
     p = sub.add_parser("append"); p.add_argument("returned"); p.add_argument("input"); p.add_argument("out_dir")
-    p.add_argument("--delivered"); p.add_argument("--name")
+    p.add_argument("--delivered"); p.add_argument("--name"); _gate_args(p)
     p = sub.add_parser("rebuild"); p.add_argument("workbook"); p.add_argument("out_dir"); p.add_argument("--name")
     _gate_args(p)
-    p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir")
+    p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir"); _gate_args(p)
     p = sub.add_parser("verify"); p.add_argument("workbook"); p.add_argument("--workdir", default="build/verify_cli")
     p.add_argument("--name")
     p = sub.add_parser("gates"); p.add_argument("workbook"); p.add_argument("--previous"); p.add_argument("--docx")
@@ -545,16 +549,30 @@ def main(argv=None):
         if name == "adjudicate":
             p.add_argument("decisions"); p.add_argument("--trust-store", help="JSON {key_id: base64 raw Ed25519 public key}")
     a = ap.parse_args(argv)
+    # Preflight (PR #2, kept): an --issue request on an internal draft is refused before any input is read.
+    if getattr(a, "issue", False) and getattr(a, "working_copy", False):
+        return _refuse_issue_on_draft()
     if a.cmd == "migrate":
+        # migration outputs are never issuable: they are written under INTERNAL_DRAFT_ONLY/ (PR #2, kept)
         from migrate_to_v712 import main as mig
-        return mig([a.source, a.out_dir])
+        return mig([a.source, str(Path(a.out_dir) / "INTERNAL_DRAFT_ONLY")])
     if a.cmd in ("review", "challenge", "adjudicate"):
         return {"review": cmd_review, "challenge": cmd_challenge, "adjudicate": cmd_adjudicate}[a.cmd](a)
     fn = {"round1": cmd_round1, "append": cmd_append, "rebuild": cmd_rebuild, "verify": cmd_verify, "gates": cmd_gates,
           "inventory": cmd_inventory, "ingest": cmd_ingest, "finalize-titles": cmd_finalize_titles,
           "build-excel": cmd_build_excel, "build-word": cmd_build_word, "import-owner-return": cmd_import_owner_return,
           "audit-history": cmd_audit_history, "qa": cmd_qa, "demo-e2e": cmd_demo_e2e, "release": cmd_release}[a.cmd]
-    return fn(a)
+    from cdf_gco_crms.rounds.round_parser import SchemaError
+    try:
+        return fn(a)
+    except FileNotFoundError as exc:
+        # fail closed: a missing input never produces an output and never counts as a refusal of policy
+        _emit({"status": "INPUT_ERROR", "detail": f"{exc}", "no_output_generated": True})
+        return RC_INPUT
+    except SchemaError as exc:
+        unsafe = exc.code == "UNSAFE_INPUT" and "NOT_A_FILE" not in str(exc)
+        _emit({"status": "REFUSED" if unsafe else "INPUT_ERROR", "code": exc.code, "detail": str(exc), "no_output_generated": True})
+        return RC_REFUSED if unsafe else RC_INPUT
 
 
 if __name__ == "__main__":

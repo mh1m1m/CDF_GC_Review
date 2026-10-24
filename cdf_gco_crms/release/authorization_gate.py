@@ -46,9 +46,11 @@ DEFAULT_GATE_DIR = Path("build/adversarial/gate")
 STATUS_CLEAR = "CLEAR"
 STATUS_BLOCKED = "BLOCKED"
 MODE_SYNTHETIC = "SYNTHETIC"
-WORKING_COPY_SUFFIX = " - WORKING-COPY"
-WORKING_COPY_MARK = "نسخة عمل غير معتمدة للإصدار — WORKING COPY, NOT AUTHORISED FOR ISSUE"
+WORKING_COPY_PREFIX = "INTERNAL_DRAFT__"          # file-name classification of every non-issuable output (PR #2 convention)
+WORKING_COPY_SUFFIX = " - WORKING-COPY"            # legacy marker of the first gate release; still recognised, no longer written
+WORKING_COPY_MARK = "نسخة عمل غير معتمدة للإصدار — INTERNAL DRAFT, NOT AUTHORISED FOR ISSUE"
 WORKING_COPY_KEYWORD = "نسخة عمل"
+DRAFT_CLASSIFICATION = "INTERNAL_DRAFT_NOT_APPROVED"
 
 # reasons (stable identifiers for callers and tests)
 R_NO_RECORD = "NO_REVIEW_RECORD_FOR_THIS_CONTENT"
@@ -182,15 +184,27 @@ def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR) -> Authorization:
 
 # ------------------------------------------------------------------ working copies
 def working_copy_name(path) -> Path:
-    """``name.xlsx`` → ``name - WORKING-COPY.xlsx`` (idempotent)."""
+    """``name.xlsx`` → ``INTERNAL_DRAFT__name.xlsx`` (idempotent; a legacy ``- WORKING-COPY`` name is re-labelled)."""
     p = Path(path)
-    if p.stem.endswith(WORKING_COPY_SUFFIX):
+    if p.name.startswith(WORKING_COPY_PREFIX):
         return p
-    return p.with_name(f"{p.stem}{WORKING_COPY_SUFFIX}{p.suffix}")
+    stem = p.stem[:-len(WORKING_COPY_SUFFIX)] if p.stem.endswith(WORKING_COPY_SUFFIX) else p.stem
+    return p.with_name(f"{WORKING_COPY_PREFIX}{stem}{p.suffix}")
+
+
+def official_name(path) -> Path:
+    """The issuable file name for a draft name: strips the draft prefix (and the legacy suffix)."""
+    p = Path(path)
+    name = p.name[len(WORKING_COPY_PREFIX):] if p.name.startswith(WORKING_COPY_PREFIX) else p.name
+    q = p.with_name(name)
+    if q.stem.endswith(WORKING_COPY_SUFFIX):
+        q = q.with_name(f"{q.stem[:-len(WORKING_COPY_SUFFIX)]}{q.suffix}")
+    return q
 
 
 def is_working_copy_name(path) -> bool:
-    return Path(path).stem.endswith(WORKING_COPY_SUFFIX)
+    p = Path(path)
+    return p.name.startswith(WORKING_COPY_PREFIX) or p.stem.endswith(WORKING_COPY_SUFFIX)
 
 
 _CORE_PART = "docProps/core.xml"
