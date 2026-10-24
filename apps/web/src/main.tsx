@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import {diffTokens} from "./diff";
 
 type Observation = { observation_id: string; original_text?: string; reviewed_text?: string;
  observed_change?: string; material_categories?: string[] };
@@ -78,8 +79,8 @@ function App() {
     {view==="compare"&&<section className="panel">
       <div className="row"><h2>الملاحظة {focus+1} من {active.observations.length}</h2><div><button disabled={focus<=0} onClick={()=>setFocus(focus-1)}>السابق</button><button disabled={focus>=active.observations.length-1} onClick={()=>setFocus(focus+1)}>التالي</button></div></div>
       {obs&&<><p className="tag">{obs.observation_id} · {obs.observed_change||"غير مصنف"}</p>
-      <div className="comparison"><article><h3>الملاحظة الأصلية</h3><p>{obs.original_text||"غير متوفر"}</p></article><article><h3>النص في النسخة المعادة</h3><p>{obs.reviewed_text||"غير موجود في هذه النسخة — ليس دليلاً على سحب معتمد"}</p></article></div>
-      <p className="notice">أداة المقارنة الحالية تعرض النصين دون تمييز تفصيلي للتغييرات؛ لا تدّعي استخراج الفروق على مستوى الكلمات.</p>
+      <div className="comparison"><article><h3>الملاحظة الأصلية</h3><p>{comparison?.old.map((x,i)=><span key={i} className={x.op==="removed"?"removed":undefined}>{x.text}</span>)}</p></article><article><h3>النص في النسخة المعادة</h3><p>{obs.reviewed_text ? comparison?.revised.map((x,i)=><span key={i} className={x.op==="added"?"added":undefined}>{x.text}</span>):"غير موجود في هذه النسخة — ليس دليلاً على سحب معتمد"}</p></article></div>
+      <p className="notice">تُميز الإضافات باللون الأخضر والمحذوفات باللون الأحمر؛ المقارنة لعرض التحرير فقط ولا تُثبت سبب الحذف. {comparison?.bounded?"(تم تقييد المقارنة لطول النص)":""}</p>
       {latest&&<p className="tag">آخر إجراء: {JSON.parse(latest.payload_json).decision} ({JSON.parse(latest.payload_json).status})</p>}
       <div className="form"><h3>تسجيل القرار المهني</h3><label>الإجراء<select value={choice} onChange={e=>setChoice(e.target.value)}>{choices.map(x=><option value={x[0]} key={x[0]}>{x[1]}</option>)}</select></label>
       {choice==="WITHDRAW"&&<label>سبب السحب<select value={ground} onChange={e=>setGround(e.target.value)}>{grounds.map(x=><option value={x[0]} key={x[0]}>{x[1]}</option>)}</select></label>}
