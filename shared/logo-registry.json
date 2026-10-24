@@ -1,0 +1,45 @@
+{
+  "assets": [
+    {
+      "variant_id": "HORIZONTAL_DARK_BACKGROUND",
+      "orientation": "HORIZONTAL",
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "dimensions": [
+        1139,
+        225
+      ],
+      "aspect_ratio": 5.062222222222222,
+      "integrity_sha256": "e06a58040326e2f8458c829bc12dc438cafb36dc987e9583927640da926ab01b",
+      "publication_status": "USER_DECLARED_PUBLIC",
+      "artwork": "ORIGINAL_UNMODIFIED",
+      "safe_area": "NOT_VERIFIED",
+      "minimum_size": "NOT_VERIFIED",
+      "source_url": "https://drive.google.com/file/d/1gnS-JrU1qvTGP3GETZxixURP3zZCGHjk/view",
+      "last_verified_date": "2026-10-24"
+    },
+    {
+      "variant_id": "HORIZONTAL_LIGHT_BACKGROUND",
+      "orientation": "HORIZONTAL",
+      "languages": [
+        "ar",
+        "en"
+      ],
+      "dimensions": [
+        1230,
+        235
+      ],
+      "aspect_ratio": 5.23404255319149,
+      "integrity_sha256": "c7e453553d0d6f3432e14cd305a89fa01c0ab3075ec400c6befad5ad1e47bf6e",
+      "publication_status": "USER_DECLARED_PUBLIC",
+      "artwork": "ORIGINAL_UNMODIFIED",
+      "safe_area": "NOT_VERIFIED",
+      "minimum_size": "NOT_VERIFIED",
+      "source_url": "https://drive.google.com/file/d/1EiE2A_4WlnXSXIwhQPBaJrfPnyc9WnNE/view",
+      "last_verified_date": "2026-10-24"
+    }
+  ],
+  "creative_treatment": "SURROUNDING_GLASS_ONLY_NOT_LOGO_GEOMETRY"
+}

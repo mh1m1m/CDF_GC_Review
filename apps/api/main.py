@@ -27,6 +27,8 @@ if len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
 DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/private/mat-calibration-dev.sqlite")).resolve()
 store = CalibrationStore(DB_PATH)
 service = CalibrationService(store)
+from cdf_gco_crms.intelligence.service import IntelligenceService
+intelligence = IntelligenceService(service)
 _DB_LOCK = threading.RLock()  # serialize SQLite operations in this single-process LOCAL DEV API
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
@@ -156,3 +158,32 @@ def activate_profile_version(case_id: str, version: str, authorization: str | No
 @app.get("/api/cases/{case_id}/profiles/{version}")
 def read_synthetic_profile(case_id: str, version: str, authorization: str | None = Header(default=None)):
     return call(service.profile_document, case_id, version, identity(authorization))
+
+
+@app.get("/api/cases/{case_id}/intelligence")
+def executive_intelligence(case_id: str, authorization: str | None = Header(default=None)):
+    return call(intelligence.dashboard, case_id, identity(authorization))
+
+
+@app.get("/api/cases/{case_id}/intelligence/export/{kind}")
+def draft_executive_export(case_id: str, kind: str, authorization: str | None = Header(default=None)):
+    from cdf_gco_crms.intelligence.exports import export_dashboard
+    from fastapi.responses import Response
+    if kind not in ("docx", "xlsx", "pdf"):
+        raise HTTPException(422, "UNSUPPORTED_DRAFT_EXPORT")
+    data = call(intelligence.dashboard, case_id, identity(authorization))
+    try:
+        payload = export_dashboard(data, kind)
+    except (RuntimeError, TimeoutError) as exc:
+        raise HTTPException(503, "DRAFT_RENDERER_UNAVAILABLE") from exc
+    media = {"docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+             "xlsx":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "pdf":"application/pdf"}
+    return Response(payload, media_type=media[kind], headers={"Content-Disposition":
+        f'attachment; filename="INTERNAL_DRAFT__executive.{kind}"'})
+
+
+@app.get('/api/reference-candidates')
+def public_reference_candidates(authorization: str | None = Header(default=None)):
+    from cdf_gco_crms.intelligence.references import reference_candidates
+    identity(authorization).require('CALIBRATION_REVIEWER')
+    return reference_candidates()

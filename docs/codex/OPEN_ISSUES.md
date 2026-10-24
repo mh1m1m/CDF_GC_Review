@@ -14,3 +14,9 @@
 | PR-02 | P2 | OPEN | PR 2 conflicts and is included in PR 3 history; owner to reconcile superseded draft without automatic merge |
 
 All source fixes await independent review. No institutional acceptance inferred.
+
+| VIS-01 | P1 institutional acceptance | BLOCKED_EXTERNAL | Current DoA approval, effective dates and supersession are not confirmed. Financial thresholds and parsed role qualifiers require human reconciliation; public availability is not authority |
+| VIS-02 | P2 visual acceptance | OPEN | Creative glass design and font fallbacks require institutional design review; supplied 8-page guide/real logos inspected, separate historical 87-page guide not reverified |
+| VIS-03 | P2 scale/performance | OPEN | Bounded local case graphs and API snapshots; large datasets need paging/virtualization after measured volume. No production SLA claim |
+| VIS-04 | P2 assurance | OPEN | Automated axe/screenshot checks are partial accessibility/visual evidence; cross-browser manual review and complete WCAG assessment remain |
+| VIS-05 | P1 semantic quality | BLOCKED_EXTERNAL | Human alignment remains unknown until independent validated labels exist; no fabricated confidence/quality gauge |

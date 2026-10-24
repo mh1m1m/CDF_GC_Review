@@ -53,3 +53,25 @@ Base: 5a20f318b183c2558404a7179f62b1482b3e5d17 (PR 6 remains open/draft). Work b
 - Full stable-container public suite: 243 passed, 11 skipped, 10 subtests passed in 95.77s. All six required engine checks passed again; no unavailable-LibreOffice override. Skips: three real-provider checks and eight missing institutional inputs/assets. Exact-head CI must be checked independently on the new PR.
 
 The host alpha runtime remains unchanged; these results apply to the stable container. See STABLE_LIBREOFFICE.md for build/run, cloud setup distinction, pinning limits and troubleshooting.
+
+## Executive visual intelligence — local acceptance
+Source base: 00c4f5b (PR 7), branch codex/visual-intelligence. Exact final SHA/CI will be linked from the new draft PR.
+
+| Check | Result | Scope and limits |
+|---|---|---|
+| Stable-container document smoke | PASSED, Calc/Arabic Writer/Impress 3/3 | LibreOffice 25.2.3.2, original inputs unchanged |
+| Required document-engine/prerequisite suite | 13 passed, no skips (43.23s) | Actual existing formulas, historical selection, sorting/navigation, PDF renderers |
+| Full stable-container public suite | 257 passed, 11 skipped, 10 subtests passed (188.88s) | Includes new draft PDF parsing and independent Calc export formula evaluation. Skips remain 3 real-provider and 8 unavailable institutional inputs/assets; no LibreOffice override |
+| Focused intelligence/source/API tests | PASSED | Denominators, snapshot corruption, fake LIVE label, source hash/page verification, access grants, no invented alignment, native draft exports; latest refinement verified separately |
+| Frontend build | PASSED | Vite 8.3.5 / TypeScript 5.9.3; warning about optional chunk size and client directives documented, no build failure |
+| Vitest | 2 passed | Unknown versus zero and distinct source labels; isolated from Playwright suites |
+| Playwright | 5 passed | Existing calibration persistence/materiality/mobile checks and new command-center desktop/iPhone, source drill-down, draft export and metric refresh |
+| Accessibility | No violations in automated WCAG A/AA desktop overview scan | Does not certify every WCAG criterion or all assistive-technology behavior; keyboard alternatives/reduced motion/mobile overflow also exercised |
+| Visual regression | Desktop/iPhone screenshot baselines checked without updates | Noto Arabic runtime fonts and 2.5% pixel threshold; exact-head CI must validate cross-run rendering |
+| Reference reproduction | 141 authority / 81 unit candidates | Source hashes verified; 15 sector groupings; extraction is not approval/current authority; financial thresholds require human reconciliation |
+| Security | Scoped Bandit 0 findings; npm audit 0; PyPI audit 0 | Initial 55 advisories in pre-existing Pillow/pypdf pins were resolved by updates to 13.0.0 / 6.21.2; Gitleaks/history-wide scanning deferred explicitly |
+| Real inference / institutional acceptance | NOT_RUN / NOT_AUTHORIZED | No model call, independent validated human-label dataset, institutional SSO or official issuance |
+
+Build measurements: chart module approximately 553 kB minified / 187 kB gzip, graph module approximately 318 kB / 102 kB gzip before final formatting. Page components are lazy-loaded; these are build sizes, not field performance/SLA measurements. Graphs are bounded (source graph maximum 65 nodes); large case pagination/virtualization remains a follow-on requirement. Original actual source PDFs remain local; published candidate/asset material was explicitly declared public by the user.
+
+Final refinements: exact FastAPI 0.162.0 / Uvicorn 0.54.0 / HTTPX 0.28.1 pins match the stable container. Focused host intelligence/API/source run: 13 passed, 1 skipped (host alpha PDF/Calc acceptance). The final RTL/logo draft exporters were independently rechecked in the stable image: 2 passed, including PDF parsing and native Excel formula recalculation. Word, Excel and PDF synthetic samples were generated from one identical read model. Chart SVG coordinates are explicitly LTR inside the RTL interface; reviewed desktop/iPhone baselines then passed the five browser tests without updates (1.1m). Public candidate reproduction matched the committed JSON exactly. Final image ID: sha256:6149d2a16dab87d7f7f6405893c73bbede5a5e07cad876160fa793e1959530fe. CI results apply only after independently inspecting the exact new PR head.

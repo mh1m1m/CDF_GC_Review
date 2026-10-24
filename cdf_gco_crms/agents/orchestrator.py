@@ -426,6 +426,7 @@ class ReviewOrchestrator:
         candidates += [MAT.candidate_from_proposal(p, i + 1) for i, p in enumerate(ex.proposals)]
         res = self.mat.draft(state, candidates, registry, persona)
         self._note(ex, res.outcome)
+        ex.role_outcomes[-1]["stage"] = res.stage
         ex.mat_advice = res.to_dict()
         ex.mat_disclosure = {"prior_drafting_involvement": True, "stage": MAT.STAGE_DRAFTING, "candidates_advised": [c["observation_id"] for c in candidates],
                              "profile_binding": self.mat.profile.binding(), "mode": res.outcome.mode, "execution_id": res.outcome.response.execution_id if res.outcome.response else None,
@@ -450,6 +451,7 @@ class ReviewOrchestrator:
             prior = next((a for a in ex.mat_advice["output"].get("assessments", []) if a["observation_id"] == obs.internal_id), None) if ex.mat_advice.get("output") else None
         res = self.mat.interrogate(state, obs, o, registry, persona, prior_advice=prior, prior_turns=exchange.advisory_turns(), issued=issued)
         self._note(ex, res.outcome, obs.internal_id, o.challenge_id)
+        ex.role_outcomes[-1]["stage"] = res.stage
         if not res.ok:
             st.transition(MAT.STAGE_INTERROGATION, f"NOT_AVAILABLE:{res.outcome.status}", at=utc_now())
             return None
@@ -467,6 +469,7 @@ class ReviewOrchestrator:
         st = self._mat_state(ex, state, obs)
         res = self.mat.reassess(state, obs, o, registry, interrogation=interrogation, advocate=advocate, exchange=exchange.for_payload(), issued=issued)
         self._note(ex, res.outcome, obs.internal_id, o.challenge_id)
+        ex.role_outcomes[-1]["stage"] = res.stage
         if not res.ok:
             st.transition(MAT.STAGE_REASSESSMENT, f"NOT_AVAILABLE:{res.outcome.status}", at=utc_now())
             return None
