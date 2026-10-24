@@ -41,3 +41,37 @@ This repository is public. Store all professional comments, institutional agreem
 `python -m pytest tests/test_mat_calibration.py -q`
 
 For all public-safe tests: `python -m pytest tests qa_public -q`.
+
+## Local synthetic end-to-end trial (new)
+
+This is a developer-only pilot. It does **not** contain CDF review comments, does not configure
+institutional SSO, and does not issue institutional documents.
+
+1. Install the Python backend environment:
+   `python -m pip install -r requirements-calibration.txt`.
+2. Generate a fresh random development token with Python's `secrets.token_urlsafe(36)` and set
+   `CDF_CALIBRATION_DEV_TOKEN` to it. Set `CDF_CALIBRATION_MODE=SYNTHETIC_LOCAL_DEV`.
+   Do not commit these environment values.
+3. Seed fictional data:
+   `python tools/mat_dna/seed_calibration_demo.py --db build/private/mat-calibration-dev.sqlite`.
+4. Start the backend **bound to loopback**:
+   `python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8765`.
+5. In `apps/web`, run `npm install`, then `npm run dev`.
+6. Open the loopback-only Vite URL, paste the temporary developer token into the login
+   field, select `SYN-MAT-DEMO-001`, review a fictional observation, submit a decision,
+   and inspect the updated audit events and dashboard.
+7. Stop the processes and remove temporary developer credentials when finished.
+
+**Limitations:** The user-facing interface is an integrated prototype, not production-authenticated,
+and currently implements dashboard, comparison panels, decision form, materiality warning,
+summary metrics, history and preliminary rule review. It does not yet render token-level diffs,
+import private DOCX through the browser, compile/rollback profiles, or provide independent
+institutional rule approvals. The developer token authenticates only a local synthetic
+identity and must never be used outside an isolated developer machine. Frontend and API
+must not be internet-exposed. The UI stores the token only in component memory.
+
+Run additional API tests using:
+`python -m pytest tests/test_mat_calibration.py tests/test_mat_calibration_api.py -q`.
+
+The documentation deliberately does not classify the system PILOT_READY until the
+end-to-end workflow is actually executed and security acceptance is demonstrated.
