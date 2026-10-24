@@ -45,3 +45,17 @@ AI_AGENT_FORENSIC_AUDIT/reports/STATUS-FORM.md
 
 # MAT professional DNA: private corpus and analytical workspace (never published)
 private/
+
+# Local MAT calibration pilot runtime/private database and browser artifacts
+**/node_modules/
+**/playwright-report/
+**/test-results/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+*.bak
+*.backup
+apps/web/.vite/
