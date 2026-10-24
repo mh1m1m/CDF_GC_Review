@@ -147,7 +147,20 @@ class CalibrationStore:
 
     @contextmanager
     def transaction(self):
-        """Nested savepoints let one application job publish state atomically."""
+        """Serialize root read/write units; nested savepoints preserve atomic publication.
+
+        A deferred WAL reader cannot upgrade after another worker commits. Acquire
+        the writer before reading so polling/auditing never fails that upgrade.
+        """
+        if not self.db.in_transaction:
+            try:
+                self.db.execute('BEGIN IMMEDIATE')
+                yield
+                self.db.commit()
+            except BaseException:
+                self.db.rollback()
+                raise
+            return
         name='cdf_'+uuid.uuid4().hex
         self.db.execute('SAVEPOINT '+name)
         try:

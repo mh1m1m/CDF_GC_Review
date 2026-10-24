@@ -145,7 +145,9 @@ class ApplicationService:
         if tool not in TOOLS:
             raise CalibrationError("UNKNOWN_OPERATION")
         action, role, mutation = TOOLS[tool]
-        with self.lock:
+        # Authenticate and authorize inside the same writer transaction as the
+        # audited operation, including when another worker has just committed.
+        with self.lock, self.store.transaction():
             principal = self.sessions.resolve_id(principal.session_id)
             principal.reviewer.require(role)
             if request.issue:
@@ -324,9 +326,28 @@ class ApplicationService:
                     "job": self.job(r.job_id, p, r.case_id),
                     "result": json.loads(row["result_json"] or "{}"),
                     "agent_attempts": [
-                        {**{key: attempt[key] for key in ("execution_id", "role", "source", "status", "started_at", "finished_at")},
-                         "receipt": json.loads(attempt["receipt_json"]) if attempt["receipt_json"] else None}
-                        for attempt in self.store.db.execute("SELECT * FROM app_agent_attempts WHERE job_id=? ORDER BY started_at,execution_id", (r.job_id,))
+                        {
+                            **{
+                                key: attempt[key]
+                                for key in (
+                                    "execution_id",
+                                    "role",
+                                    "source",
+                                    "status",
+                                    "started_at",
+                                    "finished_at",
+                                )
+                            },
+                            "receipt": (
+                                json.loads(attempt["receipt_json"])
+                                if attempt["receipt_json"]
+                                else None
+                            ),
+                        }
+                        for attempt in self.store.db.execute(
+                            "SELECT * FROM app_agent_attempts WHERE job_id=? ORDER BY started_at,execution_id",
+                            (r.job_id,),
+                        )
                     ],
                 }
             return self.job(r.job_id, p, r.case_id)

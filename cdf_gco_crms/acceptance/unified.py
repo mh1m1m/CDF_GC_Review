@@ -287,12 +287,29 @@ class Acceptance:
                 async def call(tool, arguments, error=False):
                     response = await client.call_tool(tool, {"request": arguments})
                     payload = response.structuredContent
+                    errors = None
+                    if response.isError:
+                        credential = self.env["CDF_CALIBRATION_DEV_TOKEN"]
+                        errors = json.loads(
+                            json.dumps(
+                                [
+                                    item.model_dump(mode="json")
+                                    for item in response.content
+                                ]
+                            )
+                            .replace(credential, "[REDACTED]")
+                            .replace(
+                                hashlib.sha256(credential.encode()).hexdigest(),
+                                "[REDACTED]",
+                            )
+                        )
                     self.invocations.append(
                         {
                             "tool": tool,
                             "arguments": arguments,
                             "is_error": bool(response.isError),
                             "response": payload,
+                            "error_content": errors,
                         }
                     )
                     assert bool(response.isError) == error, self.invocations[-1]
