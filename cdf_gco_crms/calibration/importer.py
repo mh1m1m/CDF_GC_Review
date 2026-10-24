@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 
 from .store import CalibrationError, CalibrationStore, ReviewerContext
+from .input_safety import check_ooxml_zip
 
 MAX_DOCX_BYTES = 25 * 1024 * 1024
 
@@ -25,6 +26,7 @@ def _valid_docx_path(value: str | Path) -> Path:
     with p.open("rb") as fp:
         if fp.read(4) != b"PK\x03\x04":
             raise CalibrationError("INVALID_DOCX_PACKAGE_SIGNATURE")
+    check_ooxml_zip(p, max_compressed=MAX_DOCX_BYTES)
     return p.resolve(strict=True)
 
 
