@@ -185,6 +185,11 @@ def supervise(database, job_id):
 
 def fail(service, job_id, lease, code, *, stage=None, status="FAILED"):
     with service.store.transaction():
+        if stage is None:
+            attempt = service.store.db.execute(
+                "SELECT role FROM app_agent_attempts WHERE job_id=? AND status='STARTED' ORDER BY started_at DESC LIMIT 1", (job_id,)
+            ).fetchone()
+            stage = attempt["role"] if attempt else "SUPERVISION"
         service.store.db.execute(
             "UPDATE app_jobs SET status=?,error_code=?,error_stage=?,finished_at=? WHERE job_id=? AND status='RUNNING' AND lease_token=?",
             (status, code, stage, now_utc(), job_id, lease),

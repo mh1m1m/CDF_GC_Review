@@ -446,6 +446,10 @@ class Acceptance:
         assert self.mcp_fields == self.canonical
 
     def phase_react(self, workspace):
+        # CI/container users may have no passwd entry or writable home directory.
+        # Chromium crashpad must use explicitly writable XDG locations.
+        for name in ("browser-config", "browser-cache"):
+            (workspace / name).mkdir(mode=0o700)
         api_port, web_port = free_port(), free_port()
         env = {
             **self.env,
@@ -455,6 +459,8 @@ class Acceptance:
             "CDF_UNIFIED_CASE_ID": CASE,
             "CDF_UNIFIED_REPORT_DIR": str(self.output),
             "PLAYWRIGHT_JUNIT_OUTPUT_FILE": str(self.output / "test-results.xml"),
+            "XDG_CONFIG_HOME": str(workspace / "browser-config"),
+            "XDG_CACHE_HOME": str(workspace / "browser-cache"),
         }
         write(self.output / "expected-interface.json", self.canonical)
         write(self.output / "expected-artifacts.json", self.artifacts)

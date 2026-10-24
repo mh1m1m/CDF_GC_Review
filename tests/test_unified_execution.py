@@ -411,10 +411,10 @@ def test_running_supervisor_kills_real_descendants_without_publication(
         }[interruption]
     )
     assert row["attempts"] == 1 and parents[0].poll() is not None
-    assert (
-        not psutil.pid_exists(descendant)
-        or psutil.Process(descendant).status() == psutil.STATUS_ZOMBIE
-    )
+    try:
+        assert psutil.Process(descendant).status() == psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
+        pass  # A fully reaped descendant is the expected successful outcome.
     assert not service.store.db.execute("SELECT 1 FROM executive_runs").fetchone()
 
 

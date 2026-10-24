@@ -30,7 +30,11 @@ def test_timeout_reaps_spawned_child(tmp_path):
     child_pid = int(marker.read_text())
     for _ in range(20):
         status = Path(f'/proc/{child_pid}/status')
-        if not status.exists() or '\nState:\tZ' in status.read_text():
+        try:
+            process_status = status.read_text()
+        except FileNotFoundError:
+            break  # The child was reaped between observation and read.
+        if '\nState:\tZ' in process_status:
             break
         time.sleep(.05)
     else:
