@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Protocol
 
 from ..references.textnorm import match_key
+from ..calibration.store import ReviewerContext
 from .contracts import (AccessContext, BrandAsset, DenyAllAuthorizer, DoARecord,
                         InstitutionalAccessDenied, InstitutionalAuthorizer,
                         OperatingMode, ResponsibilityRecord)
@@ -106,7 +107,10 @@ class PrivateInstitutionalProvider:
 
     def authorize(self, context: AccessContext | None, permission: str, resource: str):
         if context is None:raise InstitutionalAccessDenied('PRIVATE_SESSION_REQUIRED')
-        self.authorizer.authorize(context,permission,resource)
+        principal=self.authorizer.authorize(context,permission,resource)
+        if not isinstance(principal,ReviewerContext) or not principal.authenticated or not principal.reviewer_id:
+            raise InstitutionalAccessDenied('TRUSTED_PRINCIPAL_NOT_RESOLVED')
+        return principal
 
     def _path(self, relative: str) -> Path:
         root=self.root.resolve(strict=True)

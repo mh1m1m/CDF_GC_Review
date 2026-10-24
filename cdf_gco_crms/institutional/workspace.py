@@ -20,7 +20,7 @@ class PrivateWorkspace:
     def _principal(self, case_id: str, context: AccessContext, permission: str):
         if context.case_id!=case_id:
             raise InstitutionalAccessDenied('PRIVATE_CASE_SCOPE_MISMATCH')
-        user=self.references.authorizer.authorize(context,permission,'case:'+case_id)
+        user=self.references.authorize(context,permission,'case:'+case_id)
         if not isinstance(user,ReviewerContext) or not user.authenticated:
             raise InstitutionalAccessDenied('TRUSTED_PRINCIPAL_NOT_RESOLVED')
         from .isolation import bind_private_database

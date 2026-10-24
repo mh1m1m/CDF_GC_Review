@@ -177,3 +177,15 @@ def test_version_history_requires_explicit_reconciled_supersession():
     assert VersionRegistry.active([reconciled,new])==[new]
     collision={**reconciled,'version':'SYN-v2'}
     assert VersionRegistry.conflicts([collision,new])[0]['kind']=='SAME_VERSION_DIFFERENT_CONTENT'
+
+
+def test_private_authorizer_cannot_grant_access_without_a_resolved_authenticated_principal(tmp_path):
+    class InvalidAuthorizer:
+        def __init__(self,value):self.value=value
+        def authorize(self,*args):return self.value
+    for value in (None,ReviewerContext('SYN-UNAUTHENTICATED',frozenset({'CALIBRATION_REVIEWER'}),False)):
+        provider=PrivateInstitutionalProvider(tmp_path/'does-not-exist',InvalidAuthorizer(value))
+        with pytest.raises(InstitutionalAccessDenied,match='PRINCIPAL_NOT_RESOLVED'):
+            provider.catalog(context())
+        with pytest.raises(InstitutionalAccessDenied,match='PRINCIPAL_NOT_RESOLVED'):
+            provider.asset('SYN-PRIVATE-BRAND',context())
