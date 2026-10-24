@@ -13,7 +13,7 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from cdf_gco_crms.calibration.service import CalibrationService
 from cdf_gco_crms.calibration.analytics import analyze
@@ -30,10 +30,12 @@ from cdf_gco_crms.institutional.isolation import require_public_runtime, bind_pu
 require_public_runtime(os.getenv('CDF_OPERATION_MODE', 'PUBLIC_SYNTHETIC_DEMO'), DB_PATH)
 store = CalibrationStore(DB_PATH)
 bind_public_database(store)
-service = CalibrationService(store)
-from cdf_gco_crms.intelligence.service import IntelligenceService
-intelligence = IntelligenceService(service)
-_DB_LOCK = threading.RLock()  # serialize SQLite operations in this single-process LOCAL DEV API
+from cdf_gco_crms.execution.service import ApplicationService, Conflict
+from cdf_gco_crms.execution.contracts import Request as OperationRequest
+application = ApplicationService(store=store, token=TOKEN)
+service = application.calibration
+intelligence = application.intelligence
+_DB_LOCK = application.lock
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -46,14 +48,15 @@ async def localhost_only(request: Request, call_next):
     return await call_next(request)
 
 
-def identity(authorization: str | None) -> ReviewerContext:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "DEV_TOKEN_REQUIRED")
-    if not hmac.compare_digest(authorization[7:], TOKEN):
-        raise HTTPException(403, "INVALID_DEV_TOKEN")
-    return ReviewerContext("SYNTHETIC_ADMIN",
-                           frozenset({"CALIBRATION_ADMIN", "CALIBRATION_REVIEWER", "DNA_RULE_APPROVER"}),
-                           authenticated=True)
+def principal(authorization):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(401,'DEV_TOKEN_REQUIRED')
+    try:return application.authenticate(authorization[7:])
+    except AccessDenied as exc:raise HTTPException(403,str(exc)) from exc
+
+
+def identity(authorization: str | None):
+    return principal(authorization).reviewer
 
 
 def call(fn, *args, **kwargs):
@@ -64,6 +67,8 @@ def call(fn, *args, **kwargs):
         raise HTTPException(403, str(e)) from e
     except StaleCase as e:
         raise HTTPException(409, str(e)) from e
+    except Conflict as e:
+        raise HTTPException(409,str(e)) from e
     except CalibrationError as e:
         raise HTTPException(422, str(e)) from e
     except KeyError as e:
@@ -71,12 +76,14 @@ def call(fn, *args, **kwargs):
 
 
 class ImportCase(BaseModel):
+    model_config=ConfigDict(extra="forbid",hide_input_in_errors=True)
     case_id: str = Field(min_length=1, max_length=120)
     source_hash: str
     observations: list[dict[str, Any]]
 
 
 class Decision(BaseModel):
+    model_config=ConfigDict(extra="forbid",hide_input_in_errors=True)
     decision: str
     rationale: str = ""
     expected_evidence_hash: str
@@ -87,6 +94,7 @@ class Decision(BaseModel):
 
 
 class RuleReview(BaseModel):
+    model_config=ConfigDict(extra="forbid",hide_input_in_errors=True)
     action: str
     rationale: str
     observation_event_hashes: list[str]
@@ -208,6 +216,37 @@ def reference_lookup(query: str = Query(default='',max_length=240), role: str | 
     lookup=ReferenceLookupService(PublicSyntheticProvider())
     return (lookup.authorities(query,role=role,source_id=source_id) if kind=='authority'
             else lookup.responsibilities(query,source_id=source_id))
+
+
+@app.post('/api/operations/{tool}')
+def execute_operation(tool: str, request: OperationRequest, authorization: str | None=Header(default=None)):
+    user=principal(authorization)
+    result=call(application.invoke,tool,request,user,transport='HTTP')
+    from cdf_gco_crms.execution.contracts import TOOLS
+    if tool in TOOLS and TOOLS[tool][0] in ('review','debate','probe','docx','xlsx','pdf'):
+        from cdf_gco_crms.execution.jobs import launch
+        launch(application,result['data']['job_id'],user)
+    return result
+
+
+@app.get('/api/cases/{case_id}/execution')
+def execution_workspace(case_id: str,authorization: str | None=Header(default=None)):
+    return call(application.invoke,'cdf_get_case_status',OperationRequest(case_id=case_id),principal(authorization),transport='REACT_HTTP')['data']
+
+
+@app.get('/api/artifacts/{artifact_id}/content')
+def artifact_bytes(artifact_id: str,authorization: str | None=Header(default=None)):
+    from fastapi.responses import Response
+    user=principal(authorization)
+    call(application.invoke,'cdf_get_artifact_status',OperationRequest(artifact_id=artifact_id),user,transport='REACT_HTTP')
+    row=call(application._artifact_row,artifact_id,user)
+    descriptor=application.artifact_metadata(row)
+    import hashlib
+    if hashlib.sha256(row['content']).hexdigest()!=descriptor['sha256']:
+        raise HTTPException(422,'ARTIFACT_INTEGRITY_FAILED')
+    return Response(row['content'],media_type=descriptor['media_type'],headers={
+        'Content-Disposition':'attachment; filename="'+descriptor['filename']+'"','X-CDF-Artifact-ID':artifact_id,
+        'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
 
 
 # Optional prebuilt public UI. The demo container supplies this directory; it

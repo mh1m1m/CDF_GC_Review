@@ -28,7 +28,6 @@ class CalibrationService:
     def import_case(self, case_id, source_hash, evidence, user):
         user.require("CALIBRATION_ADMIN")
         result = self.store.import_case(case_id, source_hash, evidence, user)
-        self.case_grants.setdefault(case_id, set()).add(user.reviewer_id)
         return {"case_id": case_id, "evidence_hash": result, "observations": len(evidence)}
 
     def list_cases(self, user):

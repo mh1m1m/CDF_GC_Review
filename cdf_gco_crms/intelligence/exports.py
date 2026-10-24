@@ -108,9 +108,9 @@ def _render_dashboard(data: dict, kind: str, *, logo: bytes) -> bytes:
         journal=wb.create_sheet('Timeline');journal.append(['الحدث','الوقت','الملاحظة'])
         journal.cell(1,4,'تراكم الأحداث المسجلة')
         for i,event in enumerate(data['timeline'],1):journal.append([event['kind'],event['at'],event['observation_id'],i])
-        lifecycle=wb.create_sheet('Observations');lifecycle.append(['المعرف','الأصل','المعاد','التغير المرصود','قرار المعايرة'])
-        for item in data['observations']:lifecycle.append([item['observation_id'],item.get('original_text'),item.get('reviewed_text'),item.get('observed_change'),(item.get('calibration') or {}).get('decision')])
-        lifecycle.auto_filter.ref=f'A1:E{lifecycle.max_row}';lifecycle.freeze_panes='B2'
+        lifecycle=wb.create_sheet('Observations');lifecycle.append(['المعرف','الأصل','المعاد','التغير المرصود','قرار المعايرة','التصنيف المادي','التوصية','المراجع'])
+        for item in data['observations']:lifecycle.append([item['observation_id'],item.get('original_text'),item.get('reviewed_text'),item.get('observed_change'),(item.get('calibration') or {}).get('decision'),', '.join(item.get('material_categories',[])),str(item.get('original_text') or '').partition('التوصية:')[2].strip(),', '.join(item.get('authority_reference_ids',[])+item.get('department_reference_ids',[]))])
+        lifecycle.auto_filter.ref=f'A1:H{lifecycle.max_row}';lifecycle.freeze_panes='B2'
         sources=wb.create_sheet('ReferenceSources');sources.append(['مرجع للفهرسة فقط؛ لا يثبت إسناد الملاحظة','الإصدار','الاعتماد','السريان','عدم الاستبدال'])
         for source in catalog['sources']:sources.append([source['id'],source['version'],source['approval_status'],source['effective_date'],str(source['supersession_checked'])])
         authorities=wb.create_sheet('AuthorityMap');authorities.append(['المعرف','النشاط','الجهة','الدور الموثق','الصفحة','المصدر'])
@@ -174,6 +174,17 @@ def _render_dashboard(data: dict, kind: str, *, logo: bytes) -> bytes:
             doc.add_comment(cells[0].paragraphs[0].runs,text='Automated draft lineage: '+', '.join(metric['lineage'])+'; '+metric['limitation'],author='CDF automated draft provenance',initials='SYS')
             cells[2].text='غير مقاس' if metric['value'] is None else f"{metric['value']}%";cells[3].text=metric['status']
             doc.add_paragraph(metric['title']+': '+metric['limitation'])
+        doc.add_heading('الملاحظات والتوصيات — مسودة قابلة للتحرير',1)
+        for observation in data['observations']:
+            doc.add_heading(observation['observation_id'],2)
+            doc.add_paragraph('التصنيف المادي: '+', '.join(observation.get('material_categories',[])))
+            doc.add_paragraph(str(observation.get('original_text') or ''))
+            refs=observation.get('authority_reference_ids',[])+observation.get('department_reference_ids',[])
+            doc.add_paragraph('مراجع افتراضية غير ملزمة: '+', '.join(refs))
+            doc.add_paragraph('موضع النص: '+str(observation.get('location','')))
+        doc.add_heading('سجل الأدلة — حالة المصدر محفوظة',1)
+        for evidence in data['evidence']:
+            doc.add_paragraph(str(evidence['id'])+' · '+str(evidence.get('page_or_paragraph',''))+' · '+str(evidence.get('approval_status','UNVERIFIED')))
         doc.add_heading('النقاش والأدلة',1)
         debate=doc.add_table(rows=1,cols=4);debate.style='Light Shading Accent 1'
         for cell,text in zip(debate.rows[0].cells,['الملاحظة','دورات منتجة','الحسم المسجل','المبرر']):cell.text=text

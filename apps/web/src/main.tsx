@@ -26,6 +26,9 @@ const Chart = lazy(() => import("./ExecutiveChart"));
 const Graph = lazy(() => import("./IntelligenceGraph"));
 const AuthorityExplorer = lazy(() => import("./components/AuthorityExplorer"));
 const ObjectionTree = lazy(() => import("./ObjectionTree"));
+const ExecutionWorkspace = lazy(
+  () => import("./components/ExecutionWorkspace"),
+);
 const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
 const Calibration = lazy(() => import("./CalibrationApp"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
@@ -74,6 +77,7 @@ const views = [
   ["mat", "استوديو MAT", Sparkles],
   ["calibration", "معايرة الملاحظات", FileCheck2],
   ["gallery", "المكتبة البصرية", ShieldCheck],
+  ["execution", "التنفيذ والملفات", Activity],
 ] as const;
 const categoryNames: Record<string, string> = {
   AML: "غسل الأموال",
@@ -230,7 +234,8 @@ function App() {
   const distribution = useMemo<EChartsCoreOption>(() => {
     const family = (
       d:
-        Dashboard["calibration_analytics"]["original_distribution"] | undefined,
+        | Dashboard["calibration_analytics"]["original_distribution"]
+        | undefined,
     ) =>
       d
         ? [
@@ -745,7 +750,8 @@ function App() {
                       <label>
                         الملاحظة
                         <select
-                          aria-label="الملاحظة" value={observationFilter}
+                          aria-label="الملاحظة"
+                          value={observationFilter}
                           onChange={(e) => setObservationFilter(e.target.value)}
                         >
                           <option value="">كل الملاحظات</option>
@@ -919,6 +925,21 @@ function App() {
               {view === "references" && (
                 <Suspense fallback={<p>جارٍ تحميل المراجع…</p>}>
                   <AuthorityExplorer data={references} />
+                </Suspense>
+              )}
+              {view === "execution" && (
+                <Suspense fallback={<p>جارٍ قراءة السجل…</p>}>
+                  <ExecutionWorkspace
+                    caseId={data.case_id}
+                    token={token}
+                    onPublished={() =>
+                      void api<Dashboard>(
+                        "/api/cases/" +
+                          encodeURIComponent(data.case_id) +
+                          "/intelligence",
+                      ).then(setData)
+                    }
+                  />
                 </Suspense>
               )}
               {view === "gallery" && (

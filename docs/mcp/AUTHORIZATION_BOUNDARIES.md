@@ -1,0 +1,15 @@
+# Authorization boundaries
+
+This milestone is PUBLIC_SYNTHETIC_DEMO only. Both HTTP interfaces bind to loopback. PrivateInstitutionalProvider and PrivateWorkspace retain their independently authorized in-process integration boundaries. Environment flags, public demo tokens, MCP tool arguments and MAT advice cannot activate private HTTP, approve real documents or fetch institutional references.
+
+Development sessions are explicitly provisioned by trusted local configuration, stored by token hash, expiring, revocable and associated with server-side principal/roles/client ID. Request bodies cannot choose reviewer identity or roles. Unknown fields are rejected. The shared service revalidates sessions on every operation; workers recheck at claim and publication and terminate on expiry. Never expose this bootstrap credential model as production authentication.
+
+CALIBRATION_ADMIN is required to create a case, launch review/debate/probe, cancel or recover jobs. CALIBRATION_REVIEWER plus a durable case grant is required for observations, reference lookups, calibration, metrics, gate and reports. Job/artifact identifiers resolve their owning case; optional case IDs must match. A grant alone does not confer a missing role. Case import grants do not survive a rolled-back publication.
+
+Material withdrawal uses existing calibration rules, not a new approval path. Submitted decisions require evidence-version matching and documented rationale; synthetic labels are not validated human training labels. MAT remains advisory; adjudication remains independent. `issue=true` always fails at the shared service. All delivered artifacts are working copies; the central release gate remains authoritative and fail-closed.
+
+Mutations and reads through the unified service append actor, transport, operation, request hash and result hash to the local audit chain. Raw credentials, provider error bodies and source document text are not audit payloads. Agent receipt storage is separate. Hash chains detect local changes; they do not prove external authorization.
+
+Artifact contents stay in the case database and are returned only after authorization and hash verification. No client-supplied server output path or file-reading tool exists. CLI `--output` chooses only the caller's local destination after an authorized download. The MCP body limit is 128 KiB, result limit 512 KiB and artifact chunks 32 KiB. Pagination is required for large observation/trace/event outputs.
+
+Negative tests cover missing roles, cross-case access, invalid/expired credentials, forged identity, live policy denial, cancelled/stale jobs, incomplete publication, material withdrawal and issuance. Existing private isolation/provenance/release tests remain required. Evidence scanning is a heuristic, not a DLP certification. Public acceptance uses the fixed fictional fixture and ephemeral credentials, never private source mounts or personal provider keys.

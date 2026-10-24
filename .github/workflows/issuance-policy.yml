@@ -10,6 +10,7 @@ on:
       - "development/v7.12-production-engineering"
   pull_request:
     branches:
+      - "codex/institutional-dual-mode"
       - "codex/visual-intelligence"
       - "codex/stable-libreoffice"
       - "codex/takeover-audit-and-safeguards"
@@ -35,7 +36,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Clean-environment install (pinned)
-        run: python -m pip install -r requirements-visual.txt -r requirements-security.txt
+        run: python -m pip install -r requirements-execution.txt -r requirements-security.txt
       - name: Public repository confidential-content and credential guard
         run: python tools/mat_dna/public_repository_guard.py
       - name: Compile every module
@@ -85,7 +86,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install private pilot development dependencies
-        run: python -m pip install -r requirements-visual.txt
+        run: python -m pip install -r requirements-execution.txt
       - name: Generate ephemeral synthetic-only developer token
         run: echo "CDF_CALIBRATION_DEV_TOKEN=$(python -c 'import secrets; print(secrets.token_urlsafe(36))')" >> "$GITHUB_ENV"
       - name: Install shared Arabic test fonts
@@ -129,15 +130,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install audited runtime and security tools
-        run: python -m pip install -r requirements-visual.txt -r requirements-security.txt
+        run: python -m pip install -r requirements-execution.txt -r requirements-security.txt
       - name: Public source and secret signature guard
         run: python tools/mat_dna/public_repository_guard.py
       - name: Static scan of new API and projection boundary
         run: |
           mkdir -p build/security
-          python -m bandit -r cdf_gco_crms/intelligence cdf_gco_crms/institutional apps/api -f json -o build/security/bandit.json
+          python -m bandit -r cdf_gco_crms/intelligence cdf_gco_crms/institutional cdf_gco_crms/execution cdf_gco_crms/interfaces cdf_gco_crms/agents/providers/openai_adapter.py cdf_gco_crms/agents/providers/cli_adapter.py apps/api -f json -o build/security/bandit.json
       - name: Audit runtime dependency advisory data
-        run: python -m pip_audit -r requirements-visual.txt --vulnerability-service pypi --format json -o build/security/pip-audit.json
+        run: python -m pip_audit -r requirements-execution.txt --vulnerability-service pypi --format json -o build/security/pip-audit.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -164,7 +165,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install public render tools
-        run: python -m pip install -r requirements-visual.txt
+        run: python -m pip install -r requirements-execution.txt
       - name: Build public UI without private environment exposure
         working-directory: apps/web
         env:

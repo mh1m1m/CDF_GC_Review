@@ -6,15 +6,15 @@ export default defineConfig({
   retries: 0,
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: process.env.CDF_WEB_ORIGIN || "http://127.0.0.1:5173",
     trace: "off",
     launchOptions: {
       executablePath: process.env.CDF_CHROMIUM_EXECUTABLE || undefined,
     },
   },
   webServer: {
-    command: "npm run dev -- --port 5173",
-    url: "http://127.0.0.1:5173",
+    command: "npm run dev -- --port " + (process.env.CDF_WEB_PORT || "5173"),
+    url: process.env.CDF_WEB_ORIGIN || "http://127.0.0.1:5173",
     timeout: 60_000,
     reuseExistingServer: !process.env.CI,
   },

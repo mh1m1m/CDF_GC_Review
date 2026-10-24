@@ -26,3 +26,7 @@ All source fixes await independent review. No institutional acceptance inferred.
 - INST-03: Reconcile proposed organization mandates, explicit ownership/reporting/DoA relationships and independent source conflicts without inferred authority.
 - INST-04: Institutional acceptance for branding/typography/safe areas, manual accessibility, storage/security/backup operations, real human labels and authorized provider processing remains external.
 - INST-05: Verify native x14 sparkline/editor fidelity in Microsoft Excel desktop; other editors may remove the extension. Original XLSX/native charts/formulas and independent Calc reconciliation remain available.
+
+- EXE-01: Actual ChatGPT/Claude MCP registration requires approved HTTPS/authentication deployment and account/client setup; independent official SDK protocol tests are not client connection proof. See docs/acceptance/EXTERNAL_BLOCKERS.md.
+- EXE-02: Durable job pilot is single-host SQLite with explicit operator recovery of unclaimed QUEUED jobs and no automatic replay of ambiguous inference. Distributed scheduling, cross-host supervision, production capacity and operational acceptance remain deferred.
+- EXE-03: Official provider API paths require approved credentials/model/policy; supervised consumer CLI receipts do not satisfy central API-provenance release requirements. No institutional workload is authorized by a normal consumer CLI login.

@@ -13,6 +13,8 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from contextlib import contextmanager
+import uuid
 from typing import Any
 
 DECISIONS = frozenset({
@@ -136,12 +138,26 @@ class CalibrationStore:
             if item.get("observed_change") == "REMOVED_FROM_VERSION" and item.get("human_decision") == "WITHDRAW":
                 raise CalibrationError("ABSENCE_IS_NOT_HUMAN_WITHDRAWAL")
         digest = fingerprint(evidence)
-        with self.db:
+        with self.transaction():
             self.db.execute("INSERT INTO cases VALUES (?,?,?,?,?)",
                             (case_id, source_hash, digest, canonical(evidence), now_utc()))
             self._append(case_id, None, "CASE_IMPORTED", {"source_hash": source_hash, "evidence_hash": digest}, reviewer.reviewer_id)
             self.db.execute("INSERT INTO case_grants (case_id, reviewer_id) VALUES (?, ?)", (case_id, reviewer.reviewer_id))
         return digest
+
+    @contextmanager
+    def transaction(self):
+        """Nested savepoints let one application job publish state atomically."""
+        name='cdf_'+uuid.uuid4().hex
+        self.db.execute('SAVEPOINT '+name)
+        try:
+            yield
+        except BaseException:
+            self.db.execute('ROLLBACK TO SAVEPOINT '+name)
+            self.db.execute('RELEASE SAVEPOINT '+name)
+            raise
+        else:
+            self.db.execute('RELEASE SAVEPOINT '+name)
 
     def _case(self, case_id: str):
         row = self.db.execute("SELECT * FROM cases WHERE case_id=?", (case_id,)).fetchone()
@@ -202,7 +218,7 @@ class CalibrationStore:
                    "evidence_refs": evidence_refs, "material_categories": sorted(categories),
                    "status": status, "evidence_hash": expected_evidence_hash,
                    "heightened_review": bool(decision == "WITHDRAW" and categories)}
-        with self.db:
+        with self.transaction():
             return self._append(case_id, observation_id, "OBSERVATION_CALIBRATION", payload, reviewer.reviewer_id)
 
     def rule_action(self, case_id: str, rule_id: str, action: str, rationale: str,
@@ -220,7 +236,7 @@ class CalibrationStore:
         payload = {"rule_id": rule_id, "action": action, "rationale": rationale,
                    "observation_event_hashes": sorted(set(observation_event_hashes)),
                    "profile_version": profile_version}
-        with self.db:
+        with self.transaction():
             return self._append(case_id, None, "DNA_RULE_REVIEW", payload, reviewer.reviewer_id)
 
     def events(self, case_id: str, reviewer: ReviewerContext):
@@ -266,7 +282,7 @@ class CalibrationStore:
         if not isinstance(ver, str) or not ver:
             raise CalibrationError("PROFILE_VERSION_REQUIRED")
         digest = fingerprint(profile)
-        with self.db:
+        with self.transaction():
             self.db.execute("INSERT INTO profile_versions VALUES (?,?,?,?,?,?)",
                             (case_id, ver, digest, canonical(profile), reviewer.reviewer_id, now_utc()))
             self._append(case_id, None, "SYNTHETIC_PROFILE_COMPILED",
@@ -293,7 +309,7 @@ class CalibrationStore:
         p = json.loads(record["profile_json"])
         if not p.get("synthetic") or p.get("status") != "PROVISIONAL":
             raise CalibrationError("SYNTHETIC_PROVISIONAL_ONLY")
-        with self.db:
+        with self.transaction():
             self.db.execute("INSERT OR REPLACE INTO active_profiles VALUES (?,?,?)", (case_id, version, now_utc()))
             self._append(case_id, None, "SYNTHETIC_PROFILE_ACTIVATED",
                          {"profile_version": version, "profile_sha256": record["profile_sha256"],

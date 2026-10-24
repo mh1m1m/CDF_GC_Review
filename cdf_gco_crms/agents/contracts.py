@@ -302,5 +302,6 @@ class AgentResponse:
                 "Error": self.error, "Schema_Errors": list(self.schema_errors),
                 "Execution_Source": self.execution_source, "Provider_Request_ID": self.provider_request_id,
                 "System_Hash": self.system_hash, "Review_State_Fingerprint": self.fingerprint, "Run_ID": self.run_id,
-                "Provider_Originated": ["Invocation_ID", "Provider_Request_ID", "Model", "Token_Usage"],
+                "Provider_Originated": [] if self.execution_source == "SUPERVISED_CLI" else ["Invocation_ID", "Provider_Request_ID", "Model", "Token_Usage"],
+                "CLI_Originated": ["Invocation_ID", "Token_Usage"] if self.execution_source == "SUPERVISED_CLI" else [],
                 "Locally_Generated": ["Execution_ID", "Context_ID", "Prompt_Hash", "Response_Hash", "Timestamp", "Latency_ms"]}
