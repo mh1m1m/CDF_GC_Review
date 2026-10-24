@@ -101,6 +101,21 @@ class CalibrationStore:
             );
             CREATE INDEX IF NOT EXISTS idx_events_case ON events(case_id, event_id);
             CREATE TABLE IF NOT EXISTS case_grants (case_id TEXT NOT NULL REFERENCES cases(case_id), reviewer_id TEXT NOT NULL, PRIMARY KEY(case_id, reviewer_id));
+            CREATE TABLE IF NOT EXISTS profile_versions (
+                case_id TEXT NOT NULL REFERENCES cases(case_id),
+                profile_version TEXT NOT NULL,
+                profile_sha256 TEXT NOT NULL,
+                profile_json TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY(case_id,profile_version)
+            );
+            CREATE TABLE IF NOT EXISTS active_profiles (
+                case_id TEXT PRIMARY KEY REFERENCES cases(case_id),
+                profile_version TEXT NOT NULL,
+                changed_at TEXT NOT NULL,
+                FOREIGN KEY(case_id, profile_version) REFERENCES profile_versions(case_id,profile_version)
+            );
         """)
         if os.name == "posix":
             os.chmod(self.path, 0o600)
@@ -239,3 +254,46 @@ class CalibrationStore:
                 "approved_dna_rules": sum(e["event_type"] == "DNA_RULE_REVIEW" and
                         json.loads(e["payload_json"])["action"] in ("APPROVE", "APPROVE_WITH_CHANGES") for e in events),
                 "audit_chain_valid": self.verify_chain(case_id, reviewer)}
+
+    def save_synthetic_profile(self, case_id: str, profile: dict, reviewer: ReviewerContext) -> dict:
+        reviewer.require("DNA_RULE_APPROVER")
+        self._case(case_id)
+        if not profile.get("synthetic") or profile.get("status") != "PROVISIONAL" or profile.get("human_approval_status") != "NOT_APPROVED":
+            raise CalibrationError("ONLY_PROVISIONAL_SYNTHETIC_PROFILE_SUPPORTED")
+        ver = profile.get("version")
+        if not isinstance(ver, str) or not ver:
+            raise CalibrationError("PROFILE_VERSION_REQUIRED")
+        digest = fingerprint(profile)
+        with self.db:
+            self.db.execute("INSERT INTO profile_versions VALUES (?,?,?,?,?,?)",
+                            (case_id, ver, digest, canonical(profile), reviewer.reviewer_id, now_utc()))
+            self._append(case_id, None, "SYNTHETIC_PROFILE_COMPILED",
+                         {"profile_version": ver, "profile_sha256": digest, "binding_allowed": False}, reviewer.reviewer_id)
+        return {"case_id": case_id, "profile_version": ver, "profile_sha256": digest,
+                "status": "PROVISIONAL", "institutional_approval": "NOT_AUTHORIZED"}
+
+    def profile_versions(self, case_id: str, reviewer: ReviewerContext) -> list[dict]:
+        reviewer.require("CALIBRATION_REVIEWER")
+        self._case(case_id)
+        active = self.db.execute("SELECT profile_version FROM active_profiles WHERE case_id=?", (case_id,)).fetchone()
+        return [{"profile_version": r["profile_version"], "profile_sha256": r["profile_sha256"],
+                 "created_by": r["created_by"], "created_at": r["created_at"],
+                 "active": bool(active and active["profile_version"] == r["profile_version"])}
+                for r in self.db.execute("SELECT * FROM profile_versions WHERE case_id=? ORDER BY created_at,profile_version", (case_id,))]
+
+    def activate_synthetic_profile(self, case_id: str, version: str, reviewer: ReviewerContext) -> dict:
+        reviewer.require("DNA_RULE_APPROVER")
+        self._case(case_id)
+        record = self.db.execute("SELECT profile_sha256,profile_json FROM profile_versions WHERE case_id=? AND profile_version=?",
+                                 (case_id, version)).fetchone()
+        if record is None:
+            raise CalibrationError("PROFILE_VERSION_NOT_FOUND")
+        p = json.loads(record["profile_json"])
+        if not p.get("synthetic") or p.get("status") != "PROVISIONAL":
+            raise CalibrationError("SYNTHETIC_PROVISIONAL_ONLY")
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO active_profiles VALUES (?,?,?)", (case_id, version, now_utc()))
+            self._append(case_id, None, "SYNTHETIC_PROFILE_ACTIVATED",
+                         {"profile_version": version, "profile_sha256": record["profile_sha256"],
+                          "institutional_approval": "NOT_AUTHORIZED"}, reviewer.reviewer_id)
+        return {"profile_version": version, "active": True, "institutional_approval": "NOT_AUTHORIZED"}
