@@ -1,3 +1,75 @@
+# CDF–GCO–CRMS v7.12 — CLAUDE CODE ENGINEERING HANDOFF (live-inference provenance assurance, 2026-10-24)
+
+## 1. Final remote commit SHA and PR
+- Working_Branch: feature/v712-live-multi-agent-runtime
+- Review_Baseline: 2ec2eb934a5afcb0db9b24e5b2e3cd9bba8a33f2
+- Remediation_Commit_SHA: eb41224308e4a25c031c13cac39ee687397b2448 (this handoff revision is committed on top of it)
+- Pull_Request_URL: https://github.com/mh1m1m/CDF_GC_Review/pull/3 (draft, open, not merged; main untouched)
+- GitHub_Actions (eb41224): pull_request run 40053555448 SUCCESS; push run 40053552118 SUCCESS
+
+## 2. Changed files
+| File | Change |
+|---|---|
+| cdf_gco_crms/agents/provenance.py (new) | execution-source classification from the adapter object (`classify_adapter`: exact registered class, no injected client → PROVIDER_API; subclasses / fixtures declaring LIVE → SIMULATED_LIVE; MOCK_SCRIPT, CACHED_REPLAY, DETERMINISTIC_RULES, FAILED); `is_trusted_live`; role-instruction hash; trace hash chain (`line_hash`, `verify_chain`) |
+| cdf_gco_crms/agents/runner.py | derives the source once at construction; `bind(run_id, fingerprint)`; stamps every response with Execution_Source, Provider_Request_ID (PROVIDER_API only), System_Hash, Review_State_Fingerprint, Run_ID; failures and schema violations are FAILED |
+| cdf_gco_crms/agents/contracts.py | provenance fields on AgentResponse; `is_live` = PROVIDER_API + OK; trace record separates Provider_Originated from Locally_Generated fields |
+| cdf_gco_crms/agents/providers/base.py, anthropic_adapter.py | `ProviderResult.provider_request_id`; the Anthropic adapter reads the HTTP `request-id` via `with_raw_response` (plus the message id); `client_injected` flag marks a harness-supplied client as untrusted |
+| cdf_gco_crms/agents/tracing.py | hash-chained JSONL (`prev_hash`/`line_hash`), `head_hash`; summary counts by source: `actual_live_inference_count` (PROVIDER_API + OK only), `simulated_live_count`, `cached_replay_count`, `mock_inference_count`; schema CDF-AGENT-TRACE-v7.12.2 |
+| cdf_gco_crms/release/attestation.py | receipts require Execution_Source PROVIDER_API, a provider request id, this run, this fingerprint and the role's own instruction hash; `verify_trace` (chain intact, head as recorded); unique execution, context and provider request ids; attestation payload carries `trace_head_hash` and the note that a signature does not make execution claims true |
+| cdf_gco_crms/release/authorization_gate.py | records `trace_head_hash`; the institutional final-review check requires `execution_source == PROVIDER_API`, verifies the chain and binds the receipt to run and fingerprint |
+| cdf_gco_crms/agents/orchestrator.py | binds the runner to run and fingerprint before any role runs; independence verified with run/fingerprint/head; `execution_source` recorded; final review carries source and request id |
+| tools/live_provider_trial.py, tools/patch_status.py, README.md, CHECKPOINT.md, AI_AGENT_FORENSIC_AUDIT/reports/{REMEDIATION-STATUS, ENGINEERING-EVIDENCE-REGISTER}.md | trial reports provenance fields; register rule V712-042 keyed on receipts; documentation |
+| tests/test_live_provenance.py (new), tests/test_release_attestation.py | see 3 |
+
+## 3. Test results
+- Full suite, institutional sources on disk: **276 passed, 4 skipped** (3 live-provider, 1 refusal path), **0 failed**
+- Fresh public clone (`git archive` of eb41224, no institutional files): **185 passed, 11 skipped, 0 failed**
+- GitHub Actions on eb41224: SUCCESS (both triggers)
+- Institutional-input regressions (reference index, challenge on institutional sources, lineage): included in the 276 (sources on disk locally)
+- MOCK / DETERMINISTIC / CACHED / SIMULATED_LIVE / LIVE results are reported apart; skipped live tests are reported as skipped
+
+## 4. Provenance classification results
+| Adapter / situation | Execution_Source | Counts as live | Independence |
+|---|---|---|---|
+| Registered Anthropic adapter from configuration, response with request id | PROVIDER_API | yes (status OK) | ISOLATED_LIVE_CONTEXTS when every challenge receipt verifies |
+| Registered class with an injected client | PROVIDER_API_UNTRUSTED_CLIENT | no | not verified |
+| Subclass of the registered adapter, or any adapter declaring mode=LIVE (`SimulatedLiveAdapter`) | SIMULATED_LIVE | no | LIVE_CLAIMED_NOT_VERIFIED |
+| MockAdapter (any forged invocation id) | MOCK_SCRIPT | no | MOCK_SCRIPTED_CONTEXTS |
+| CachedAdapter replay of a recorded live response | CACHED_REPLAY | no | not verified |
+| No provider (rules) | DETERMINISTIC_RULES | no | SINGLE_PROCESS_RULE_BASED |
+| Provider failure, refusal, schema violation | FAILED | no | blocks |
+
+On this branch no run has produced a PROVIDER_API receipt from the real provider. The positive institutional path in the tests runs on `TrustedTestAdapter`, which is registered only by a pytest monkeypatch of `provenance.trusted_live_adapter_types`; production code registers the Anthropic adapter alone, and the tests say so.
+
+## 5. Simulated-live negative-test results (tests/test_live_provenance.py, all PASS)
+1. SimulatedLiveAdapter: source SIMULATED_LIVE, live count 0, independence LIVE_CLAIMED_NOT_VERIFIED, institutional issue refused (FINAL_REVIEW_NOT_LIVE, EXECUTION_RECEIPT_SOURCE_NOT_PROVIDER_API, AGENT_INDEPENDENCE_NOT_VERIFIED).
+2. Forged `msg_` invocation id on a mock: still MOCK_SCRIPT, no provider request id, receipts refused.
+3. Modified execution trace: chain broken (EXECUTION_TRACE_CHAIN_BROKEN); a consistently re-chained trace no longer matches the recorded head (EXECUTION_TRACE_HEAD_MISMATCH), which the attestation also signs.
+4. Replay of a cached response: CACHED_REPLAY, live count 0, receipts refused.
+5. Duplicate provider request ids: refused (PROVIDER_REQUEST_IDS_NOT_UNIQUE); a subclass that reuses ids is SIMULATED_LIVE by construction anyway.
+6. Incorrect provider identity: EXECUTION_RECEIPT_PROVIDER_NOT_LIVE plus chain broken.
+7. Missing provider response evidence: EXECUTION_RECEIPT_PROVIDER_REQUEST_ID_MISSING.
+8. Stale receipt from another run: EXECUTION_RECEIPT_FROM_OTHER_RUN (classifier and gate).
+9. Cross-document receipt reuse: receipt bound to the other fingerprint / run; attestation invalid.
+10. Valid attestor signature over false execution metadata: signature verifies, the receipt check still refuses (independent of the signature); SYNTHETIC reference refusal stands.
+Regression: `test_regression_simulated_live_adapter_cannot_increase_actual_live_inference_count` — three simulated calls → `actual_live_inference_count` 0, `simulated_live_count` 3.
+
+## 6. Remaining limitations
+- No real provider receipt exists yet: live inference remains **NOT_VERIFIED**; the trial (`tools/live_provider_trial.py`) stops at configuration here (no provider / credential). Provider-side reconciliation of `Provider_Request_ID` with the provider's usage logs can only happen after a live run.
+- The provenance root of trust is the running process: an operator who controls the deployment can register a different adapter. Within that boundary nothing declared in data, fixtures or serialized metadata is trusted; outside it, the institutional attestation key and the trust store are the controls, and the provider does not offer a cryptographic attestation mechanism (none is claimed).
+- No institutional attestor or reviewer keys exist; the trust store is operator-supplied.
+- The Article 20 review runs live only when a provider is configured; the rule fallback is refused for institutional issue.
+
+## 7. Current operational readiness
+- Engineering_Status: ENGINEERING_COMPLETE_WITH_UNVERIFIED_ITEMS
+- Multi_Agent_Status: PARTIAL_LIVE_AI_IMPLEMENTATION — LIVE EXECUTION NOT VERIFIED
+- Institutional_Authorization: NOT_AUTHORIZED
+- Production_Readiness: institutional issue is impossible on this branch until PROVIDER_API receipts, a source hash, verified independence and a valid institutional attestation exist for the exact content. Ready for: the live-provider trial on synthetic data (operator credential), then the per-role live tests and the first Word review experiment.
+
+CHATGPT REVIEW REQUEST — "Review the implementation committed to the GitHub repository and PR #3. Independently examine the modified source files and runtime integration. Verify whether the claimed AI agents actually execute independent model calls. Assess whether the central issuance gate prevents bypasses. Review the reported test evidence and identify unsupported completion claims. Determine the next engineering actions, prioritizing critical defects. Do not assume that Claude Code's reported completion is sufficient evidence. Use the GitHub repository as the authoritative source of truth."
+
+---
+
 # CDF–GCO–CRMS v7.12 — CLAUDE CODE ENGINEERING HANDOFF (PR #3 remediation, 2026-10-24)
 
 ## 1. Final commit SHA and PR
