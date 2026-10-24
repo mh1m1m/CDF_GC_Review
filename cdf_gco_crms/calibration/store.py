@@ -76,7 +76,7 @@ class CalibrationStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists() and self.path.is_symlink():
             raise CalibrationError("SYMLINK_DB_DISALLOWED")
-        self.db = sqlite3.connect(str(self.path))
+        self.db = sqlite3.connect(str(self.path), check_same_thread=False)  # API serializes access at the service boundary; not for multi-worker deployments
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.execute("PRAGMA journal_mode=WAL")
