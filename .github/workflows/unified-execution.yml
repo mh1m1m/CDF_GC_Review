@@ -1,7 +1,7 @@
 name: Unified execution acceptance
 on:
   pull_request:
-    branches: [codex/institutional-dual-mode, codex/unified-execution]
+    branches: [codex/institutional-dual-mode, codex/unified-execution, codex/phase-ii-copilot]
   workflow_dispatch:
 permissions:
   contents: read

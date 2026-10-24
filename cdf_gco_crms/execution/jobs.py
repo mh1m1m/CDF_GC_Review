@@ -187,7 +187,8 @@ def fail(service, job_id, lease, code, *, stage=None, status="FAILED"):
     with service.store.transaction():
         if stage is None:
             attempt = service.store.db.execute(
-                "SELECT role FROM app_agent_attempts WHERE job_id=? AND status='STARTED' ORDER BY started_at DESC LIMIT 1", (job_id,)
+                "SELECT role FROM app_agent_attempts WHERE job_id=? AND status='STARTED' ORDER BY started_at DESC LIMIT 1",
+                (job_id,),
             ).fetchone()
             stage = attempt["role"] if attempt else "SUPERVISION"
         service.store.db.execute(
@@ -231,6 +232,16 @@ class JobTrace(TraceWriter):
                 (response.status, now_utc(), canonical(result), response.execution_id),
             )
         return result
+
+    def progress(self, execution_id, snapshot):
+        with self.service.store.transaction():
+            self.service.store.db.execute(
+                "UPDATE app_agent_attempts SET receipt_json=? WHERE execution_id=? AND status='STARTED'",
+                (
+                    canonical({"diagnostic_only": True, "cli_diagnostic": snapshot}),
+                    execution_id,
+                ),
+            )
 
 
 def compute(database, job_id, lease, workspace):
@@ -280,7 +291,10 @@ def compute(database, job_id, lease, workspace):
             source.write_bytes(intake["document_blob"])
             failure_stage = "EXECUTOR_SELECTION"
             provider = select_executor(
-                request.executor, timeout=min(request.timeout, 120)
+                request.executor,
+                timeout=max(
+                    1, min(request.timeout, 120, int(job["deadline"] - time.time()) - 5)
+                ),
             )
             trace = JobTrace(service, job_id)
             runner = (

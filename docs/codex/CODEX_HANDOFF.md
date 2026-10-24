@@ -46,3 +46,7 @@ Continue from `codex/unified-execution`, based on PR 9 exact commit `71f593acb55
 ## Phase II continuation
 
 New branch `codex/phase-ii-copilot` starts at PR10's verified `7d4bd5c`. Read docs/architecture/CONVERSATIONAL_GOVERNANCE_PLATFORM.md, WORKFLOW_COMPOSITION.md, the Phase II capability register/matrix and REAL_USER_WORKFLOWS.md. The copilot is a thin bounded composer over existing services. Run `python -m cdf_gco_crms.acceptance.phase2 --report-dir build/phase2-acceptance` in the existing stable browser/document runtime. Preserve explicit synthetic/missing/live/institutional distinctions, immutable originals, optimistic human versions, private default-deny behavior and all older draft PRs. Final CI and sanitized evidence links are maintained on the new draft PR.
+
+## Real-connectivity continuation
+
+Preserve PR #11 at `2cbc880`; the dependent `codex/real-mcp-connectivity` branch handles remote OAuth/TLS and real executor diagnostics only. Read `docs/acceptance/REAL_CONNECTIVITY_MILESTONE.md` and `deploy/remote-mcp/README.md`. Keep actual client registration, generic SDK protocol evidence, native CLI completion and provider API provenance separate. The current native diagnostic has no completion receipt and observed denied-connection errors; do not replay it or bypass network policy. Public hostname/OAuth/account/provider setup remains external, and private institutional mode stays disabled. Passing local/CI security tests is not live milestone acceptance.

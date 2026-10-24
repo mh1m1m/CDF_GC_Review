@@ -28,10 +28,11 @@ class ProviderFailure(RuntimeError):
     as an approval, a no-objection or a cleared gate.
     """
 
-    def __init__(self, message: str, *, retryable: bool = False, kind: str = "PROVIDER_ERROR"):
+    def __init__(self, message: str, *, retryable: bool = False, kind: str = "PROVIDER_ERROR", diagnostics=None):
         super().__init__(message)
         self.retryable = retryable
         self.kind = kind
+        self.diagnostics = diagnostics
 
 
 @dataclass
@@ -44,6 +45,7 @@ class ProviderResult:
     refused: bool = False
     refusal_category: str | None = None
     provider_request_id: str | None = None     # the provider's HTTP request id (reconcilable with provider-side logs)
+    execution_receipt: dict | None = None
 
 
 @dataclass(frozen=True)
