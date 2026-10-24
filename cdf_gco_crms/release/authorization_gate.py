@@ -61,6 +61,13 @@ R_RECORD_FILE = "CHALLENGE_RECORD_MISSING_OR_ALTERED"
 R_RECORD_CONTENT = "CHALLENGE_RECORD_NOT_CLEAN"
 R_SYNTHETIC = "SYNTHETIC_REFERENCE_NOT_ISSUABLE"
 R_SCHEMA = "GATE_RECORD_SCHEMA_UNKNOWN"
+R_PROVIDER_FAILURE = "PROVIDER_FAILURE_IN_REVIEW"
+R_FINAL_REVIEW_MISSING = "FINAL_REVIEW_MISSING"
+R_FINAL_REVIEW_NOT_READY = "FINAL_REVIEW_NOT_READY"
+R_TRUST_STORE_REQUIRED = "TRUST_STORE_REQUIRED_FOR_RECORDED_DECISIONS"
+R_DECISION_INVALID = "HUMAN_DECISION_INVALID"
+R_DECISION_RECORD_MISSING = "HUMAN_DECISION_RECORD_MISSING"
+R_SOURCE_DOCUMENT_MISMATCH = "SOURCE_DOCUMENT_VERSION_MISMATCH"
 
 
 # ------------------------------------------------------------------ fingerprint
@@ -109,18 +116,31 @@ def gate_record_path(fingerprint: str, gate_dir=DEFAULT_GATE_DIR) -> Path:
 
 
 def record_review(state: ReviewState, record, record_path, *, reference_mode: str, gate_dir=DEFAULT_GATE_DIR,
-                  decisions_applied: int = 0, command: str = "review") -> dict:
-    """Write the gate record of a challenge run for the content of ``state`` (overwrites the previous one)."""
+                  decisions_applied: int = 0, command: str = "review", provider_failures: int = 0,
+                  final_review: dict | None = None, human_decisions: list[dict] | None = None,
+                  source_document_sha256: str | None = None, execution_summary: dict | None = None) -> dict:
+    """Write the gate record of a challenge run for the content of ``state`` (overwrites the previous one).
+
+    ``final_review`` is ``{"recommendation": READY|NOT_READY|READY_WITH_CONDITIONS, "mode": LIVE|DETERMINISTIC|...,
+    "execution_id": ..., "status": OK|...}`` from the independent final reviewer; ``human_decisions`` lists the
+    verified decisions relied on (decision_id, signing_key_id, observation_id, timestamp, valid_until,
+    review_state_fingerprint, synthetic) so that :func:`authorize` can re-validate them against the trust store
+    at issue time; ``provider_failures`` counts agent invocations that failed — any failure blocks.
+    """
     record_path = Path(record_path)
     blockers = record.blockers()
     fp = state_fingerprint(state)
+    status = STATUS_BLOCKED if (blockers or provider_failures) else STATUS_CLEAR
     rec = {
         "schema": GATE_SCHEMA, "fingerprint": fp, "fingerprint_schema": FINGERPRINT_SCHEMA,
         "document_code": state.document.code, "round": state.current_round, "is_demo": bool(state.document.is_demo),
-        "status": STATUS_BLOCKED if blockers else STATUS_CLEAR, "blockers": blockers,
+        "status": status, "blockers": blockers,
         "chains_verified": bool(record.verify_chains()), "chain_hash": record.chain_hash,
         "independence": record.independence, "role_isolation": record.role_isolation,
         "reference_mode": reference_mode, "command": command, "decisions_applied": int(decisions_applied),
+        "provider_failures": int(provider_failures), "final_review": final_review,
+        "human_decisions": list(human_decisions or []), "source_document_sha256": source_document_sha256,
+        "execution_summary": execution_summary,
         "challenge_record": str(record_path), "challenge_record_sha256": sha256_file(record_path),
         "recorded_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "note": ("authorisation means only that no blocker stands for exactly this content; "
@@ -151,13 +171,46 @@ class Authorization:
                 "gate_record": self.record}
 
 
-def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR) -> Authorization:
-    """Decide whether the content of ``state`` may be written as an issuable file (see module docstring)."""
+def authorize(state: ReviewState, gate_dir=DEFAULT_GATE_DIR, *, trust_store=None, now: dt.datetime | None = None,
+              source_document_sha256: str | None = None, require_final_review: bool = True) -> Authorization:
+    """Decide whether the content of ``state`` may be written as an issuable file (see module docstring).
+
+    Beyond the content binding, the gate re-checks at issue time: no provider failure in the review, the
+    independent final review is present and READY, every human decision the record relied on is still valid
+    (trust store: key status, expiry, role, state binding; synthetic keys never for an institutional document),
+    and — when the caller names the source document — its hash matches the one the review examined.
+    """
     fp = state_fingerprint(state)
     rec = load_gate_record(state, gate_dir)
     if rec is None:
         return Authorization(False, fp, [R_NO_RECORD])
     reasons: list[str] = []
+    institutional = not state.document.is_demo
+    if rec.get("provider_failures"):
+        reasons.append(f"{R_PROVIDER_FAILURE}:{rec['provider_failures']}")
+    fr = rec.get("final_review")
+    if require_final_review:
+        if not fr or fr.get("status", "OK") != "OK":
+            reasons.append(R_FINAL_REVIEW_MISSING)
+        elif fr.get("recommendation") != "READY":
+            reasons.append(f"{R_FINAL_REVIEW_NOT_READY}:{fr.get('recommendation')}")
+    if source_document_sha256 and rec.get("source_document_sha256") and rec["source_document_sha256"] != source_document_sha256:
+        reasons.append(R_SOURCE_DOCUMENT_MISMATCH)
+    decisions = rec.get("human_decisions") or []
+    if decisions:
+        if trust_store is None:
+            reasons.append(R_TRUST_STORE_REQUIRED)
+        else:
+            from ..assurance.objection_engine import HumanDecision
+            for d in decisions:
+                try:
+                    hd = HumanDecision(**{k: d.get(k, "") for k in HumanDecision.__dataclass_fields__})
+                except TypeError:
+                    reasons.append(f"{R_DECISION_RECORD_MISSING}:{d.get('decision_id')}")
+                    continue
+                problems = trust_store.check_decision(hd, now=now, fingerprint=fp, institutional=institutional)
+                if problems:
+                    reasons.append(f"{R_DECISION_INVALID}:{hd.decision_id}:{'|'.join(problems)}")
     if rec.get("schema") != GATE_SCHEMA or rec.get("fingerprint") != fp:
         reasons.append(R_SCHEMA)
     if rec.get("document_code") != state.document.code or rec.get("round") != state.current_round:

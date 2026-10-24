@@ -16,7 +16,7 @@ protocol text: `REPOSITORY-STRUCTURE.md` lists what is tracked and what is exclu
 | Dimension | Status |
 |---|---|
 | Deterministic engineering | COMPLETE — 60-patch register: 49 PASS, 8 NOT_VERIFIED, 3 BLOCKED_EXTERNAL (`PATCH-STATUS.md`) |
-| Multi-agent AI | NOT_VERIFIED — the challenge roles are deterministic rules in one process; no live, isolated agents in the product (`AI_AGENT_FORENSIC_AUDIT/reports/`) |
+| Multi-agent AI | LIVE_AGENTS_NOT_INTEGRATED_VERIFIED — the live runtime is implemented and tested in scripted and deterministic modes; no live inference has been executed or verified (no provider credential in CI or in the authoring environment) |
 | Institutional approval | PENDING — never granted by a tool; the `release` command and the gate only report |
 
 ## Quick start (fresh public clone)
@@ -49,6 +49,34 @@ observation's text and cells; title decisions carry their own proof). `rebuild`,
 package properties). A review run with `--synthetic-reference` never authorises a non-demo issue.
 Return codes: 0 OK · 1 FAIL · 2 input error · 3 refused by policy · 4 NOT_VERIFIED.
 
+## Live multi-agent runtime (branch `feature/v712-live-multi-agent-runtime`)
+
+`cdf_gco_crms/agents/` adds AI agents for the analytical roles without replacing a single deterministic safeguard:
+
+| Module | Role |
+|---|---|
+| `providers/` | `anthropic_adapter` (LIVE, official SDK, credentials resolved from the environment only), `mock_adapter` (MOCK, scripted), `cached_adapter` (CACHED replay of recorded live responses). `provider_from_env()` returns None unless `CDF_AI_PROVIDER` is set — never a silent mock. |
+| `runner.py` | one fresh execution context per invocation: unique Execution_ID, Context_ID from the exact prompt material, schema validation, bounded retries, sanitised trace; a failure, refusal or schema violation is a non-result |
+| `roles.py` | Agent A drafting, B black team, C red advocate, D adjudicator, E editorial, F independent final reviewer; deterministic fallbacks for the challenge roles (the rule engine), rule-based fallbacks for editorial and final review (labelled as such); guards re-apply the rule adjudicator's invariants to every live disposition |
+| `debate.py` | six *productive* cycles per objection; repeats never consume a cycle; the seventh is refused; unresolved → escalated |
+| `orchestrator.py` | Article 06 pipeline → `ChallengeRecord` (hash-chained) + gate record; a provider failure escalates and blocks |
+| `evaluator.py` | sealed public holdout (`tests/fixtures/holdout`, 24 cases) scored per mode; DETERMINISTIC is a baseline, never a pass |
+| `release/trust.py`, `release/dispositions.py` | institutional trust store with revocation, validity windows, roles and state binding; authorised disposition application with ledger and rollback |
+
+Configuration (environment only; nothing in the repository):
+
+    CDF_AI_PROVIDER=anthropic            # LIVE; the SDK resolves ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN / a CLI profile
+    CDF_AI_MODEL=claude-opus-5-5         # default
+    CDF_AI_DATA_AUTHORIZATION=SYNTHETIC_ONLY   # institutional content leaves the process only with INSTITUTIONAL_AUTHORIZED:<ref>
+
+    python main.py agent-review WB.xlsx --docx CASE.docx [--draft] [--decisions D.json --trust-store KEYS.json] [--execution-json OUT]
+    python main.py apply-dispositions WB.xlsx DECISIONS.json OUT_DIR --docx CASE.docx --trust-store KEYS.json
+    python main.py evaluate-holdout --json build/holdout.json
+
+Without a configured provider every command runs the challenge roles as DETERMINISTIC rules and says so in its
+output (`modes`, `independence`); the live tests in `tests/test_agents_live.py` are skipped, not passed.
+**No live model inference has been executed or verified in this repository's CI or in the authoring session.**
+
 ## Build and evidence tools
 
     python tools/build_deliverables.py         # stages: demo migration verify render gates tests registers references results protocol decisions
@@ -64,6 +92,6 @@ the design guide); they report what is missing rather than fail silently.
 ## Layout
 
 `cdf_gco_crms/` engine (config, model, ingestion, rounds, reconciliation, analytics, excel, word, guidance, branding,
-migration, qa, regression, references incl. the synthetic fixture, assurance, release) · `tests/` regression suite
-(TEST 01–34) · `tools/` build, docs, packaging, lineage, patch status · `AI_AGENT_FORENSIC_AUDIT/` read-only audit
+migration, qa, regression, references incl. the synthetic fixture, assurance, release, agents) · `tests/` regression suite
+(TEST 01–39) · `qa_public/` PR #2 unittest entry point · `tools/` build, docs, packaging, lineage, patch status · `AI_AGENT_FORENSIC_AUDIT/` read-only audit
 harness and reports · `EVIDENCE/` baseline manifest (hashes only, not tracked in the public repository).

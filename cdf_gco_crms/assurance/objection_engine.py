@@ -99,11 +99,17 @@ class HumanDecision:
     verification_status: str = "NOT_VERIFIED"
     signing_key_id: str = ""
     signature_b64: str = ""
+    review_state_fingerprint: str = ""     # binds the decision to the exact reviewed content (release gate, 13.3)
+    valid_until: str = ""                  # ISO expiry; default validity window applies when empty (trust.py)
 
     def signature_payload(self) -> bytes:
         body = {"decision_id": self.decision_id, "observation_id": self.observation_id, "decision": self.decision,
                 "reviewer": self.reviewer, "role": self.role, "reference": self.reference,
                 "timestamp": self.timestamp, "evidence_ref": self.evidence_ref}
+        if self.review_state_fingerprint:          # signed when present, so a bound decision cannot be re-targeted
+            body["review_state_fingerprint"] = self.review_state_fingerprint
+        if self.valid_until:
+            body["valid_until"] = self.valid_until
         return json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
 
     def validate(self, trust_store: dict | None = None) -> bool:

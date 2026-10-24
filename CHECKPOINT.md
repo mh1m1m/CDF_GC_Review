@@ -18,6 +18,18 @@ Last update 2026-10-23T17:07:45+00:00 (UTC).
 - The production RC ZIP in dist/ (sha256 7cef5fd0…) predates this branch and is not rebuilt here; rebuild with `python tools/build_rc.py` when the next RC is cut.
 - Open from the forensic backlog: live AI provider adapter and isolated agents (needs a provider decision), applying adjudicated revisions to the register, Article 20 reviewer (AI_AGENT_FORENSIC_AUDIT/reports/REMEDIATION-STATUS.md).
 
+## Branch feature/v712-live-multi-agent-runtime (ChatGPT-directed execution, Article 19 checkpoint)
+
+- Base: development/v7.12-production-engineering @ 492915a; PR #2 (fix/v712-fail-closed-cli @ e298083) merged with history (6739ee2).
+- Live multi-agent runtime: cdf_gco_crms/agents (providers, runner, roles, debate, orchestrator, evaluator, security, tracing);
+  release lifecycle: release/trust.py, release/dispositions.py; gate extended (final review, provider failure, decision re-validation).
+- CLI: review/challenge/adjudicate run through the orchestrator; agent-review, apply-dispositions, evaluate-holdout added;
+  INTERNAL_DRAFT__ naming unified with PR #2; --internal-draft ≡ --working-copy; --trust-store on issuing commands.
+- Tests: TEST 35–39 added; live tests skip without a provider. No live inference executed in this environment.
+- Resume: `git fetch origin feature/v712-live-multi-agent-runtime`; `python -m pytest tests qa_public -q`; to run live layers set
+  CDF_AI_PROVIDER=anthropic and a credential (operator-held), then `python -m pytest tests/test_agents_live.py -q` and
+  `python main.py evaluate-holdout --json build/holdout-live.json`.
+
 ## Patches not PASS (why)
 
 - V712-020 NOT_VERIFIED: no Microsoft Excel in this environment
