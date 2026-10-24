@@ -1,11 +1,11 @@
 {
  "schema": "CDF-v7.12-PATCH-STATUS-1",
- "generated": "2026-10-23T17:05:21+00:00",
+ "generated": "2026-10-24T02:17:24+00:00",
  "engineering_status": "ENGINEERING_COMPLETE",
  "release_classification": "PRODUCTION-GRADE ENGINEERING COMPLETE — OPERATIONAL APPROVAL PENDING",
  "classification": {
   "deterministic_engineering": "COMPLETE — rule-based engine, gates and regression suite; evidence on disk",
-  "multi_agent_ai": "NOT_VERIFIED — no live, isolated Black Team / Red Advocate / Adjudicator agents in the product; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED; forensic audit verdict DETERMINISTIC_AGENT_SIMULATION_ONLY)",
+  "multi_agent_ai": "LIVE_AGENTS_NOT_INTEGRATED_VERIFIED — the live multi-agent runtime (agents/: provider adapter, isolated runner, six roles, orchestrator, gate binding) is implemented and tested with scripted and deterministic modes; no live model inference has been executed or verified in this environment (no provider credential)",
   "institutional_approval": "PENDING — authentic documented authority, Article 00.8 reference-case replay and the mandatory gates outside this engine are not supplied; never granted by a tool"
  },
  "operational_approval": "NOT_GRANTED — requires authentic documented authority, Article 00.8 PASS and every mandatory gate PASS outside this engine",
@@ -491,7 +491,7 @@
   {
    "id": "V712-039",
    "status": "NOT_VERIFIED",
-   "evidence": "challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic rules in one process, no live Black Team agent (forensic audit: DETERMINISTIC_AGENT_SIMULATION_ONLY); tests/test_challenge.py: 26 passed, 0 failed",
+   "evidence": "challenge.run_challenge + agents.roles.run_black_team: grounded objections with evidence ids, no-objection result allowed; LIVE role over the provider adapter exists (agents/) but no live inference has been verified in this environment; tests/test_agents.py: 14 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Grounded Black Team",
    "stream": "04 Adversarial",
@@ -503,7 +503,7 @@
   {
    "id": "V712-040",
    "status": "NOT_VERIFIED",
-   "evidence": "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence; deterministic rules, no live Red Advocate agent; adjudicated revisions not yet applied to the register (forensic audit R-04)",
+   "evidence": "evidence-bound advocate (LIVE role with deterministic guards: unsupported defence → concede, no verified basis → withheld); adjudicated revisions applied to the register only through release.dispositions.apply_dispositions with a verified human decision (ledger, rollback); tests/test_release_lifecycle.py: 13 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Evidence-bound Red Advocate",
    "stream": "04 Adversarial",
@@ -527,7 +527,7 @@
   {
    "id": "V712-042",
    "status": "NOT_VERIFIED",
-   "evidence": "independence recorded as SINGLE_PROCESS_RULE_BASED (19A.2, 23.1)",
+   "evidence": "isolated per-invocation contexts (agents.runner: unique Execution_ID / Context_ID, fresh conversation per role); independence is classified from PROVIDER_API execution receipts (provenance derived from the adapter object, provider request ids, hash-chained trace), recorded as ISOLATED_LIVE_CONTEXTS only when verified, else LIVE_CLAIMED_NOT_VERIFIED / SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1); tests/test_live_provenance.py: 14 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Isolated independent adjudicator",
    "stream": "04 Adversarial",
@@ -551,7 +551,7 @@
   {
    "id": "V712-044",
    "status": "PASS",
-   "evidence": "pre-issue pipeline: challenge → human decisions → titles → Word/Excel; the release gate (cdf_gco_crms/release/authorization_gate) refuses build-excel/build-word/rebuild/finalize-titles while no CLEAR record exists for exactly this content; round1/append write marked working copies; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_e2e.py: 8 passed, 0 failed",
+   "evidence": "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); ten + fifteen negative tests; tests/test_release_gate.py: 11 passed, 0 failed; tests/test_release_lifecycle.py: 13 passed, 0 failed; tests/test_release_attestation.py: 16 passed, 0 failed; tests/test_e2e_agents.py: 1 passed, 0 failed",
    "note": "",
    "title": "Integrate challenge into pre-issue pipeline",
    "stream": "04 Adversarial",
@@ -575,7 +575,7 @@
   {
    "id": "V712-046",
    "status": "NOT_VERIFIED",
-   "evidence": "held-out fixture set evaluated by the deterministic engine (evaluate_held_out)",
+   "evidence": "sealed public holdout (tests/fixtures/holdout, 24 cases, 8 families) scored per mode by agents.evaluator; DETERMINISTIC baseline reported, never a pass; the LIVE blind score needs a configured provider; tests/test_blind_evaluation.py: 3 passed, 0 failed",
    "note": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)",
    "title": "Live AI versus deterministic fixture report",
    "stream": "04 Adversarial",

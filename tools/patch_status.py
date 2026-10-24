@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 BUILD = ROOT / "build"
 OUT = ROOT / "deliverables"
 KIT = ROOT / "sources" / "v7.12" / "kit" / "CDF-GCO-CRMS-v7.12-COMPLETE-PATCH-BACKLOG.json"
+LIVE_RAN = False   # set by build_rows from tests/test_agents_live.py results
 EXT = {"MS Excel 365": "no Microsoft Excel in this environment", "Word desktop": "no Microsoft Word in this environment",
        "live agents": "no independent live model agents were run; the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED)"}
 
@@ -111,6 +112,16 @@ def build_rows() -> list[dict]:
     e2e_t = tests_ok(T, "test_e2e")
     gate_t = tests_ok(T, "test_release_gate")
     syn_t = tests_ok(T, "test_reference_synthetic")
+    ag_t = tests_ok(T, "test_agents")
+    lc_t = tests_ok(T, "test_release_lifecycle")
+    bl_t = tests_ok(T, "test_blind_evaluation")
+    e2a_t = tests_ok(T, "test_e2e_agents")
+    at_t = tests_ok(T, "test_release_attestation")
+    pv_t = tests_ok(T, "test_live_provenance")
+    live_t = T.get("test_agents_live") or {}
+    live_ran = bool(live_t.get("pass")) and live_t.get("fail", 0) == 0
+    global LIVE_RAN
+    LIVE_RAN = live_ran
     xw_ok = ps.get("crosswalk_rows_not_pass") == 0 and ps.get("unexplained_removed") == [] and ps.get("structure_problems") == []
 
     def R(pid, status, evidence, note=""):
@@ -207,19 +218,31 @@ def build_rows() -> list[dict]:
     # ------------------------------------------------------------------ 04 Adversarial
     rows.append(R("V712-037", S(ch_t[0]), f"assurance/evidence.EvidenceRegistry: SHA, page/paragraph, excerpt, version, approval class; fake id → KeyError; {ch_t[1]}"))
     rows.append(R("V712-038", S(ch_t[0] and rf_t[0]), f"personas.RecipientPersona: PROPOSED_NOT_APPROVED mandates never approval authority; {rf_t[1]}"))
-    rows.append(R("V712-039", S(ch_t[0], nv=True), f"challenge.run_challenge: grounded objections with evidence ids, no-objection result allowed; deterministic rules "
-                  f"in one process, no live Black Team agent (forensic audit: DETERMINISTIC_AGENT_SIMULATION_ONLY); {ch_t[1]}", EXT["live agents"]))
-    rows.append(R("V712-040", S(ch_t[0], nv=True), "evidence-bound advocate accepts valid objections and rejects invalid ones with cited evidence; deterministic rules, "
-                  "no live Red Advocate agent; adjudicated revisions not yet applied to the register (forensic audit R-04)", EXT["live agents"]))
+    rows.append(R("V712-039", S(ch_t[0] and ag_t[0], nv=not live_ran), f"challenge.run_challenge + agents.roles.run_black_team: grounded objections with evidence "
+                  f"ids, no-objection result allowed; LIVE role over the provider adapter exists (agents/) but no live inference has been verified "
+                  f"in this environment; {ag_t[1]}", "" if live_ran else EXT["live agents"]))
+    rows.append(R("V712-040", S(ch_t[0] and ag_t[0] and lc_t[0], nv=not live_ran), "evidence-bound advocate (LIVE role with deterministic guards: unsupported "
+                  "defence → concede, no verified basis → withheld); adjudicated revisions applied to the register only through "
+                  f"release.dispositions.apply_dispositions with a verified human decision (ledger, rollback); {lc_t[1]}",
+                  "" if live_ran else EXT["live agents"]))
     rows.append(R("V712-041", S(ch_t[0] and as_t[0]), f"six productive cycles per objection, paraphrase duplicate prevention, append-only hash chain; {as_t[1]}"))
-    rows.append(R("V712-042", "NOT_VERIFIED", "independence recorded as SINGLE_PROCESS_RULE_BASED (19A.2, 23.1)", EXT["live agents"]))
+    rows.append(R("V712-042", "PASS" if (live_ran and pv_t[0]) else "NOT_VERIFIED", "isolated per-invocation contexts (agents.runner: unique Execution_ID / "
+                  "Context_ID, fresh conversation per role); independence is classified from PROVIDER_API execution receipts (provenance derived from the "
+                  "adapter object, provider request ids, hash-chained trace), recorded as ISOLATED_LIVE_CONTEXTS only when verified, else "
+                  f"LIVE_CLAIMED_NOT_VERIFIED / SINGLE_PROCESS_RULE_BASED / MOCK_SCRIPTED_CONTEXTS (19A.2, 23.1); {pv_t[1]}",
+                  "" if live_ran else EXT["live agents"]))
     rows.append(R("V712-043", S(ttl_t[0] and as_t[0]), "TitleEvidence / HumanDecision: reviewer, timestamp, decision reference, verification status; "
                   "a boolean is refused (finalize-titles, check_decision_record)"))
-    rows.append(R("V712-044", S(gate_t[0] and has("cdf_gco_crms/release/authorization_gate.py") and e2e_t[0]), "pre-issue pipeline: challenge → human decisions → titles → "
-                  f"Word/Excel; the release gate (cdf_gco_crms/release/authorization_gate) refuses build-excel/build-word/rebuild/finalize-titles while no CLEAR "
-                  f"record exists for exactly this content; round1/append write marked working copies; {gate_t[1]}; {e2e_t[1]}"))
+    rows.append(R("V712-044", S(gate_t[0] and lc_t[0] and e2a_t[0] and at_t[0] and has("cdf_gco_crms/release/attestation.py") and e2e_t[0]),
+                  "pre-issue pipeline (agents.orchestrator): challenge → human decisions → editorial candidates → independent final review → gate record; "
+                  "build-excel/build-word/rebuild/finalize-titles refuse without a CLEAR, unaltered, final-reviewed record for exactly this content, "
+                  f"re-validating reviewer decisions (expiry, revocation, role, state binding) at issue time; an institutional issue further needs a LIVE "
+                  f"final-review receipt, the source-document hash, receipt-verified independence and a signed release attestation (PR #3 review); "
+                  f"ten + fifteen negative tests; {gate_t[1]}; {lc_t[1]}; {at_t[1]}; {e2a_t[1]}"))
     rows.append(R("V712-045", S(ch_t[0]), "confidentiality_scan over requester workbook and Word: no evidence ids, reviewer names or register terms"))
-    rows.append(R("V712-046", "NOT_VERIFIED", "held-out fixture set evaluated by the deterministic engine (evaluate_held_out)", EXT["live agents"]))
+    rows.append(R("V712-046", "PASS" if live_ran else "NOT_VERIFIED", f"sealed public holdout (tests/fixtures/holdout, 24 cases, 8 families) scored per mode by "
+                  f"agents.evaluator; DETERMINISTIC baseline reported, never a pass; the LIVE blind score needs a configured provider; {bl_t[1]}",
+                  "" if live_ran else EXT["live agents"]))
     # ------------------------------------------------------------------ 05 Protocol
     rows.append(R("V712-047", S(xw_ok and pr_t[0]), f"full consolidated text {ps.get('lines_v712')} lines (v7.11: {ps.get('lines_v711')}), {ps.get('declared_edits')} declared edits; crosswalk {ps.get('crosswalk_entries')} entries, "
                   f"rows not PASS {ps.get('crosswalk_rows_not_pass')}, unexplained removed {len(ps.get('unexplained_removed', []) or [])}, "
@@ -311,9 +334,11 @@ def write(rows: list[dict], out_dir: Path):
            "classification": {
                "deterministic_engineering": ("COMPLETE" if counts.get("FAIL", 0) == 0 else "INCOMPLETE")
                                             + " — rule-based engine, gates and regression suite; evidence on disk",
-               "multi_agent_ai": "NOT_VERIFIED — no live, isolated Black Team / Red Advocate / Adjudicator agents in the product; "
-                                 "the challenge engine is deterministic (SINGLE_PROCESS_RULE_BASED; forensic audit verdict "
-                                 "DETERMINISTIC_AGENT_SIMULATION_ONLY)",
+               "multi_agent_ai": ("INTEGRATED_LIVE_MULTI_AGENT_VERIFIED — live roles ran in isolated contexts and the holdout threshold was met"
+                                  if LIVE_RAN else
+                                  "LIVE_AGENTS_NOT_INTEGRATED_VERIFIED — the live multi-agent runtime (agents/: provider adapter, isolated runner, "
+                                  "six roles, orchestrator, gate binding) is implemented and tested with scripted and deterministic modes; "
+                                  "no live model inference has been executed or verified in this environment (no provider credential)"),
                "institutional_approval": "PENDING — authentic documented authority, Article 00.8 reference-case replay and the "
                                          "mandatory gates outside this engine are not supplied; never granted by a tool",
            },

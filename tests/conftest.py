@@ -67,3 +67,7 @@ def reference_index():
 @pytest.fixture(scope="session")
 def institutional_sources_present() -> bool:
     return real_sources_available() and os.environ.get("CDF_TEST_SYNTHETIC_REFERENCE") != "1"
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "live: needs a configured LIVE model provider and a credential; skipped otherwise")

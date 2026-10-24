@@ -7,3 +7,4 @@ cryptography>=42
 pypdf>=4.0
 pymupdf>=1.24    # optional: reading colours from the design-guide PDF
 # optional system tool: LibreOffice (soffice) for independent recalculation and rendering
+anthropic>=2.3      # LIVE provider adapter (cdf_gco_crms/agents/providers); unused unless CDF_AI_PROVIDER=anthropic

@@ -34,6 +34,7 @@ from test_word_lifecycle import build_reviewed_doc  # noqa: E402
 
 DEPT = "الحوكمة والامتثال"
 N = 6
+FINAL_READY = {"recommendation": "READY", "mode": "DETERMINISTIC", "status": "OK", "execution_id": None}
 
 
 def _state(code="GTE", *, demo=False):
@@ -78,7 +79,7 @@ def test_clear_review_authorizes_only_the_same_content(tmp_path):
     assert rec.blockers() == []
     rec_path = tmp_path / "challenge.json"; rec_path.write_text(rec.to_json(), encoding="utf-8")
     gate = tmp_path / "gate"
-    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate)
+    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate, final_review=FINAL_READY)
     assert G.authorize(st, gate).ok
     other = _state(demo=True)
     other.observations[1].comment = GText.plain("ملاحظة أخرى لم تُراجع.")
@@ -94,7 +95,7 @@ def test_blocked_review_never_authorizes(tmp_path):
     assert rec.blockers() and all(b["internal_id"] == victim for b in rec.blockers())
     rec_path = tmp_path / "challenge.json"; rec_path.write_text(rec.to_json(), encoding="utf-8")
     gate = tmp_path / "gate"
-    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate)
+    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate, final_review=FINAL_READY)
     auth = G.authorize(st, gate)
     assert not auth.ok and any(r.startswith(G.R_BLOCKERS) for r in auth.reasons)
 
@@ -105,7 +106,7 @@ def test_tampered_gate_or_challenge_record_is_refused(tmp_path):
     rec = _review(st, docx)
     rec_path = tmp_path / "challenge.json"; rec_path.write_text(rec.to_json(), encoding="utf-8")
     gate = tmp_path / "gate"
-    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate)
+    G.record_review(st, rec, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate, final_review=FINAL_READY)
     # (a) the challenge record on disk is altered after the gate record was written
     rec_path.write_text(rec.to_json().replace('"chains_verified": true', '"chains_verified": true ', 1), encoding="utf-8")
     auth = G.authorize(st, gate)
@@ -115,7 +116,7 @@ def test_tampered_gate_or_challenge_record_is_refused(tmp_path):
     docx2 = build_reviewed_doc(st, tmp_path / "short.docx", omit=(victim,))
     rec2 = _review(st, docx2)
     rec_path.write_text(rec2.to_json(), encoding="utf-8")
-    G.record_review(st, rec2, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate)
+    G.record_review(st, rec2, rec_path, reference_mode="INSTITUTIONAL_SOURCES", gate_dir=gate, final_review=FINAL_READY)
     p = G.gate_record_path(G.state_fingerprint(st), gate)
     d = json.loads(p.read_text(encoding="utf-8")); d["status"] = "CLEAR"; d["blockers"] = []
     d["challenge_record_sha256"] = G.sha256_file(rec_path)
@@ -130,14 +131,14 @@ def test_synthetic_reference_review_never_authorizes_an_institutional_issue(tmp_
     rec = _review(st, docx)
     rec_path = tmp_path / "challenge.json"; rec_path.write_text(rec.to_json(), encoding="utf-8")
     gate = tmp_path / "gate"
-    G.record_review(st, rec, rec_path, reference_mode="SYNTHETIC", gate_dir=gate)
+    G.record_review(st, rec, rec_path, reference_mode="SYNTHETIC", gate_dir=gate, final_review=FINAL_READY)
     auth = G.authorize(st, gate)
-    assert not auth.ok and auth.reasons == [G.R_SYNTHETIC]
+    assert not auth.ok and G.R_SYNTHETIC in auth.reasons      # plus the institutional-issue requirements (live receipt, source hash, attestation)
     demo = _state(demo=True)
     docx_d = build_reviewed_doc(demo, tmp_path / "demo.docx")
     rec_d = _review(demo, docx_d)
     rec_path_d = tmp_path / "challenge_demo.json"; rec_path_d.write_text(rec_d.to_json(), encoding="utf-8")
-    G.record_review(demo, rec_d, rec_path_d, reference_mode="SYNTHETIC", gate_dir=gate)
+    G.record_review(demo, rec_d, rec_path_d, reference_mode="SYNTHETIC", gate_dir=gate, final_review=FINAL_READY)
     assert G.authorize(demo, gate).ok, "a demo document may be built from a synthetic-reference review"
 
 
@@ -145,7 +146,7 @@ def test_synthetic_reference_review_never_authorizes_an_institutional_issue(tmp_
 def test_working_copy_marking_xlsx_and_docx(tmp_path):
     st = _state()
     wc = build_workbook(st, G.working_copy_name(tmp_path / "wb.xlsx"), working_copy=True).path
-    assert wc.name.endswith(" - WORKING-COPY.xlsx") and G.xlsx_is_working_copy(wc)
+    assert G.is_working_copy_name(wc) and wc.name.startswith(G.WORKING_COPY_PREFIX) and G.xlsx_is_working_copy(wc)
     assert parse_workbook(wc).state.document.name == st.document.name     # the Title property is untouched (09.4)
     issued = build_workbook(st, tmp_path / "issued.xlsx").path
     assert not G.xlsx_is_working_copy(issued)
@@ -202,6 +203,8 @@ def test_cli_issue_refused_without_review_and_marked_with_working_copy_flag(tmp_
     assert [p.name for p in issue_dir.glob("*.xlsx")] == [out.name]
     rc, rep = _run(["build-excel", wb, str(issue_dir), "--gate-dir", gate, "--working-copy", "--issue"], capsys)
     assert rc == CLI.RC_REFUSED, "--issue (freeze titles as ISSUED) is an issue act; never on a working copy"
+    rc, rep = _run(["build-excel", wb, str(issue_dir), "--gate-dir", gate, "--internal-draft"], capsys)
+    assert rc == 0 and rep["working_copy"] is True, "--internal-draft (PR #2) is an alias of --working-copy"
     docx = tmp_path / "issue" / "r1.docx"
     rc, rep = _run(["build-word", wb, str(docx), "--gate-dir", gate], capsys)
     assert rc == CLI.RC_REFUSED and not docx.exists()
@@ -260,7 +263,7 @@ def test_cli_synthetic_reference_review_never_issues_an_institutional_document(t
     rc, rep = _run(["review", wb, "--docx", str(full), "--gate-dir", gate, "--synthetic-reference"], capsys)
     assert rc == 0 and rep["status"] == "CLEAR"
     rc, rep = _run(["build-excel", wb, str(tmp_path / "issue"), "--gate-dir", gate], capsys)
-    assert rc == CLI.RC_REFUSED and rep["gate"]["reasons"] == [G.R_SYNTHETIC]
+    assert rc == CLI.RC_REFUSED and G.R_SYNTHETIC in rep["gate"]["reasons"]
 
 
 def test_cli_review_without_sources_and_without_flag_refuses(tmp_path, capsys):

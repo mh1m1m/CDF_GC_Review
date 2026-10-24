@@ -9,3 +9,4 @@ cryptography==50.0.1  # Ed25519 verification of reviewer decision records (19A.9
 pypdf==6.17.0         # page count and fallback text of the institutional reference PDFs
 pymupdf==2.0          # optional: reading colours from the design-guide PDF
 pdfplumber==0.11.10   # optional: text of the institutional reference PDFs
+anthropic==2.3.0  # LIVE provider adapter; credentials come from the environment only, never from the repository
