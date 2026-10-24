@@ -152,3 +152,7 @@ def list_profile_versions(case_id: str, authorization: str | None = Header(defau
 @app.post("/api/cases/{case_id}/profiles/{version}/activate")
 def activate_profile_version(case_id: str, version: str, authorization: str | None = Header(default=None)):
     return call(service.activate_profile, case_id, version, identity(authorization))
+
+@app.get("/api/cases/{case_id}/profiles/{version}")
+def read_synthetic_profile(case_id: str, version: str, authorization: str | None = Header(default=None)):
+    return call(service.profile_document, case_id, version, identity(authorization))
