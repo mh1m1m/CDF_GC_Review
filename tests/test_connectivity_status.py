@@ -17,6 +17,7 @@ def test_unconfigured_accounts_are_blocked_even_if_an_api_key_is_present(monkeyp
 
 def test_destination_policy_is_explicit_and_does_not_allow_host_suffix_confusion():
     policy = {
+        "version": 1,
         "http_network_policy": {
             "type": "restricted",
             "egress_rules": [{"host": "approved.example.test"}],
@@ -25,3 +26,4 @@ def test_destination_policy_is_explicit_and_does_not_allow_host_suffix_confusion
     assert permitted("https://approved.example.test/mcp", policy)
     assert not permitted("https://approved.example.test.attacker.test/mcp", policy)
     assert not permitted("https://approved.example.test/mcp", {})
+    assert not permitted("https://approved.example.test/mcp", {**policy, "version": 99})

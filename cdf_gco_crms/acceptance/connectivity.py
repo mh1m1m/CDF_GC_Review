@@ -16,7 +16,11 @@ from ..execution.receipt_audit import verify
 
 
 def permitted(url, policy):
+    if policy.get("version") != 1:
+        return False
     http = policy.get("http_network_policy", {})
+    if http.get("type") not in ("restricted", "unrestricted"):
+        return False
     return http.get("type") == "unrestricted" or urlsplit(url).hostname in {
         r.get("host") for r in http.get("egress_rules", [])
     }
