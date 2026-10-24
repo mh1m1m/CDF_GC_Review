@@ -1,6 +1,10 @@
 export type Metric = {
   id: string;
   title: string;
+  definition: string;
+  source_records: string[];
+  evidence_status: string;
+  synthetic: boolean;
   numerator: number | null;
   denominator: number | null;
   value: number | null;

@@ -18,7 +18,15 @@
       "safe_area": "NOT_VERIFIED",
       "minimum_size": "NOT_VERIFIED",
       "source_url": "https://drive.google.com/file/d/1gnS-JrU1qvTGP3GETZxixURP3zZCGHjk/view",
-      "last_verified_date": "2026-10-24"
+      "last_verified_date": "2026-10-24",
+      "public_filename": "cdf-wordmark-on-dark.jpg",
+      "source_document": "https://drive.google.com/file/d/1gnS-JrU1qvTGP3GETZxixURP3zZCGHjk/view",
+      "original_asset_version": "NOT_VERIFIED",
+      "intended_use": "PUBLIC_DEMONSTRATION_USER_AUTHORIZED",
+      "color_restrictions": "ORIGINAL_UNMODIFIED",
+      "background_restrictions": "DARK_BACKGROUND",
+      "approval_status": "NOT_VERIFIED",
+      "storage_location": "apps/web/public/cdf-wordmark-on-dark.jpg"
     },
     {
       "variant_id": "HORIZONTAL_LIGHT_BACKGROUND",
@@ -38,7 +46,15 @@
       "safe_area": "NOT_VERIFIED",
       "minimum_size": "NOT_VERIFIED",
       "source_url": "https://drive.google.com/file/d/1EiE2A_4WlnXSXIwhQPBaJrfPnyc9WnNE/view",
-      "last_verified_date": "2026-10-24"
+      "last_verified_date": "2026-10-24",
+      "public_filename": "cdf-wordmark-on-light.jpg",
+      "source_document": "https://drive.google.com/file/d/1EiE2A_4WlnXSXIwhQPBaJrfPnyc9WnNE/view",
+      "original_asset_version": "NOT_VERIFIED",
+      "intended_use": "PUBLIC_DEMONSTRATION_USER_AUTHORIZED",
+      "color_restrictions": "ORIGINAL_UNMODIFIED",
+      "background_restrictions": "LIGHT_BACKGROUND",
+      "approval_status": "NOT_VERIFIED",
+      "storage_location": "apps/web/public/cdf-wordmark-on-light.jpg"
     }
   ],
   "creative_treatment": "SURROUNDING_GLASS_ONLY_NOT_LOGO_GEOMETRY"

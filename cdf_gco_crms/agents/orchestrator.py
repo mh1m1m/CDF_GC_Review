@@ -103,8 +103,9 @@ class ReviewExecution:
 
 class ReviewOrchestrator:
     def __init__(self, index, *, runner: AgentRunner | None = None, gate_dir=DEFAULT_GATE_DIR, max_cycles: int = MAX_CYCLES,
-                 mat_profile: LoadedProfile | None = None):
+                 mat_profile: LoadedProfile | None = None, reference_enricher=None):
         self.index = index
+        self.reference_enricher = reference_enricher  # trusted in-process occurrence adapter; never a provider claim
         self.runner = runner
         self.gate_dir = Path(gate_dir)
         self.max_cycles = max_cycles
@@ -128,6 +129,8 @@ class ReviewOrchestrator:
         registry = EvidenceRegistry()
         registry.add_document_text(document)
         registry.add_reference_index(self.index)
+        if self.reference_enricher is not None:
+            self.reference_enricher(state, registry)
         dept = department or state.document.owning_department or ""
         persona = RecipientPersona.from_index(self.index, dept, registry)
         ex = ReviewExecution(run_id, state_fingerprint(state), registry.document["sha256"], state, None, registry, persona,

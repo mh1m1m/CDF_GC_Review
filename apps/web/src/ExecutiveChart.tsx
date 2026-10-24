@@ -1,22 +1,25 @@
 import { useEffect, useRef } from "react";
 import { init, use } from "echarts/core";
-import { GaugeChart, HeatmapChart, BarChart } from "echarts/charts";
+import { GaugeChart, HeatmapChart, BarChart, RadarChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
   VisualMapComponent,
   AriaComponent,
+  RadarComponent,
 } from "echarts/components";
 import { SVGRenderer } from "echarts/renderers";
 import type { EChartsCoreOption } from "echarts/core";
 use([
   GaugeChart,
+  RadarChart,
   HeatmapChart,
   BarChart,
   GridComponent,
   TooltipComponent,
   VisualMapComponent,
   AriaComponent,
+  RadarComponent,
   SVGRenderer,
 ]);
 export default function ExecutiveChart({

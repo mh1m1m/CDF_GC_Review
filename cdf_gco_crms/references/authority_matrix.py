@@ -494,3 +494,18 @@ def _parse_page(page, pno: int, idx: MatrixIndex) -> MatrixPage | None:
                 idx.items[i] = Item(it.number, it.category, it.title, it.page, it.roles, it.qualifiers, it.unresolved,
                                     it.group, it.category_number, it.confidence, tuple(notes))
     return mp
+
+
+def verify_matrix_occurrence(path: str | Path, *, number: str, page: int, title: str) -> Item | None:
+    """Verify an exact numbered row on one original page using table geometry.
+
+    This tolerates PDF reading-order differences without fuzzy authority claims.
+    Approval/applicability are never established by a row match.
+    """
+    import pdfplumber
+    with pdfplumber.open(str(path)) as document:
+        if not 1<=page<=len(document.pages):return None
+        index=MatrixIndex(source=Path(path).name,pages_total=len(document.pages))
+        _parse_page(document.pages[page-1],page,index)
+        return next((item for item in index.items if item.number==number and item.page==page
+                     and match_key(item.title)==match_key(title)),None)

@@ -9,7 +9,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { Dashboard } from "./intelligence";
-import { roleNames, sourceNames } from "./intelligence";
+import { AgentDebateNode } from "./components/GovernanceCards";
 export default function IntelligenceGraph({
   data,
   kind,
@@ -40,24 +40,7 @@ export default function IntelligenceGraph({
           sourcePosition: Position.Left,
           targetPosition: Position.Right,
           data: {
-            label: (
-              <div className="agent-node">
-                <span className="node-eyebrow">{stage}</span>
-                <strong>{roleNames[stage] || stage}</strong>
-                <span>
-                  {inv.length ? `${inv.length} سجل تنفيذ` : "لم يُشغّل"}
-                </span>
-                <small>
-                  {inv.length
-                    ? [
-                        ...new Set(
-                          inv.map((i) => sourceNames[i.source] || i.source),
-                        ),
-                      ].join(" · ")
-                    : "NOT_RUN"}
-                </small>
-              </div>
-            ),
+            label: <AgentDebateNode stage={stage} invocations={inv} />,
           },
           className: inv.some((i) => i.status !== "OK")
             ? "node-failed"

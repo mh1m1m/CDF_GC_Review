@@ -9,6 +9,7 @@ from collections import Counter
 from datetime import datetime, timezone
 import hashlib
 import json
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 from opentelemetry import trace
@@ -21,6 +22,7 @@ from ..calibration.service import CalibrationService
 from ..calibration.store import CalibrationError, AccessDenied, canonical, fingerprint
 from ..release.authorization_gate import authorize, PURPOSE_INSTITUTIONAL
 
+RENDER_SPEC=json.loads((Path(__file__).resolve().parents[2]/'shared/rendering-specification.json').read_text())
 TRACER = trace.get_tracer('cdf.intelligence')
 STAGES = ['DRAFTING', 'MAT-01', 'BLACK_TEAM', 'MAT-02', 'RED_ADVOCATE', 'MAT-03', 'ADJUDICATOR', 'FINAL_REVIEWER']
 
@@ -120,13 +122,15 @@ class IntelligenceService:
             span.set_attribute('cdf.observation_count', len(observations))
             return self._project(case_id, observations, events, snap, user)
 
-    def _project(self, case_id, observations, events, snap, user):
+    def _project(self, case_id, observations, events, snap, user, *, synthetic=True):
         latest = {}
+        latest_event_ids = {}
         for event in events:
             if event['event_type'] == 'OBSERVATION_CALIBRATION':
                 payload = json.loads(event['payload_json'])
                 if payload.get('status') == 'SUBMITTED':
                     latest[event['observation_id']] = payload
+                    latest_event_ids[event['observation_id']] = event['event_hash']
         raw = snap.execution if snap else {}
         registry = snap.registry if snap else {'items': [], 'basis': {}}
         evidence = {item['id']: item for item in registry.get('items', [])}
@@ -192,12 +196,28 @@ class IntelligenceService:
             measure('authorization_readiness', 'جاهزية التصريح المسجلة',
                     0 if snap and not snap.release_check_at_run['authorized'] else None, 1 if snap else None,
                     ['release.authorize.INSTITUTIONAL_ISSUE'], 'فشل شرط إلزامي يحجب الإصدار؛ النجاح المسجل لا يغني عن إعادة التحقق عند الإصدار.'),
+            measure('material_open', 'الملاحظات المادية المفتوحة', len(unresolved_material),
+                    sum(bool(o.get('material_categories')) for o in observations), ['observations.material_categories', 'events.OBSERVATION_CALIBRATION'],
+                    'حصة الملاحظات المادية التي تنتظر تسوية بشرية؛ ليست درجة خطر أو احتمال خسارة.'),
             measure('human_alignment', 'التوافق مع المراجع', None, None, [], 'غير مقاس: لا توجد تسميات بشرية مستقلة متحققة مرتبطة بتنبؤات النموذج.'),
             measure('calibration', 'تغطية المعايرة', len(latest), len(observations), ['events.OBSERVATION_CALIBRATION'],
                     'قرارات مقدمة مميزة لكل ملاحظة؛ هويات التجربة ليست توقيعات مؤسسية.'),
         ]
+        metric_records={
+            'evidence_coverage': sorted({ref for oid in supporting for ref in registry.get('basis',{}).get(oid,[])}),
+            'objections_resolved': [o['id'] for o in objections],
+            'repeat_objections': [o['id'] for o in objections],
+            'mat_reversal': [i['id'] for i in invocations if i['stage']=='MAT-03'],
+            'authorization_readiness': [snap.run_id] if snap else [],
+            'material_open': [o['observation_id'] for o in observations if o.get('material_categories')],
+            'human_alignment': [], 'calibration': list(latest_event_ids.values())}
         for metric in metrics:
-            metric.update(synthetic=True, calculated_at=datetime.now(timezone.utc).isoformat(),
+            metric.update(definition=RENDER_SPEC['metric_definitions'][metric['id']],
+                          source_records=metric_records[metric['id']],threshold_basis=None,
+                          unknown_handling='NULL_WHEN_MISSING_LABELS_OR_ZERO_DENOMINATOR',
+                          evidence_status='RECORDED_SOURCE_STATUS_PRESERVED',
+                          rendering_spec=RENDER_SPEC['schema'])
+            metric.update(synthetic=synthetic, calculated_at=datetime.now(timezone.utc).isoformat(),
                           evidence_hash=self.store._case(case_id)['evidence_hash'])
         heatmap = []
         for category in sorted({c for o in observations for c in o.get('material_categories', [])}):
@@ -205,7 +225,7 @@ class IntelligenceService:
             heatmap.append({'category': category, 'pending': sum(i not in latest for i in ids),
                             'submitted': sum(i in latest for i in ids), 'lineage': ids})
         live = sum(i['source'] == PV.SOURCE_PROVIDER_API and i['status'] == 'OK' for i in invocations)
-        return {'schema': 'CDF-COMMAND-CENTER-v1', 'case_id': case_id, 'synthetic': True,
+        return {'schema': 'CDF-COMMAND-CENTER-v1', 'case_id': case_id, 'synthetic': synthetic,
             'run_id': snap.run_id if snap else None, 'captured_at': snap.captured_at if snap else None,
             'evidence_hash': self.store._case(case_id)['evidence_hash'], 'metrics': metrics,
             'observation_count': len(observations), 'unresolved_material': unresolved_material,
@@ -219,4 +239,4 @@ class IntelligenceService:
                           'observation_id': e['observation_id']} for e in events],
             'release_gate': snap.release_check_at_run if snap else {'authorized': False, 'current_authority': False, 'reasons': ['NO_RECORDED_REVIEW']},
             'calibration_analytics': analyze(self.store, case_id, user),
-            'limitations': ['SYNTHETIC_LOCAL_DEV', 'LOCAL_HASH_CHAIN_NOT_EXTERNAL_ATTESTATION', 'SNAPSHOT_NOT_REALTIME', 'MAT_ADVISORY_ONLY', 'NOT_INSTITUTIONALLY_AUTHORIZED']}
+            'limitations': (['SYNTHETIC_LOCAL_DEV'] if synthetic else ['PRIVATE_INSTITUTIONAL_DRAFT']) + [ 'LOCAL_HASH_CHAIN_NOT_EXTERNAL_ATTESTATION', 'SNAPSHOT_NOT_REALTIME', 'MAT_ADVISORY_ONLY', 'NOT_INSTITUTIONALLY_AUTHORIZED']}

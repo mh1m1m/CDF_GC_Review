@@ -40,7 +40,7 @@ These executive summaries do not replace the existing native-comment DOCX engine
 
 ```sh
 python -m pip install -r requirements-visual.txt -r requirements-security.txt
-python tools/seed_visual_demo.py --db build/private/mat-calibration-dev.sqlite
+python tools/seed_visual_demo.py --db build/public-demo/mat-calibration-dev.sqlite
 # Generate a random CDF_CALIBRATION_DEV_TOKEN (at least 32 characters), never commit it.
 # Set CDF_CALIBRATION_MODE=SYNTHETIC_LOCAL_DEV and the matching CDF_CALIBRATION_DB.
 python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8765
@@ -53,3 +53,6 @@ Automated synthetic browser acceptance: `python tools/run_visual_acceptance.py`.
 
 ## Security and operational limits
 The public source guard, scoped Bandit boundary scan, npm advisory scan and PyPI audit are independent checks, not an exhaustive penetration test or DLP/history certification. Initial Pillow/pypdf advisories were resolved by tested lock updates. Gitleaks and independent model-evaluation suites are deferred with reasons in VISUAL_DEPENDENCIES.md. Provider execution, institutional identity/UAT, human-labelled methodology validation, source currency/approval and production deployment remain unverified or externally dependent. No new library grants institutional authority.
+
+## Dual-mode continuation
+The active institutional adapter and mode-isolation contract are documented in ../institutional/INSTITUTIONAL_REFERENCE_INTEGRATION.md. The public explorer now uses fictional references; a separate in-process private workspace projects actual institutional cases only after trusted authorization. Production private HTTP activation remains disabled. Shared components, metric source-record IDs, recorded timeline/tree navigation, native Word comments and Excel source maps/sparklines extend this baseline.

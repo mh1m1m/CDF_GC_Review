@@ -1,0 +1,156 @@
+{
+  "schema": "CDF-PUBLIC-REFERENCE-CANDIDATES-v1",
+  "classification": "SYNTHETIC_PUBLIC_FIXTURE",
+  "synthetic": true,
+  "mode": "PUBLIC_SYNTHETIC_DEMO",
+  "sources": [
+    {
+      "id": "SYN-DOA",
+      "url": "https://example.org/synthetic/doa",
+      "sha256": "84b1235588b86d6c31e9a02ed7964e8878d777f7c671ad1962e32766eb6ee4cd",
+      "version": "SYN-v1",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "effective_date": "NOT_APPLICABLE",
+      "supersession_checked": false,
+      "current_authority_confirmed": false,
+      "publication_status": "SYNTHETIC_PUBLIC_FIXTURE",
+      "extraction_status": "FICTIONAL_FIXTURE"
+    },
+    {
+      "id": "SYN-ORG",
+      "url": "https://example.org/synthetic/org",
+      "sha256": "cf80c4a7ca70c41e136387fcd199fb320202e4a357a9818256893042ce69ade7",
+      "version": "SYN-v1",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "effective_date": "NOT_APPLICABLE",
+      "supersession_checked": false,
+      "current_authority_confirmed": false,
+      "publication_status": "SYNTHETIC_PUBLIC_FIXTURE",
+      "extraction_status": "FICTIONAL_FIXTURE"
+    },
+    {
+      "id": "SYN-BRAND",
+      "url": "https://example.org/synthetic/brand",
+      "sha256": "e3d8006a4ff8bdbf85d201b2f3a7d7283d9e725d25e497f9451cc5eb38a25e2b",
+      "version": "SYN-v1",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "effective_date": "NOT_APPLICABLE",
+      "supersession_checked": false,
+      "current_authority_confirmed": false,
+      "publication_status": "SYNTHETIC_PUBLIC_FIXTURE",
+      "extraction_status": "FICTIONAL_FIXTURE"
+    }
+  ],
+  "authorities": [
+    {
+      "id": "SYN-DOA-1",
+      "number": "1",
+      "source_id": "SYN-DOA",
+      "page": 1,
+      "title": "إقرار خطة مختبر تجريبي",
+      "category": "عملية افتراضية",
+      "roles": {
+        "فريق تجريبي": "الإعداد",
+        "لجنة تجريبية": "المراجعة",
+        "مجلس افتراضي": "الاعتماد"
+      },
+      "qualifiers": {},
+      "threshold": "NOT_SPECIFIED_IN_FICTIONAL_FIXTURE",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    },
+    {
+      "id": "SYN-DOA-2",
+      "number": "2",
+      "source_id": "SYN-DOA",
+      "page": 2,
+      "title": "مراجعة طلب شراء افتراضي",
+      "category": "عملية افتراضية",
+      "roles": {
+        "وحدة افتراضية": "الإعداد",
+        "فريق تجريبي": "التوصية",
+        "لجنة تجريبية": "الاعتماد"
+      },
+      "qualifiers": {},
+      "threshold": "NOT_SPECIFIED_IN_FICTIONAL_FIXTURE",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    },
+    {
+      "id": "SYN-DOA-3",
+      "number": "3",
+      "source_id": "SYN-DOA",
+      "page": 3,
+      "title": "توثيق استثناء تدريبي",
+      "category": "عملية افتراضية",
+      "roles": {
+        "فريق تجريبي": "المراجعة",
+        "مجلس افتراضي": "الإخطار"
+      },
+      "qualifiers": {},
+      "threshold": "NOT_SPECIFIED_IN_FICTIONAL_FIXTURE",
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    }
+  ],
+  "units": [
+    {
+      "id": "SYN-ORG-1",
+      "name": "وحدة افتراضية",
+      "sector": "قطاع افتراضي",
+      "source_id": "SYN-ORG",
+      "page": 1,
+      "tasks": [
+        "إعداد طلبات تدريبية وتوثيق الأدلة الافتراضية"
+      ],
+      "internal_contacts": [],
+      "external_contacts": [],
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    },
+    {
+      "id": "SYN-ORG-2",
+      "name": "فريق تجريبي",
+      "sector": "قطاع افتراضي",
+      "source_id": "SYN-ORG",
+      "page": 2,
+      "tasks": [
+        "مراجعة ضوابط مختبر افتراضي"
+      ],
+      "internal_contacts": [],
+      "external_contacts": [],
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    },
+    {
+      "id": "SYN-ORG-3",
+      "name": "لجنة تجريبية",
+      "sector": "قطاع افتراضي",
+      "source_id": "SYN-ORG",
+      "page": 3,
+      "tasks": [
+        "مناقشة توصيات تعليمية غير ملزمة"
+      ],
+      "internal_contacts": [],
+      "external_contacts": [],
+      "approval_status": "SYNTHETIC_NOT_AUTHORITY",
+      "current_authority_confirmed": false
+    }
+  ],
+  "sectors": [
+    {
+      "name": "قطاع افتراضي",
+      "page": 1,
+      "units": [
+        "وحدة افتراضية",
+        "فريق تجريبي",
+        "لجنة تجريبية"
+      ]
+    }
+  ],
+  "limitations": [
+    "FICTIONAL_REFERENCE_DATA",
+    "NOT_CDF_AUTHORITY",
+    "NOT_INSTITUTIONAL_APPROVAL"
+  ]
+}

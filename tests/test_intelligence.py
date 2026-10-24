@@ -136,3 +136,18 @@ def test_repeat_rate_uses_black_attempts_not_advisory_or_red_turns(dashboard):
     attempts=sum(sum(t['actor']=='BLACK' for t in o['turns'])+
                  sum(a['actor']=='BLACK' for a in o['unproductive_attempts']) for o in data['objections'])
     assert metric['denominator']==attempts==2
+
+
+def test_native_export_features_and_explicit_metric_lineage(dashboard):
+    service,_,user,case=dashboard;data=service.dashboard(case,user)
+    assert all(m['definition'] and m['threshold_basis'] is None and 'source_records' in m for m in data['metrics'])
+    calibration=next(m for m in data['metrics'] if m['id']=='calibration')
+    assert calibration['source_records']==[]
+    with zipfile.ZipFile(BytesIO(export_dashboard(data,'xlsx'))) as archive:
+        xml=archive.read('xl/worksheets/sheet1.xml')
+        assert b'sparkline' in xml and b"'Timeline'!D2:D3" in xml
+        assert any(p.startswith('xl/tables/') for p in archive.namelist())
+    with zipfile.ZipFile(BytesIO(export_dashboard(data,'docx'))) as archive:
+        comments=archive.read('word/comments.xml')
+        assert b'CDF automated draft provenance' in comments
+        assert b'Automated draft lineage' in comments

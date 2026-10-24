@@ -23,3 +23,9 @@ Current source and reproducible evidence establish implemented behavior; version
 - Run relevant Python tests, public_repository_guard, and UI build/browser tests when affected. Full public suite: python -m pytest tests qa_public -q -p no:cacheprovider -rs. Install requirements-lock.txt and optional requirements-calibration.txt. UI: cd apps/web && npm install --no-audit --no-fund && npm run build.
 - Report PASSED, FAILED, SKIPPED, NOT_RUN and BLOCKED_EXTERNAL separately; record command, SHA, environment and limitations. Never count skips as passes or successful mock tests as live readiness.
 - Update docs/codex/EXECUTION_LOG.md, TEST_EVIDENCE_REGISTER.md, OPEN_ISSUES.md and session handoff after substantial work. Link exact commits, PRs and evidence; distinguish inspected paths from executed capabilities.
+
+## Operating-mode isolation
+- Public demo uses the fixed fictional reference provider and a PUBLIC_SYNTHETIC_DEMO database. It must operate without private source mounts/configuration; publication-authorized assets are distinct from institutional brand approval.
+- PrivateInstitutionalProvider and PrivateWorkspace are in-process integration ports with a deny-all default. Resolve identity/resource permissions through the trusted InstitutionalAuthorizer; caller roles, environment mode flags and demo tokens never authorize institutional access.
+- Keep original copies, source hashes, actual extractions and private brand versions in authorized private storage. Preserve source approval/effective/supersession limits; provider processing and case export require distinct permissions.
+- Private HTTP production activation remains disabled pending the institutional prerequisites in docs/institutional/INSTITUTIONAL_REFERENCE_INTEGRATION.md. Passing synthetic tests or a local adapter implementation does not establish approval to activate it.

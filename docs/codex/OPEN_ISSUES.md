@@ -20,3 +20,9 @@ All source fixes await independent review. No institutional acceptance inferred.
 | VIS-03 | P2 scale/performance | OPEN | Bounded local case graphs and API snapshots; large datasets need paging/virtualization after measured volume. No production SLA claim |
 | VIS-04 | P2 assurance | OPEN | Automated axe/screenshot checks are partial accessibility/visual evidence; cross-browser manual review and complete WCAG assessment remain |
 | VIS-05 | P1 semantic quality | BLOCKED_EXTERNAL | Human alignment remains unknown until independent validated labels exist; no fabricated confidence/quality gauge |
+
+- INST-01: Implement/provision the trusted institutional identity, tenancy, session and resource-grant adapter; the supplied default denies all private access. Private HTTP activation is intentionally disabled.
+- INST-02: Verify current DoA approval/effective date/supersession and reconcile thresholds/ambiguous cells; source date 30 April 2024 is observed, not institutional approval.
+- INST-03: Reconcile proposed organization mandates, explicit ownership/reporting/DoA relationships and independent source conflicts without inferred authority.
+- INST-04: Institutional acceptance for branding/typography/safe areas, manual accessibility, storage/security/backup operations, real human labels and authorized provider processing remains external.
+- INST-05: Verify native x14 sparkline/editor fidelity in Microsoft Excel desktop; other editors may remove the extension. Original XLSX/native charts/formulas and independent Calc reconciliation remain available.

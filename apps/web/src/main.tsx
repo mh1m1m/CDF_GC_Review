@@ -17,16 +17,20 @@ import {
   Workflow,
 } from "lucide-react";
 import type { EChartsCoreOption } from "echarts/core";
-import type { Dashboard, Metric } from "./intelligence";
-import { displayValue, roleNames, sourceNames } from "./intelligence";
+import type { Dashboard } from "./intelligence";
+import { roleNames, sourceNames } from "./intelligence";
 import tokens from "../../../shared/visual-tokens.json";
 import "./style.css";
+import { GlassMetricCard as MetricCard } from "./components/Instruments";
 const Chart = lazy(() => import("./ExecutiveChart"));
 const Graph = lazy(() => import("./IntelligenceGraph"));
-const ReferenceGraph = lazy(() => import("./ReferenceGraph"));
+const AuthorityExplorer = lazy(() => import("./components/AuthorityExplorer"));
+const ObjectionTree = lazy(() => import("./ObjectionTree"));
+const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
 const Calibration = lazy(() => import("./CalibrationApp"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
 type References = {
+  synthetic: boolean;
   graph: {
     nodes: Array<{ id: string; label: string; kind: string }>;
     edges: Array<{
@@ -45,6 +49,7 @@ type References = {
   }>;
   authorities: Array<{
     id: string;
+    source_id: string;
     title: string;
     category: string;
     page: number;
@@ -54,6 +59,7 @@ type References = {
   }>;
   units: Array<{
     id: string;
+    source_id: string;
     name: string;
     sector: string;
     page: number;
@@ -67,6 +73,7 @@ const views = [
   ["references", "المراجع والصلاحيات", BookOpen],
   ["mat", "استوديو MAT", Sparkles],
   ["calibration", "معايرة الملاحظات", FileCheck2],
+  ["gallery", "المكتبة البصرية", ShieldCheck],
 ] as const;
 const categoryNames: Record<string, string> = {
   AML: "غسل الأموال",
@@ -76,91 +83,6 @@ const categoryNames: Record<string, string> = {
   DATA_PROTECTION: "حماية البيانات",
 };
 const fmt = (n: number) => new Intl.NumberFormat("ar-SA").format(n);
-function Gauge({ metric, semi = false }: { metric: Metric; semi?: boolean }) {
-  const option = useMemo<EChartsCoreOption>(
-    () => ({
-      series: [
-        {
-          type: "gauge",
-          startAngle: semi ? 180 : 90,
-          endAngle: semi ? 0 : -270,
-          min: 0,
-          max: 100,
-          radius: "92%",
-          center: ["50%", semi ? "72%" : "50%"],
-          axisLine: { lineStyle: { width: 12, color: [[1, "#e8edf0"]] } },
-          progress: {
-            show: metric.value !== null,
-            width: 12,
-            roundCap: true,
-            itemStyle: {
-              color:
-                metric.id === "objections_resolved" ? "#4c7b78" : "#596cb0",
-            },
-          },
-          pointer: { show: false },
-          axisTick: { show: false },
-          splitLine: { show: false },
-          axisLabel: { show: false },
-          detail: { show: false },
-          title: { show: false },
-          data: [{ value: metric.value ?? 0 }],
-        },
-      ],
-    }),
-    [metric.value, metric.id, semi],
-  );
-  return (
-    <div className={"gauge " + (semi ? "gauge-semi" : "")}>
-      <Suspense fallback={<div className="chart-placeholder" />}>
-        <Chart
-          option={option}
-          label={`${metric.title}: ${displayValue(metric.value)}`}
-          height={semi ? 165 : 152}
-        />
-      </Suspense>
-      <div className="gauge-value" aria-hidden="true">
-        <strong>{metric.value === null ? "—" : fmt(metric.value)}</strong>
-        {metric.value !== null && <small>٪</small>}
-      </div>
-    </div>
-  );
-}
-function MetricCard({
-  metric,
-  semi = false,
-}: {
-  metric: Metric;
-  semi?: boolean;
-}) {
-  return (
-    <article className="glass metric-card">
-      <div className="eyebrow">
-        MEASURED INTELLIGENCE <span className="tiny-dot" />
-      </div>
-      <Gauge metric={metric} semi={semi} />
-      <h3>{metric.title}</h3>
-      <p className="metric-fraction">
-        {metric.value === null
-          ? "لا تتوفر عينة قابلة للقياس"
-          : `${fmt(metric.numerator!)} من ${fmt(metric.denominator!)} سجل`}
-      </p>
-      <details>
-        <summary>منهجية القياس</summary>
-        <p>{metric.limitation}</p>
-        <p>
-          البسط: {metric.numerator ?? "غير متاح"} · المقام:{" "}
-          {metric.denominator ?? "غير متاح"}
-        </p>
-        <p>
-          المصدر:{" "}
-          <bdi>{metric.lineage.join(" + ") || "لا توجد تسميات متحققة"}</bdi>
-        </p>
-        <p>لا توجد عتبات جودة معتمدة أو درجة ثقة مصطنعة.</p>
-      </details>
-    </article>
-  );
-}
 function App() {
   const [token, setToken] = useState(""),
     [cases, setCases] = useState<Case[]>([]),
@@ -170,8 +92,9 @@ function App() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [references, setReferences] = useState<References | null>(null),
-    [query, setQuery] = useState(""),
-    [referenceGraphOpen, setReferenceGraphOpen] = useState(false);
+    [observationFilter, setObservationFilter] = useState(""),
+    [playback, setPlayback] = useState(2000),
+    [tree, setTree] = useState(false);
   async function api<T>(path: string): Promise<T> {
     const r = await fetch(path, {
       headers: { Authorization: "Bearer " + token },
@@ -202,6 +125,9 @@ function App() {
         ),
       );
       setView("overview");
+      setObservationFilter("");
+      setPlayback(2000);
+      setTree(false);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -211,7 +137,7 @@ function App() {
   async function changeView(next: string) {
     setView(next);
     setSelected("");
-    if (next === "references" && !references) {
+    if ((next === "references" || next === "gallery") && !references) {
       try {
         setReferences(await api<References>("/api/reference-candidates"));
       } catch (e) {
@@ -352,6 +278,27 @@ function App() {
       ],
     };
   }, [data?.calibration_analytics]);
+  const debateData = useMemo(
+    () =>
+      data
+        ? {
+            ...data,
+            invocations: data.invocations
+              .slice(0, playback)
+              .filter(
+                (i) =>
+                  !observationFilter ||
+                  !i.observation_id ||
+                  i.observation_id === observationFilter,
+              ),
+            objections: data.objections.filter(
+              (o) =>
+                !observationFilter || o.observation_id === observationFilter,
+            ),
+          }
+        : null,
+    [data, observationFilter, playback],
+  );
   const selectedEvidence = data?.evidence.find((e) => e.id === selected);
   return (
     <div className="app-shell" dir="rtl">
@@ -522,6 +469,9 @@ function App() {
                     ))}
                   </div>
                 </details>
+              </div>
+              <div className="mode-notice">
+                البيئة العامة · قضايا ومراجع افتراضية · الوضع المؤسسي غير مُفعّل
               </div>
               {(view === "overview" || view === "mat") && (
                 <>
@@ -790,12 +740,55 @@ function App() {
                       ? "الروابط تعكس ترتيب التنفيذ المسجل. MAT مستشار؛ القرار المستقل لا يستبدل الاعتماد البشري."
                       : "كل رابط ظاهر موجود في سجل ربط الأدلة. وقوع النص في المصدر لا يثبت اعتماد المصدر أو سريانه."}
                   </p>
+                  {view === "debate" && (
+                    <div className="history-controls">
+                      <label>
+                        الملاحظة
+                        <select
+                          aria-label="الملاحظة" value={observationFilter}
+                          onChange={(e) => setObservationFilter(e.target.value)}
+                        >
+                          <option value="">كل الملاحظات</option>
+                          {data.observations.map((o) => (
+                            <option key={o.observation_id}>
+                              {o.observation_id}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        قراءة زمنية لسجل محفوظ
+                        <input
+                          type="range"
+                          disabled={tree}
+                          min={1}
+                          max={Math.max(1, data.invocations.length)}
+                          value={Math.min(playback, data.invocations.length)}
+                          onChange={(e) => setPlayback(Number(e.target.value))}
+                        />
+                      </label>
+                      <span>
+                        {tree
+                          ? "الاعتراضات المسجلة كاملة"
+                          : `${Math.min(playback, data.invocations.length)} من ${data.invocations.length} تنفيذ`}
+                      </span>
+                      <button onClick={() => setTree(!tree)}>
+                        {tree ? "عرض المراحل" : "شجرة الاعتراضات"}
+                      </button>
+                    </div>
+                  )}
                   <Suspense fallback={<div className="chart-placeholder" />}>
-                    <Graph
-                      data={data}
-                      kind={view === "debate" ? "debate" : "evidence"}
-                      onSelect={setSelected}
-                    />
+                    {view === "debate" && tree && debateData ? (
+                      <ObjectionTree data={debateData} onSelect={setSelected} />
+                    ) : (
+                      <Graph
+                        data={
+                          view === "debate" && debateData ? debateData : data
+                        }
+                        kind={view === "debate" ? "debate" : "evidence"}
+                        onSelect={setSelected}
+                      />
+                    )}
                   </Suspense>
                   <div className="graph-alternatives">
                     {view === "debate"
@@ -809,7 +802,7 @@ function App() {
                             <small>
                               (
                               {
-                                data.invocations.filter(
+                                (debateData || data).invocations.filter(
                                   (i) => i.stage === stage,
                                 ).length
                               }
@@ -830,7 +823,7 @@ function App() {
                           ? roleNames[selected] || selected
                           : "اختر مرحلة لاستعراض المصدر والحالة"}
                       </h3>
-                      {data.invocations
+                      {(debateData || data).invocations
                         .filter((i) => i.stage === selected)
                         .map((i) => (
                           <article className="execution-row" key={i.id}>
@@ -882,7 +875,7 @@ function App() {
                     </article>
                   )}
                   {view === "debate" &&
-                    data.objections.map((o) => (
+                    (debateData || data).objections.map((o) => (
                       <details className="objection-card" key={o.id}>
                         <summary>
                           <bdi>{o.observation_id}</bdi> · {o.productive_cycles}{" "}
@@ -924,125 +917,14 @@ function App() {
                 </section>
               )}
               {view === "references" && (
-                <section className="glass reference-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <small>REFERENCE INTELLIGENCE</small>
-                      <h2>الصلاحية لا تُستنتج من وجود الوثيقة.</h2>
-                    </div>
-                  </div>
-                  <p>
-                    مراجع فعلية أتاحها المستخدم للنشر. النتائج التالية مرشحات
-                    استخراج؛ لم يُؤكد الاعتماد الحالي أو عدم الاستبدال.
-                  </p>
-                  <label>
-                    البحث في الصلاحيات والمسؤوليات
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="موضوع، جهة، أو مهمة"
-                    />
-                  </label>
-                  <div className="source-cards">
-                    {references?.sources.map((s) => (
-                      <article key={s.id}>
-                        <strong>{s.id}</strong>
-                        <span className="blocked-chip">
-                          {s.approval_status}
-                        </span>
-                        <small>
-                          السريان الحالي: غير مؤكد · الإصدار: {s.version}
-                        </small>
-                        <a href={s.url} target="_blank" rel="noreferrer">
-                          المصدر الأصلي <ArrowUpLeft size={13} />
-                        </a>
-                      </article>
-                    ))}
-                  </div>
-                  <details
-                    className="reference-graph"
-                    onToggle={(e) =>
-                      setReferenceGraphOpen(e.currentTarget.open)
-                    }
-                  >
-                    <summary>
-                      خريطة العلاقات المصدرية — مرشحات لا تفويضات نافذة
-                    </summary>
-                    {references && referenceGraphOpen && (
-                      <Suspense fallback={<p>جارٍ تحميل الخريطة…</p>}>
-                        <ReferenceGraph graph={references.graph} />
-                      </Suspense>
-                    )}
-                  </details>
-                  <h3>مستكشف الصلاحيات</h3>
-                  <div className="reference-results">
-                    {references?.authorities
-                      .filter((a) =>
-                        (
-                          a.title +
-                          " " +
-                          a.category +
-                          " " +
-                          Object.keys(a.roles).join(" ")
-                        ).includes(query),
-                      )
-                      .slice(0, 30)
-                      .map((a) => (
-                        <details key={a.id}>
-                          <summary>
-                            <bdi>{a.id}</bdi> · {a.title}{" "}
-                            <small>ص. {a.page} · مرشح غير معتمد</small>
-                          </summary>
-                          <dl>
-                            {Object.entries(a.roles).map(([body, role]) => (
-                              <React.Fragment key={body}>
-                                <dt>{body}</dt>
-                                <dd>
-                                  {role}
-                                  {a.qualifiers[body]
-                                    ? " · " + a.qualifiers[body]
-                                    : ""}
-                                </dd>
-                              </React.Fragment>
-                            ))}
-                          </dl>
-                          <p>
-                            الحدود المالية والشروط: {a.threshold} — تتطلب مطابقة
-                            بشرية مع المصدر.
-                          </p>
-                        </details>
-                      ))}
-                  </div>
-                  <h3>خريطة المسؤوليات المقترحة</h3>
-                  <div className="unit-grid">
-                    {references?.units
-                      .filter((u) =>
-                        (
-                          u.name +
-                          " " +
-                          u.sector +
-                          " " +
-                          u.tasks.join(" ")
-                        ).includes(query),
-                      )
-                      .slice(0, 20)
-                      .map((u) => (
-                        <details key={u.id}>
-                          <summary>
-                            {u.name}
-                            <small>
-                              {u.sector} · ص. {u.page} · مقترح غير معتمد
-                            </small>
-                          </summary>
-                          <ul>
-                            {u.tasks.map((t, i) => (
-                              <li key={i}>{t}</li>
-                            ))}
-                          </ul>
-                        </details>
-                      ))}
-                  </div>
-                </section>
+                <Suspense fallback={<p>جارٍ تحميل المراجع…</p>}>
+                  <AuthorityExplorer data={references} />
+                </Suspense>
+              )}
+              {view === "gallery" && (
+                <Suspense fallback={<p>جارٍ تحميل المكتبة…</p>}>
+                  <VisualLibrary data={data} references={references} />
+                </Suspense>
               )}
               {view === "calibration" && (
                 <Suspense fallback={<p>جارٍ تحميل المعايرة…</p>}>
