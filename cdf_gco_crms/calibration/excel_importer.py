@@ -12,6 +12,7 @@ from typing import Any
 from openpyxl import load_workbook
 
 from .store import CalibrationError, CalibrationStore, ReviewerContext
+from .input_safety import check_ooxml_zip
 
 MAX_XLSX_BYTES = 20 * 1024 * 1024
 
@@ -52,6 +53,7 @@ def preview_xlsx(path: str | Path) -> dict:
     with p.open("rb") as handle:
         if handle.read(4)!=b"PK\x03\x04":
             raise CalibrationError("INVALID_EVOLUTION_XLSX_SIGNATURE")
+    check_ooxml_zip(p, max_compressed=MAX_XLSX_BYTES)
     source_hash=sha256(p.read_bytes()).hexdigest()
     wb=load_workbook(p, read_only=True, data_only=True)
     try:
