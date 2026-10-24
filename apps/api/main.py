@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from cdf_gco_crms.calibration.service import CalibrationService
+from cdf_gco_crms.calibration.analytics import analyze
 from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, CalibrationError, AccessDenied, StaleCase
 
 if os.getenv("CDF_CALIBRATION_MODE") != "SYNTHETIC_LOCAL_DEV":
@@ -127,3 +128,13 @@ def decision(case_id: str, observation_id: str, item: Decision, authorization: s
 def rule_review(case_id: str, rule_id: str, item: RuleReview, authorization: str | None = Header(default=None)):
     digest = call(service.rule, case_id, rule_id, item.model_dump(), identity(authorization))
     return {"event_hash": digest, "result": item.action}
+
+@app.get("/api/cases/{case_id}/analytics")
+def analytics(case_id: str, authorization: str | None = Header(default=None)):
+    user = identity(authorization)
+    return call(_analyze_authorized, case_id, user)
+
+
+def _analyze_authorized(case_id, user):
+    service.authorize(case_id, user)
+    return analyze(store, case_id, user)
