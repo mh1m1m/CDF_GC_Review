@@ -61,3 +61,43 @@ jobs:
       - name: Type-check and build Arabic RTL web UI
         working-directory: apps/web
         run: npm run build
+
+  calibration-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CDF_AI_PROVIDER: ""
+      CDF_CALIBRATION_MODE: SYNTHETIC_LOCAL_DEV
+      CDF_CALIBRATION_DB: build/private/mat-calibration-dev.sqlite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install private pilot development dependencies
+        run: python -m pip install -r requirements-calibration.txt
+      - name: Generate ephemeral synthetic-only developer token
+        run: echo "CDF_CALIBRATION_DEV_TOKEN=$(python -c 'import secrets; print(secrets.token_urlsafe(36))')" >> "$GITHUB_ENV"
+      - name: Seed fictional local case
+        run: python tools/mat_dna/seed_calibration_demo.py --db build/private/mat-calibration-dev.sqlite
+      - name: Start loopback-only calibration API
+        run: |
+          python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8765 > /tmp/mat-api.log 2>&1 &
+          for n in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8765/api/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -80 /tmp/mat-api.log
+          exit 1
+      - name: Install UI packages
+        working-directory: apps/web
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium for browser acceptance
+        working-directory: apps/web
+        run: npx playwright install chromium --with-deps
+      - name: Browser acceptance on synthetic cases
+        working-directory: apps/web
+        run: npm run test:e2e
