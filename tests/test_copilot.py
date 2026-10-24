@@ -51,7 +51,7 @@ def decision(cp, **body):
         expected_evidence_hash=state["evidence_hash"],
         rationale="Synthetic evidence-based decision.",
         idempotency_key="human-decision-001",
-        **body
+        **body,
     )
 
 
@@ -330,6 +330,42 @@ def test_workflow_version_idempotency_and_cancel(cp):
         idempotency_key="cancel-key-001",
     )
     assert cancelled["status"] == "CANCELLED"
+    assert cancelled["pending_human"] is False
+
+
+def test_health_counts_durable_human_checkpoints(cp, monkeypatch):
+    # Run real persisted jobs synchronously so this checks workflow state, not worker timing.
+    monkeypatch.setattr("cdf_gco_crms.execution.jobs.launch", lambda *args: None)
+    state = call(
+        cp,
+        "start",
+        text="review agreement",
+        executor="mock",
+        idempotency_key="backlog-start-001",
+    )
+    for index in range(3):
+        if state["status"] == "WAITING_FOR_HUMAN":
+            break
+        step = next(s for s in state["steps"] if s["status"] == "RUNNING")
+        supervise(cp[0].app.store.path, step["job_id"])
+        state = call(
+            cp,
+            "resume",
+            workflow_id=state["workflow_id"],
+            expected_version=str(state["version"]),
+            idempotency_key=f"backlog-resume-{index}",
+        )
+    assert state["status"] == "WAITING_FOR_HUMAN"
+    assert call(cp, "health")["human_backlog"] == 1
+    cancelled = call(
+        cp,
+        "cancel",
+        workflow_id=state["workflow_id"],
+        expected_version=str(state["version"]),
+        idempotency_key="backlog-cancel-001",
+    )
+    assert cancelled["pending_human"] is False
+    assert call(cp, "health")["human_backlog"] == 0
 
 
 @pytest.mark.parametrize("kind", ["docx", "xlsx", "pdf"])
@@ -443,6 +479,14 @@ def test_final_wording_appears_in_editable_draft_exports_without_replacing_sourc
 
 
 def test_completed_workflow_cannot_be_reclassified_as_cancelled(cp):
-    first=call(cp,'start',text='authority analysis',idempotency_key='completed-flow-001')
-    with pytest.raises(Conflict,match='COMPLETED_WORKFLOW'):
-        call(cp,'cancel',workflow_id=first['workflow_id'],expected_version=str(first['version']),idempotency_key='cancel-complete-001')
+    first = call(
+        cp, "start", text="authority analysis", idempotency_key="completed-flow-001"
+    )
+    with pytest.raises(Conflict, match="COMPLETED_WORKFLOW"):
+        call(
+            cp,
+            "cancel",
+            workflow_id=first["workflow_id"],
+            expected_version=str(first["version"]),
+            idempotency_key="cancel-complete-001",
+        )

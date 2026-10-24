@@ -477,6 +477,7 @@ def main(argv=None):
         health = payload_cli(a, temp, "health", {})
         assert (
             health["audit_chain_integrity"]
+            and health["human_backlog"] == 1
             and health["provider_api_inference_count"] == 0
         )
         # Real byte extraction across the four supported supplementary formats.

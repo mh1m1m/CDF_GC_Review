@@ -422,7 +422,7 @@ class CopilotService:
                     job_id=result["job_id"],
                     job_status=result["status"],
                 )
-                state.pop('failure',None)
+                state.pop("failure", None)
                 state.update(
                     status="WAITING_FOR_JOB", _launch_job_ids=[result["job_id"]]
                 )
@@ -565,7 +565,8 @@ class CopilotService:
             ):
                 raise Conflict("WORKFLOW_VERSION_CHANGED")
             if op == "cancel":
-                if state['status']=='COMPLETED_DRAFT':raise Conflict('COMPLETED_WORKFLOW_CANNOT_CANCEL')
+                if state["status"] == "COMPLETED_DRAFT":
+                    raise Conflict("COMPLETED_WORKFLOW_CANNOT_CANCEL")
                 for step in state["steps"]:
                     if step.get("job_id") and self.app.job(step["job_id"], p)[
                         "status"
@@ -580,9 +581,10 @@ class CopilotService:
                             p,
                             transport="COPILOT",
                         )
-                        step.update(status='CANCELLED',job_status='CANCELLED')
-                    elif step['status']=='PENDING':step['status']='CANCELLED'
-                state["status"] = "CANCELLED"
+                        step.update(status="CANCELLED", job_status="CANCELLED")
+                    elif step["status"] == "PENDING":
+                        step["status"] = "CANCELLED"
+                state.update(status="CANCELLED", pending_human=False)
                 return self._save(state)
             if state["status"] == "CANCELLED":
                 raise Conflict("CANCELLED_WORKFLOW_CANNOT_RESUME")

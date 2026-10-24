@@ -154,7 +154,10 @@ class OperationsService:
                     sum(durations) / len(durations) if durations else None
                 ),
                 "metrics": events,
-                "human_backlog": counts.get("WAITING_FOR_HUMAN", 0),
+                "human_backlog": sum(
+                    json.loads(row[0])["status"] == "WAITING_FOR_HUMAN"
+                    for row in a.store.db.execute("SELECT state_json FROM cp_workflows")
+                ),
                 "private_activation": "DISABLED",
                 "provider_api_inference_count": a.store.db.execute(
                     "SELECT COUNT(*) FROM app_agent_attempts WHERE source='PROVIDER_API' AND status='OK'"
