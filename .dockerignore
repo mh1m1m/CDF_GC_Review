@@ -1,0 +1,6 @@
+# Allowlist only dependency manifests and this build definition.
+# No source, .git history, private material, databases, keys or outputs enter builds.
+**
+!Dockerfile.libreoffice
+!requirements-lock.txt
+!requirements-calibration.txt

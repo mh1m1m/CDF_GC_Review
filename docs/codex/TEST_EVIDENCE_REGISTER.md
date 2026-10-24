@@ -39,3 +39,17 @@ Final public-file guard: PASSED, 239 tracked entries after staging. Python compi
 PR 6 head f2ff9b6708e6ac438ecfcd71eab737d5e3e07615: Actions run 40064935332 now PASSED in all three jobs, including browser E2E. This replaces the earlier queued status for that exact head. It does not verify LibreOffice, which the workflow does not install.
 
 LibreOffice is already installed: LibreOfficeDev 26.8.0.0.alpha0. Writer text-to-PDF passed; tiny synthetic XLSX and CSV Calc conversions timed out independently of the project workbook/macro. See LIBREOFFICE_DIAGNOSTIC.md for limits and reproduction. No new full-suite pass or spreadsheet reconciliation is claimed by this documentation-only follow-up.
+
+## Stable LibreOffice implementation — 2026-10-24
+Base: 5a20f318b183c2558404a7179f62b1482b3e5d17 (PR 6 remains open/draft). Work branch: codex/stable-libreoffice.
+
+- Base registry digest: python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704 (resolved by successful Docker pull).
+- Stable Debian package pin: 4:25.2.3-2+deb13u8; actual /usr/bin/soffice version: LibreOffice 25.2.3.2 520(Build:2).
+- Local built image ID: sha256:701893538967e5ac5e559d8623c17d228fbcebbaafc38b49bf2aed5a1c2eabbc. No registry publication. Package/pip provenance is included in smoke.json.
+- Smoke: Calc PASSED (uncached SUM=5, formula retained, source unchanged); Writer PASSED (valid one-page PDF, readable English and Arabic); Impress PASSED (valid one-page PDF, readable synthetic marker).
+- Required engine run: 13 passed in 37.50s, no skips, including all six required engine checks plus existing e2e setup prerequisites. The initial six-test-only selection found an existing e2e ordering dependency (KeyError: 5); the runner now includes its complete module rather than weakening that test.
+- Diagnostic regressions: 9 passed locally; prerelease rejection, timeout descendant cleanup, and JUnit skip/missing enforcement. An initially missed rc version suffix was caught and corrected before validation.
+- Initial root container invocation could not read restrictive host file permissions after dropping capabilities. Validation now runs as the workspace UID/GID against an isolated public-source copy; original workspace permissions were not relaxed.
+- Full stable-container public suite: 243 passed, 11 skipped, 10 subtests passed in 95.77s. All six required engine checks passed again; no unavailable-LibreOffice override. Skips: three real-provider checks and eight missing institutional inputs/assets. Exact-head CI must be checked independently on the new PR.
+
+The host alpha runtime remains unchanged; these results apply to the stable container. See STABLE_LIBREOFFICE.md for build/run, cloud setup distinction, pinning limits and troubleshooting.

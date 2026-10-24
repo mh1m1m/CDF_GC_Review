@@ -15,3 +15,10 @@
 - Reproduced the timeout on a three-cell XLSX through both project macro and ordinary conversion; CSV-to-ODS also failed. Writer text-to-PDF passed. Disabling Calc OpenCL/threading did not resolve the probe. Exact internal cause remains unverified; no project formula defect inferred.
 - Added LIBREOFFICE_DIAGNOSTIC.md, updated evidence and ENV-01. No source or test behavior changed. Keep stable Calc verification and independent spreadsheet tests as open work.
 - Independently observed all three jobs of PR 6 run 40064935332 PASSED for source f2ff9b6, including browser E2E. This does not establish Calc availability in CI.
+
+## 2026-10-24 — stable LibreOffice environment
+- Inspected current PR 6 (open draft at 5a20f31), source/requirements, six engine tests and Docker/network/CA readiness. Created codex/stable-libreoffice on that base; no existing PR retarget or merge.
+- Built Dockerfile.libreoffice with a registry-resolved Python/Debian base digest, Debian security LibreOffice package pin, Arabic fonts, existing Python lock and package manifests. Build context allowlists only dependency files. Managed proxy CA uses an ephemeral BuildKit secret.
+- Added synthetic Calc/Writer/Impress smoke checks, bounded isolated process-group cleanup, mandatory JUnit engine-check enforcement and an independent CI job that runs with no runtime network. Existing CI jobs retained and enabled for the stacked PR base.
+- All three smoke checks and the 13-test engine/prerequisite run passed. New diagnostic failure-path tests passed (9). Full suite: 243 passed, 11 skipped, 10 subtests passed with LibreOffice enabled. Exact-head independent CI is required on the new PR.
+- No institutional data, provider calls, deployment, image publication or source release-control changes. Stable runtime provides an alternate verified execution path; it does not replace the cloud host's alpha installation.

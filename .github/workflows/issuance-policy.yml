@@ -10,6 +10,7 @@ on:
       - "development/v7.12-production-engineering"
   pull_request:
     branches:
+      - "codex/takeover-audit-and-safeguards"
       - "feature/v712-mat-human-calibration"
       - "development/v7.12-production-engineering"
       - "feature/v712-live-multi-agent-runtime"

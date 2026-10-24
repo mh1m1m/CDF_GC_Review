@@ -1,0 +1,50 @@
+name: Stable LibreOffice validation
+on:
+  pull_request:
+    branches:
+      - main
+      - development/v7.12-production-engineering
+      - feature/v712-live-multi-agent-runtime
+      - feature/v712-mat-professional-dna-agent
+      - feature/v712-mat-human-calibration
+      - codex/takeover-audit-and-safeguards
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stable-libreoffice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Build pinned stable runtime (no image publication)
+        run: |
+          mkdir -p build/libreoffice
+          set -o pipefail
+          docker build --progress=plain -f Dockerfile.libreoffice -t cdf-lo-stable . 2>&1 | tee build/libreoffice/build.log
+      - name: Record image identity and installed packages
+        run: |
+          mkdir -p build/libreoffice
+          docker image inspect cdf-lo-stable --format '{{.Id}}' | tee build/libreoffice/image-id.txt
+          docker run --rm --init --network none cdf-lo-stable sh -c 'cat /opt/cdf-runtime/base-image.txt /opt/cdf-runtime/libreoffice.txt; cat /opt/cdf-runtime/packages.tsv; cat /opt/cdf-runtime/python-packages.txt' | tee build/libreoffice/runtime.txt
+      - name: Prepare tracked public source only
+        run: |
+          mkdir -p "$RUNNER_TEMP/cdf-lo-source"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/cdf-lo-source"
+      - name: Smoke, required engine checks without skips, full public suite
+        run: |
+          docker run --rm --init --name cdf-lo-validation --user "$(id -u):$(id -g)" --network none --cap-drop ALL --security-opt no-new-privileges \
+            --mount "type=bind,src=$RUNNER_TEMP/cdf-lo-source,dst=/repo" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/build/libreoffice,dst=/evidence" \
+            cdf-lo-stable python tools/libreoffice_validate.py --evidence /evidence
+      - name: Clean up this job's container
+        if: always()
+        run: docker rm -f cdf-lo-validation || true
+      - name: Preserve synthetic diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-libreoffice-evidence
+          path: build/libreoffice/

@@ -29,3 +29,6 @@ Read ROADMAP.md for the next work package and TEST_EVIDENCE_REGISTER.md for exac
 
 ## Signing-contract migration
 For a text-changing HumanDecision, an authorized signing workflow must display the actual proposal to the reviewer, set `challenge_id` to that objection's identity, and set `revision_sha256 = revision_digest(challenge_id, revised_comment, revised_quote)` from `cdf_gco_crms.release.dispositions` before signing `signature_payload()`. Preserve null versus empty quote/comment values. Any later wording change needs a new signature. Non-text outcomes retain legacy signature compatibility. Hashing a proposal is not itself human approval.
+
+## Stable document-engine runtime
+Use [STABLE_LIBREOFFICE.md](STABLE_LIBREOFFICE.md) for the pinned Debian container, real Calc/Writer/Impress smoke checks, mandatory engine tests and independent CI. The historical alpha-runtime failure remains documented separately; container verification does not change the managed host installation. Current exact results are in TEST_EVIDENCE_REGISTER.md.
