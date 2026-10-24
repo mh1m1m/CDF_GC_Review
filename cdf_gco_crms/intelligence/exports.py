@@ -117,7 +117,10 @@ def export_dashboard(data: dict, kind: str) -> bytes:
         for c,t in zip(table.rows[0].cells,['المؤشر','البسط / المقام','النسبة','الحالة']): c.text=t
         for metric in data['metrics']:
             cells=table.add_row().cells
-            cells[0].text=metric['title'];cells[1].text=f"{metric['numerator']} / {metric['denominator']}"
+            cells[0].text=metric['title']
+            numerator='غير متاح' if metric['numerator'] is None else str(metric['numerator'])
+            denominator='غير متاح' if metric['denominator'] is None else str(metric['denominator'])
+            cells[1].text=f'البسط: {numerator}؛ المقام: {denominator}'
             cells[2].text='غير مقاس' if metric['value'] is None else f"{metric['value']}%";cells[3].text=metric['status']
             doc.add_paragraph(metric['title']+': '+metric['limitation'])
         doc.add_heading('النقاش والأدلة',1)

@@ -87,7 +87,8 @@ def test_fraction_invariants(denominator,number):
 def test_exports_share_metrics_and_remain_drafts(dashboard):
     service,_,user,case=dashboard;data=service.dashboard(case,user)
     word=export_dashboard(data,'docx');doc=Document(BytesIO(word))
-    assert doc.tables[0].rows[1].cells[1].text=='0 / 4'
+    assert doc.tables[0].rows[1].cells[1].text=='البسط: 0؛ المقام: 4'
+    assert 'None' not in ' '.join(cell.text for row in doc.tables[0].rows for cell in row.cells)
     assert 'INTERNAL DRAFT' in doc.core_properties.category
     with zipfile.ZipFile(BytesIO(word)) as archive:assert any(n.startswith('word/media/') for n in archive.namelist())
     excel=export_dashboard(data,'xlsx');wb=load_workbook(BytesIO(excel),data_only=False)
