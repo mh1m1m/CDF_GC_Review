@@ -90,3 +90,7 @@ class CalibrationService:
     def activate_profile(self, case_id, version, user):
         self.authorize(case_id, user, required="DNA_RULE_APPROVER")
         return self.store.activate_synthetic_profile(case_id, version, user)
+
+    def profile_document(self, case_id, version, user):
+        self.authorize(case_id, user)
+        return self.store.synthetic_profile_document(case_id, version, user)
