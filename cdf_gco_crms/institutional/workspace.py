@@ -94,10 +94,14 @@ class PrivateWorkspace:
         import hashlib
         from pathlib import Path
         from ..agents.orchestrator import ReviewOrchestrator
-        self._principal(context.case_id,context,'case.run')
+        principal=self._principal(context.case_id,context,'case.run')
+        self.calibration.authorize(context.case_id,principal)
         case=self.calibration.store._case(context.case_id)
         if hashlib.sha256(Path(document).read_bytes()).hexdigest()!=case['source_hash']:
             raise InstitutionalAccessDenied('PRIVATE_REVIEW_SOURCE_VERSION_MISMATCH')
+        expected_ids={o['observation_id'] for o in self.calibration.store.observations(context.case_id,principal)}
+        if {o.internal_id for o in state.observations}!=expected_ids:
+            raise InstitutionalAccessDenied('PRIVATE_REVIEW_OBSERVATION_BINDING_MISMATCH')
         if runner is not None:
             self._principal(context.case_id,context,'provider.process')
         def enrich(review_state,registry):
