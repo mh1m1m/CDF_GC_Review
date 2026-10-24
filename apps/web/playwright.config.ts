@@ -4,7 +4,14 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   retries: 0,
-  use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:5173", trace: "retain-on-failure" },
+  use: {
+    ...devices["Desktop Chrome"],
+    baseURL: "http://127.0.0.1:5173",
+    trace: "off",
+    launchOptions: {
+      executablePath: process.env.CDF_CHROMIUM_EXECUTABLE || undefined,
+    },
+  },
   webServer: {
     command: "npm run dev -- --port 5173",
     url: "http://127.0.0.1:5173",

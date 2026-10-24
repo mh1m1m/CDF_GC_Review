@@ -32,3 +32,6 @@ For a text-changing HumanDecision, an authorized signing workflow must display t
 
 ## Stable document-engine runtime
 Use [STABLE_LIBREOFFICE.md](STABLE_LIBREOFFICE.md) for the pinned Debian container, real Calc/Writer/Impress smoke checks, mandatory engine tests and independent CI. The historical alpha-runtime failure remains documented separately; container verification does not change the managed host installation. Current exact results are in TEST_EVIDENCE_REGISTER.md.
+
+## Executive visual intelligence
+The command-center implementation continues on PR 7's stable-runtime branch. See docs/architecture/EXECUTIVE_INTELLIGENCE.md for the immutable execution capture/read-model and metric definitions, VISUAL_DEPENDENCIES.md for stack choices, REFERENCE_GOVERNANCE.md for public source candidates, and docs/design/CDF-DESIGN-FORENSICS.md for verified artwork versus creative extensions. Sources/candidates were explicitly declared public by the user in this cycle; institutional approval/current authority remain separate and unverified. No personal methodology corpus or calibration database is published.
