@@ -61,7 +61,7 @@ function App() {
      await openCase(active.case_id);setView("rules");
    }catch(e){setError(String(e))}
  }
- const obs=active?.observations[focus]; const decisionEvents=events.filter(e=>e.event_type==="OBSERVATION_CALIBRATION");
+ const obs=active?.observations[focus]; const comparison=obs?diffTokens(obs.original_text||"",obs.reviewed_text||""):null; const decisionEvents=events.filter(e=>e.event_type==="OBSERVATION_CALIBRATION");
  const latest=obs?decisionEvents.filter(e=>e.observation_id===obs.observation_id).at(-1):null;
  useEffect(()=>{document.title="MAT | معايرة المنهجية المهنية"},[]);
  return <main dir="rtl">
