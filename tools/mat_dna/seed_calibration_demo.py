@@ -4,6 +4,9 @@ Usage:
   python tools/mat_dna/seed_calibration_demo.py --db build/private/mat-calibration-dev.sqlite
 """
 import argparse
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext
 
 DEMO = [
