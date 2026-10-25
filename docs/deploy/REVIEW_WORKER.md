@@ -42,7 +42,8 @@ therefore treats legal or authority claims as unverified, and the release gate r
   - A longer document stops with a clear message, as does a run the host cuts off.
   - Vercel has no LibreOffice, so the "document with comments as PDF" and the dashboard PDF are not produced. The
     original PDF with highlights and notes still is.
-  - On Vercel, set `ANTHROPIC_API_KEY`, `CDF_ENABLE_PROVIDER_API=1` and `CDF_AI_DATA_AUTHORIZATION`.
+  - On Vercel, set `ANTHROPIC_API_KEY` (or your own name for it plus `CDF_ANTHROPIC_KEY_VAR`), `CDF_ENABLE_PROVIDER_API=1`
+    and `CDF_AI_DATA_AUTHORIZATION`.
 - **On the review worker** (below). It has no time limit and produces every output. Whenever a worker is online,
   the website leaves queued reviews to it.
 
@@ -71,6 +72,7 @@ checks there. One worker handles one review at a time; run two for two parallel 
 | `CDF_DATABASE_URL` | Same as Vercel: `postgresql://cdf_app.jeseeznffxlxmcljpmiu:<PASSWORD>@aws-0-eu-central-1.pooler.supabase.com:5432,aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require&connect_timeout=8` |
 | `CDF_DOCUMENT_UPLOADS` | `PUBLIC`, the same owner switch as the website. The worker refuses to start without it |
 | `ANTHROPIC_API_KEY` | Your Anthropic API key (console.anthropic.com) |
+| `CDF_ANTHROPIC_KEY_VAR` | Optional. If you stored the key under another name, put that name here. The value is used only if it looks like an Anthropic key (`sk-ant-…`) |
 | `CDF_ENABLE_PROVIDER_API` | `1` |
 | `CDF_AI_DATA_AUTHORIZATION` | `INSTITUTIONAL_AUTHORIZED:<reference>`, your recorded permission for uploaded documents to go to Claude (see below) |
 | `CDF_SITE_IDENTITY` | `CDF`: the exported tracker and dashboard carry the CDF wordmark |

@@ -94,3 +94,26 @@ def test_runner_still_enforces_the_full_schema():
     response = AgentRunner(adapter, TraceWriter(), max_attempts=1).run(ROLE_DRAFTING, "s", {"label": "SYNTHETIC_TEST_CASE"},
                                                                        schema=schema)
     assert not response.ok and response.schema_errors
+
+
+def test_key_under_an_owner_chosen_name(monkeypatch):
+    """CDF_ANTHROPIC_KEY_VAR names the variable holding the key; only an Anthropic-shaped value is used."""
+    from cdf_gco_crms.execution.providers import anthropic_credential_configured, select_executor
+
+    for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CDF_ANTHROPIC_KEY_VAR", "Owner_Key", "OTHER_SECRET"):
+        monkeypatch.setenv(name, "x")      # recorded, so teardown removes whatever the code sets
+        monkeypatch.delenv(name)
+    assert not anthropic_credential_configured()
+    # a name pointing at another secret is never forwarded
+    monkeypatch.setenv("OTHER_SECRET", "postgresql://user:pw@host/db")
+    monkeypatch.setenv("CDF_ANTHROPIC_KEY_VAR", "OTHER_SECRET")
+    assert not anthropic_credential_configured() and "ANTHROPIC_API_KEY" not in __import__("os").environ
+    monkeypatch.setenv("CDF_ANTHROPIC_KEY_VAR", "bad name; rm")
+    assert not anthropic_credential_configured()
+    # the owner's own name works
+    monkeypatch.setenv("Owner_Key", "sk-ant-api03-test-not-a-real-key")
+    monkeypatch.setenv("CDF_ANTHROPIC_KEY_VAR", "Owner_Key")
+    monkeypatch.setenv("CDF_ENABLE_PROVIDER_API", "1")
+    assert anthropic_credential_configured()
+    assert __import__("os").environ["ANTHROPIC_API_KEY"] == "sk-ant-api03-test-not-a-real-key"
+    assert select_executor("anthropic", timeout=5).config.provider == "anthropic"
