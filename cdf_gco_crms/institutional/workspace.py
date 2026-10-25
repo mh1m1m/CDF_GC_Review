@@ -96,6 +96,9 @@ class PrivateWorkspace:
         from ..agents.orchestrator import ReviewOrchestrator
         principal=self._principal(context.case_id,context,'case.run')
         self.calibration.authorize(context.case_id,principal)
+        if getattr(state.document,'is_demo',False):
+            # A caller flag must never relabel institutional content as synthetic and skip data authorization.
+            raise InstitutionalAccessDenied('PRIVATE_REVIEW_CANNOT_BE_LABELLED_SYNTHETIC')
         case=self.calibration.store._case(context.case_id)
         if hashlib.sha256(Path(document).read_bytes()).hexdigest()!=case['source_hash']:
             raise InstitutionalAccessDenied('PRIVATE_REVIEW_SOURCE_VERSION_MISMATCH')

@@ -423,6 +423,8 @@ class ApplicationService:
                 "total": len(events),
             }
         if action == "calibrate":
+            if r.decision is None:
+                raise CalibrationError("EXPLICIT_CALIBRATION_DECISION_REQUIRED")
             body = {
                 k: getattr(r, k)
                 for k in (

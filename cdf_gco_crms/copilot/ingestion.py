@@ -51,11 +51,10 @@ class IngestionService:
                 with zipfile.ZipFile(path) as package:
                     if any("vbaproject" in n.lower() for n in package.namelist()):
                         raise CalibrationError("ACTIVE_CONTENT_NOT_SUPPORTED")
+                    from ..assurance.safe_xml import has_dtd
+
                     for name in package.namelist():
-                        if name.endswith(".xml") and any(
-                            marker in package.read(name).upper()
-                            for marker in (b"<!DOCTYPE", b"<!ENTITY")
-                        ):
+                        if name.lower().endswith((".xml", ".rels")) and has_dtd(package.read(name)):
                             raise CalibrationError("XML_ENTITY_DECLARATION_REJECTED")
                 if kind == "docx":
                     from docx import Document

@@ -1,12 +1,14 @@
 """OpenAI Responses API through the official SDK; no consumer-token reuse."""
 
 from ..contracts import MODE_LIVE, TokenUsage
+from ..provenance import official_endpoint
 from .base import ProviderAdapter, ProviderFailure, ProviderResult
 
 
 class OpenAIAdapter(ProviderAdapter):
     name = "openai"
     mode = MODE_LIVE
+    endpoint = official_endpoint("openai")
 
     def __init__(self, config=None, client=None):
         super().__init__(config)
@@ -18,6 +20,7 @@ class OpenAIAdapter(ProviderAdapter):
 
         try:
             client = self._client or openai.OpenAI(
+                base_url=self.endpoint,  # pinned: OPENAI_BASE_URL never redirects a trusted adapter
                 timeout=self.config.timeout_seconds, max_retries=self.config.max_retries
             )
             self._client = client

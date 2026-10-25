@@ -34,10 +34,10 @@ class Request(BaseModel):
         "WITHDRAW",
         "ESCALATE",
         "REQUEST_MORE_EVIDENCE",
-    ] = "KEEP_UNCHANGED"
+    ] | None = None  # never defaulted: a calibration decision must be stated explicitly
     rationale: str = Field(default="", max_length=4000)
     expected_evidence_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
-    status: Literal["DRAFT", "SUBMITTED"] = "SUBMITTED"
+    status: Literal["DRAFT", "SUBMITTED"] = "DRAFT"  # submission is an explicit human act, never a default
     reasons: list[str] = Field(default_factory=list, max_length=20)
     evidence_refs: list[str] = Field(default_factory=list, max_length=40)
     query: str = Field(default="", max_length=240)

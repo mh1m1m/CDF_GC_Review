@@ -89,15 +89,40 @@ async def protocol(a, url):
                 },
                 error=True,
             )
-            state = await call(
+            checkpoint = {
+                "workflow_id": state["workflow_id"],
+                "expected_version": str(state["version"]),
+                "confirm_human": True,
+                "rationale": "Proceed with draft reports after the recorded decisions; no issuance approval.",
+            }
+            # A model client cannot close a human checkpoint, even after recording a decision itself.
+            denied = await call(
                 "resume",
-                {
-                    "workflow_id": state["workflow_id"],
-                    "expected_version": str(state["version"]),
-                    "confirm_human": True,
-                    "rationale": "Proceed with draft reports after the recorded decision; no issuance approval.",
-                    "idempotency_key": "phase2-resume-human-001",
-                },
+                {**checkpoint, "idempotency_key": "phase2-resume-mcp-denied-001"},
+                error=True,
+            )
+            assert "HUMAN_CHECKPOINT_REQUIRES_DIRECT_HUMAN_INTERFACE" in json.dumps(denied)
+            # The human closes it on the CLI after deciding every remaining material observation.
+            for index, record in enumerate(decisions["records"][1:], 2):
+                payload_cli(
+                    a,
+                    a.temp,
+                    "decision",
+                    {
+                        "case_id": CASE,
+                        "observation_id": record["observation"]["observation_id"],
+                        "action": "ACCEPT",
+                        "expected_version": record["version"],
+                        "expected_evidence_hash": decisions["evidence_hash"],
+                        "rationale": "Synthetic reviewer retained this source-grounded material observation.",
+                        "idempotency_key": f"phase2-human-{index:03d}",
+                    },
+                )
+            state = payload_cli(
+                a,
+                a.temp,
+                "resume",
+                {"case_id": CASE, **checkpoint, "idempotency_key": "phase2-resume-human-001"},
             )
             deadline = time.monotonic() + 180
             while state["status"] == "WAITING_FOR_JOB" and time.monotonic() < deadline:
@@ -245,6 +270,7 @@ def main(argv=None):
         ):
             env.pop(key, None)
         a = TimedAcceptance(out, env)
+        a.temp = temp
         a.cli(
             "case", "create", "--case", CASE, "--idempotency-key", "phase2-create-001"
         )

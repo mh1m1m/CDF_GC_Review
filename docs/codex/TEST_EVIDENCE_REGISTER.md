@@ -128,3 +128,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-10-25 repository health pass (local, Python 3.13, no provider configured)
 
 `python -m pytest tests qa_public -q -p no:cacheprovider -rs`: **343 passed, 11 skipped** (3 live-provider, 7 reference PDFs, 1 design-guide render; all expected), 10 subtests. `unittest discover -s qa_public`: OK. Public guard: PASS. `bandit -r cdf_gco_crms -ll`: 0 medium/high findings (was 3 high, 7 medium). `pip_audit -r requirements-execution.txt`: no known vulnerabilities. Web `npm ci && npm run build && npm run test`: 2 passed; `npm audit`: 0 vulnerabilities. Docker-based LibreOffice/acceptance jobs NOT_RUN locally; PR CI is the source of truth.
+
+## 2026-10-25 P0 audit fixes (local, Python 3.13)
+
+`pytest tests qa_public`: **363 passed, 11 skipped** (same expected skips). New `tests/test_p0_audit_fixes.py`: 20 passed; 17 of them fail against the pre-fix source (checked by stashing the fixes). `python -m cdf_gco_crms.acceptance.phase2 --no-browser --no-exports`: PASS. Browser and LibreOffice export steps NOT_RUN locally (sandbox Playwright mismatch); PR CI is the source of truth. Public guard PASS; Bandit 0 medium/high; web build and contract tests pass.

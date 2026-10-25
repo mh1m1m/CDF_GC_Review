@@ -153,6 +153,10 @@ def test_private_retrieval_runs_before_existing_agent_roles_and_cannot_grant_iss
     assert execution.trace_summary.get('actual_live_inference_count',0)==0
     with pytest.raises(InstitutionalAccessDenied):
         workspace.execute_review(state,path,context(),index=synthetic_reference_index(),reference_queries={},runner=object(),gate_dir=tmp_path/'gate')
+    state.document.is_demo=True
+    with pytest.raises(InstitutionalAccessDenied,match='CANNOT_BE_LABELLED_SYNTHETIC'):
+        workspace.execute_review(state,path,context(),index=synthetic_reference_index(),reference_queries={},gate_dir=tmp_path/'gate')
+    state.document.is_demo=False
     state.observations[0].internal_id='OUTSIDE-PRIVATE-CASE'
     with pytest.raises(InstitutionalAccessDenied,match='OBSERVATION_BINDING'):
         workspace.execute_review(state,path,context(),index=synthetic_reference_index(),reference_queries={},gate_dir=tmp_path/'gate')

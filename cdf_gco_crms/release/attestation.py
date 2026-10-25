@@ -27,6 +27,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..agents import provenance as PV
 from .trust import STATUS_ACTIVE, TrustStore, parse_iso
 
 ATTESTATION_SCHEMA = "CDF-RELEASE-ATTESTATION-v7.12.1"
@@ -36,8 +37,8 @@ PURPOSE_DEMO = "DEMO_OR_INTERNAL"
 DEFAULT_VALID_HOURS = 72
 CHALLENGE_ROLES = ("BLACK_TEAM", "RED_ADVOCATE", "ADJUDICATOR")
 FINAL_ROLE = "FINAL_REVIEWER"
-KNOWN_LIVE_PROVIDERS = ("anthropic",)
-LIVE_INVOCATION_PREFIXES = ("msg_",)          # Anthropic Messages API ids
+KNOWN_LIVE_PROVIDERS = tuple(PV.LIVE_PROVIDERS)                       # same list provenance trusts
+LIVE_INVOCATION_PREFIXES = tuple(p["invocation_prefix"] for p in PV.LIVE_PROVIDERS.values())
 EMPTY_RESPONSE_HASH = hashlib.sha256(b"").hexdigest()
 
 # receipt / independence reasons
@@ -48,6 +49,7 @@ R_RECEIPT_NOT_OK = "EXECUTION_RECEIPT_STATUS_NOT_OK"
 R_RECEIPT_PROVIDER = "EXECUTION_RECEIPT_PROVIDER_NOT_LIVE"
 R_RECEIPT_INVOCATION = "EXECUTION_RECEIPT_INVOCATION_ID_NOT_PROVIDER_SHAPED"
 R_RECEIPT_RESPONSE = "EXECUTION_RECEIPT_RESPONSE_HASH_EMPTY"
+R_RECEIPT_ENDPOINT = "EXECUTION_RECEIPT_ENDPOINT_NOT_OFFICIAL"
 R_RECEIPT_HASH_MISMATCH = "EXECUTION_RECEIPT_HASH_MISMATCH"
 R_ROLE_NOT_LIVE = "ROLE_NOT_LIVE"
 R_ROLE_MISSING = "REQUIRED_ROLE_NOT_EXECUTED"
@@ -129,11 +131,16 @@ def receipt_problems(record: dict | None, *, role: str, response_hash: str | Non
         out.append(R_RECEIPT_SYSTEM)
     if record.get("Execution_Status") != "OK":
         out.append(R_RECEIPT_NOT_OK)
-    if str(record.get("Provider", "")).lower() not in KNOWN_LIVE_PROVIDERS:
+    provider = str(record.get("Provider", "")).lower()
+    if provider not in KNOWN_LIVE_PROVIDERS:
         out.append(R_RECEIPT_PROVIDER)
     inv = str(record.get("Invocation_ID") or "")
-    if not inv or not inv.startswith(LIVE_INVOCATION_PREFIXES):
+    prefix = PV.LIVE_PROVIDERS.get(provider, {}).get("invocation_prefix")
+    if not inv or not prefix or not inv.startswith(prefix):
         out.append(R_RECEIPT_INVOCATION)
+    endpoint = record.get("Provider_Endpoint")
+    if endpoint is not None and provider in PV.LIVE_PROVIDERS and endpoint != PV.official_endpoint(provider):
+        out.append(R_RECEIPT_ENDPOINT)
     rh = record.get("Response_Hash")
     if not rh or rh == EMPTY_RESPONSE_HASH:
         out.append(R_RECEIPT_RESPONSE)

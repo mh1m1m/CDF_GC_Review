@@ -100,6 +100,8 @@ class AgentRunner:
                                  result.usage, error=None if not errors else "schema validation failed",
                                  schema_errors=errors, evidence_refs=_evidence_refs(output) if output else [])
             self._stamp(resp, request, provider_request_id=result.provider_request_id, failed=bool(errors))
+            if self.execution_source == PV.SOURCE_PROVIDER_API:
+                trace_extra = {**trace_extra, "Provider_Endpoint": getattr(self.provider, "endpoint", None)}
             self.trace.record(resp, attempts=attempt, executor_receipt=result.execution_receipt, **trace_extra)
             return resp
         resp = self._stamp(self._failure(request, execution_id, last_error or "exhausted", self.provider.name, self.provider.model,

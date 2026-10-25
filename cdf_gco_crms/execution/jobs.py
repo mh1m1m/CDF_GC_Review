@@ -284,7 +284,9 @@ def compute(database, job_id, lease, workspace):
             existing = service.store.db.execute(
                 "SELECT observations_json FROM cases WHERE case_id=?", (job["case_id"],)
             ).fetchone()
-            if existing and json.loads(existing[0]) != observations:
+            from ..calibration.store import normalize_evidence
+
+            if existing and json.loads(existing[0]) != normalize_evidence(observations):
                 raise CalibrationError("OBSERVATION_VERSION_MISMATCH")
             state = review_state(job["case_id"], observations)
             source = directory / "SYNTHETIC-cooperation.docx"
