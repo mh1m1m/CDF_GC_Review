@@ -179,7 +179,7 @@ def _ddl(script: str, triggers: dict) -> list[str]:
         name, when, table, message = m.group(1), m.group(2).upper(), m.group(3), m.group(4)
         triggers[name.lower()] = table
         fn = f"{name}_fn"
-        return (f"\x00CREATE OR REPLACE FUNCTION {fn}() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN "
+        return (f"\x00CREATE OR REPLACE FUNCTION {fn}() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $f$ BEGIN "
                 f"RAISE EXCEPTION '{message}' USING ERRCODE = 'integrity_constraint_violation'; END $f$;\x00"
                 f"CREATE OR REPLACE TRIGGER {name} BEFORE {when} ON {table} FOR EACH ROW EXECUTE FUNCTION {fn}();\x00")
 
