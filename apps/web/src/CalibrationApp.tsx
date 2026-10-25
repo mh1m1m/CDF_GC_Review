@@ -538,7 +538,7 @@ export default function CalibrationApp({
               <h2>مؤشرات المعايرة</h2>
               <p>
                 الأرقام أدناه مأخوذة من قاعدة البيانات، وليست أهدافاً ثابتة
-                لأسلوب محمد التميمي.
+                لأسلوب المراجع.
               </p>
               {Object.entries(active.statistics).map(([k, v]) => (
                 <div className="row" key={k}>
@@ -682,8 +682,8 @@ export default function CalibrationApp({
             <section className="panel">
               <h2>بصمة الأسلوب المهني</h2>
               <p>
-                ملف توجيهي للمحاكاة المنضبطة، ولا يجوز اعتباره أسلوب محمد
-                التميمي المعتمد دون تحقق بشري.
+                ملف توجيهي للمحاكاة المنضبطة، ولا يجوز اعتباره أسلوب المراجع
+                المعتمد دون تحقق بشري.
               </p>
               {!profileData ? (
                 <p className="empty">

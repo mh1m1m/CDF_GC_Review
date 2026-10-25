@@ -54,6 +54,7 @@ class TrustedTestAdapter(MockAdapter):
     looking ids (message id, request id). Production code never registers it; it is not a live inference."""
     name = "anthropic"
     mode = C.MODE_LIVE
+    endpoint = "https://api.anthropic.com"   # the pinned official endpoint the provenance registry requires
 
     def __init__(self, script):
         super().__init__(ProviderConfig(provider="anthropic", model="claude-opus-5-5-test",

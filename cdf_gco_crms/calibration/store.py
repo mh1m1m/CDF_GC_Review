@@ -32,8 +32,45 @@ MATERIAL_CATEGORIES = frozenset({
 RULE_ACTIONS = frozenset({"APPROVE", "APPROVE_WITH_CHANGES", "REJECT", "DEFER", "REQUEST_MORE_EVIDENCE"})
 
 
+UNKNOWN_REASON = "W15"          # "reason not known": never enough on its own to withdraw a material observation
+GAP_PREFIX = "GAP:"             # a declared evidence gap, e.g. "GAP: signed minutes not yet received"
+MIN_SUBSTANTIVE_LETTERS = 12
+
+
+def _substantive(text: str) -> bool:
+    return sum(ch.isalpha() for ch in text or "") >= MIN_SUBSTANTIVE_LETTERS
+
+
+def _valid_evidence_ref(ref) -> bool:
+    if not isinstance(ref, str) or not ref.strip():
+        return False
+    ref = ref.strip()
+    return _substantive(ref[len(GAP_PREFIX):]) if ref.upper().startswith(GAP_PREFIX) else len(ref) >= 3
+
+
 class CalibrationError(ValueError):
     pass
+
+
+def normalize_evidence(evidence: list[dict]) -> list[dict]:
+    """Server-side import rules for observation evidence (deterministic, so re-imports compare equal)."""
+    from .materiality import material_review_flags
+    normalized = []
+    for item in evidence:
+        if item.get("observed_change") == "REMOVED_FROM_VERSION" and item.get("human_decision") == "WITHDRAW":
+            raise CalibrationError("ABSENCE_IS_NOT_HUMAN_WITHDRAWAL")
+        if item.get("documented_withdrawal", False) is not False:
+            # Only a submitted human decision documents a withdrawal; an import cannot pre-mark one.
+            raise CalibrationError("DOCUMENTED_WITHDRAWAL_CANNOT_BE_IMPORTED")
+        supplied = item.get("material_categories") or []
+        if not isinstance(supplied, list) or not set(supplied).issubset(MATERIAL_CATEGORIES):
+            raise CalibrationError("INVALID_MATERIAL_CATEGORY")
+        # Review flags are recomputed here; a caller can add categories but never remove them.
+        text = item.get("original_text") or item.get("text") or ""
+        flags = material_review_flags(text, item.get("document_anchor"),
+                                      absent=item.get("observed_change") == "REMOVED_FROM_VERSION")
+        normalized.append({**item, "material_categories": sorted(set(supplied).union(flags))})
+    return normalized
 
 
 class StaleCase(CalibrationError):
@@ -134,9 +171,7 @@ class CalibrationStore:
         ids = [x["observation_id"] for x in evidence]
         if len(set(ids)) != len(ids):
             raise CalibrationError("DUPLICATE_OBSERVATION")
-        for item in evidence:
-            if item.get("observed_change") == "REMOVED_FROM_VERSION" and item.get("human_decision") == "WITHDRAW":
-                raise CalibrationError("ABSENCE_IS_NOT_HUMAN_WITHDRAWAL")
+        evidence = normalize_evidence(evidence)
         digest = fingerprint(evidence)
         with self.transaction():
             self.db.execute("INSERT INTO cases VALUES (?,?,?,?,?)",
@@ -225,8 +260,13 @@ class CalibrationStore:
         if decision == "WITHDRAW" and status == "SUBMITTED":
             if not reasons or not rationale.strip():
                 raise CalibrationError("WITHDRAWAL_REASON_REQUIRED")
-            if categories and not evidence_refs:
-                raise CalibrationError("MATERIAL_WITHDRAWAL_REQUIRES_EVIDENCE_OR_GAP")
+            if categories:
+                if set(reasons) <= {UNKNOWN_REASON}:
+                    raise CalibrationError("MATERIAL_WITHDRAWAL_REQUIRES_SPECIFIC_REASON")
+                if not _substantive(rationale):
+                    raise CalibrationError("MATERIAL_WITHDRAWAL_REQUIRES_SUBSTANTIVE_RATIONALE")
+                if not evidence_refs or not all(_valid_evidence_ref(x) for x in evidence_refs):
+                    raise CalibrationError("MATERIAL_WITHDRAWAL_REQUIRES_EVIDENCE_OR_GAP")
         payload = {"decision": decision, "rationale": rationale, "reasons": reasons,
                    "evidence_refs": evidence_refs, "material_categories": sorted(categories),
                    "status": status, "evidence_hash": expected_evidence_hash,

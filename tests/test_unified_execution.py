@@ -229,6 +229,7 @@ def test_material_calibration_and_issue_guard_are_shared(application):
         "observation_id": view["observation_ids"][-1],
         "expected_evidence_hash": view["evidence_hash"],
         "decision": "WITHDRAW",
+        "status": "SUBMITTED",
         "rationale": "Synthetic unsupported withdrawal",
         "reasons": ["W12"],
         "idempotency_key": "withdraw-key-001",

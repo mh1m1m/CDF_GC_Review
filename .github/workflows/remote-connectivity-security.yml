@@ -1,7 +1,7 @@
 name: Remote MCP security and honest connectivity status
 on:
   pull_request:
-    branches: [codex/phase-ii-copilot]
+    branches: [codex/phase-ii-copilot, codex/real-mcp-connectivity]
   workflow_dispatch:
 permissions:
   contents: read

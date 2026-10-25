@@ -38,6 +38,18 @@ SOURCES = (SOURCE_PROVIDER_API, SOURCE_PROVIDER_API_UNTRUSTED, SOURCE_SIMULATED_
            SOURCE_DETERMINISTIC, SOURCE_FAILED, SOURCE_SUPERVISED_CLI)
 TRUSTED_LIVE_SOURCES = (SOURCE_PROVIDER_API,)
 
+# The one list of live providers. Provenance and the release attestation both read it, so a provider either
+# counts as live and can satisfy the gate, or neither. The endpoint is pinned: an SDK base-URL override from the
+# environment (OPENAI_BASE_URL, ANTHROPIC_BASE_URL) never reaches a trusted adapter.
+LIVE_PROVIDERS = {
+    "anthropic": {"endpoint": "https://api.anthropic.com", "invocation_prefix": "msg_"},
+    "openai": {"endpoint": "https://api.openai.com/v1", "invocation_prefix": "resp_"},
+}
+
+
+def official_endpoint(provider: str) -> str:
+    return LIVE_PROVIDERS[provider]["endpoint"]
+
 
 def trusted_live_adapter_types() -> tuple[type, ...]:
     """The adapter classes whose responses are provider-originated. Exact class match only: a subclass that
@@ -62,7 +74,12 @@ def classify_adapter(adapter) -> str:
     if type(adapter) is CachedAdapter:
         return SOURCE_CACHED
     if type(adapter) in trusted_live_adapter_types():
-        return SOURCE_PROVIDER_API if not getattr(adapter, "client_injected", False) else SOURCE_PROVIDER_API_UNTRUSTED
+        if getattr(adapter, "client_injected", False):
+            return SOURCE_PROVIDER_API_UNTRUSTED
+        spec = LIVE_PROVIDERS.get(getattr(adapter, "name", ""))
+        if spec is None or getattr(adapter, "endpoint", None) != spec["endpoint"]:
+            return SOURCE_PROVIDER_API_UNTRUSTED
+        return SOURCE_PROVIDER_API
     if type(adapter) is MockAdapter:
         return SOURCE_MOCK
     if getattr(adapter, "mode", "") == "LIVE":

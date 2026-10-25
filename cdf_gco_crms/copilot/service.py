@@ -74,6 +74,7 @@ class CopilotService:
         self.operations.rate(p)
         try:
             with self.app.lock, self.app.store.transaction():
+                self._transport = transport  # read by the human checkpoint; set under the lock
                 p = self.app.sessions.resolve_id(p.session_id)
                 p.reviewer.require(
                     "CALIBRATION_ADMIN"
@@ -324,25 +325,43 @@ class CopilotService:
         )
         return state
 
+    def _checkpoint_decisions(self, state, step, r, p):
+        """A human checkpoint closes only on a direct human interface, with a fresh decision on every
+        material observation recorded after the workflow reached the checkpoint."""
+        if str(getattr(self, "_transport", "")).upper().startswith("MCP"):
+            # A model client may read and propose, but never close a human checkpoint (protocol Art. 00.1).
+            raise AccessDenied("HUMAN_CHECKPOINT_REQUIRES_DIRECT_HUMAN_INTERFACE")
+        if not r.rationale.strip():
+            raise CalibrationError("PERSISTED_HUMAN_DECISION_AND_RATIONALE_REQUIRED")
+        since = step.get("waiting_since") or state.get("created_at", "")
+        fresh = [x for x in self.human.records(r.case_id, p) if x["at"] >= since]
+        if not fresh:
+            raise CalibrationError("PERSISTED_HUMAN_DECISION_AND_RATIONALE_REQUIRED")
+        decided = {x["observation_id"] for x in fresh}
+        material = {
+            o["observation_id"]
+            for o in self.app.calibration.case(r.case_id, p.reviewer)["observations"]
+            if o.get("material_categories")
+        }
+        if material - decided:
+            raise CalibrationError("FRESH_DECISION_REQUIRED_FOR_EVERY_MATERIAL_OBSERVATION")
+        return fresh
+
     def _advance(self, state, r, p):
         for step in state["steps"]:
             if step["status"] == "DONE":
                 continue
             if step["tool"] == "HUMAN_CHECKPOINT":
                 if not r.confirm_human:
+                    step.setdefault("waiting_since", now_utc())
                     state.update(status="WAITING_FOR_HUMAN", pending_human=True)
                     break
-                if not r.rationale.strip() or not self.human.records(r.case_id, p):
-                    raise CalibrationError(
-                        "PERSISTED_HUMAN_DECISION_AND_RATIONALE_REQUIRED"
-                    )
+                fresh = self._checkpoint_decisions(state, step, r, p)
                 step.update(
                     status="DONE",
                     actor=p.reviewer.reviewer_id,
                     at=now_utc(),
-                    decision_versions=[
-                        x["event_hash"] for x in self.human.records(r.case_id, p)
-                    ],
+                    decision_versions=[x["event_hash"] for x in fresh],
                 )
                 state["pending_human"] = False
                 continue

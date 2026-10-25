@@ -28,9 +28,9 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
+from . import safe_xml
 from ..config import round_schema as S
 from ..config import workbook_settings as W
 
@@ -89,14 +89,14 @@ def audit_xlsx(path: str | Path) -> dict:
         if bad:
             findings.append({"gate": "PKG_INTEGRITY", "status": "FAIL", "detail": bad})
         names_in_pkg = set(z.namelist())
-        book = ET.fromstring(z.read("xl/workbook.xml"))
+        book = safe_xml.fromstring(z.read("xl/workbook.xml"))
         sheets = [{"name": s.get("name"), "state": s.get("state", "visible"), "id": s.get("{%s}id" % NS["r"])}
                   for s in book.findall(".//m:sheet", NS)]
-        rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))
+        rels = safe_xml.fromstring(z.read("xl/_rels/workbook.xml.rels"))
         targets = {x.get("Id"): x.get("Target") for x in rels}
         shared: list[str] = []
         if "xl/sharedStrings.xml" in names_in_pkg:
-            st = ET.fromstring(z.read("xl/sharedStrings.xml"))
+            st = safe_xml.fromstring(z.read("xl/sharedStrings.xml"))
             shared = [_rich_text(si) for si in st.findall("m:si", NS)]
         names = [s["name"] for s in sheets]
         visible = [s for s in sheets if s["state"] == "visible"]
@@ -121,7 +121,7 @@ def audit_xlsx(path: str | Path) -> dict:
             if part not in names_in_pkg:
                 findings.append({"gate": "SHEET_PATH", "status": "FAIL", "detail": s["name"]})
                 continue
-            root = ET.fromstring(z.read(part))
+            root = safe_xml.fromstring(z.read(part))
             cells = {c.get("r"): _cell_value(c, shared) for c in root.findall(".//m:sheetData/m:row/m:c", NS)}
             all_text.extend(str(v) for v in cells.values() if v is not None)
             if s["name"] == W.DASHBOARD_SHEET:
@@ -149,7 +149,7 @@ def audit_xlsx(path: str | Path) -> dict:
         formula_total = 0
         for entry in names_in_pkg:
             if entry.startswith("xl/worksheets/sheet") and entry.endswith(".xml"):
-                formula_total += len(ET.fromstring(z.read(entry)).findall(".//m:f", NS))
+                formula_total += len(safe_xml.fromstring(z.read(entry)).findall(".//m:f", NS))
         findings.append({"gate": "FORMULAS_PRESENT", "status": "PASS" if formula_total > 0 else "NOT_VERIFIED",
                          "detail": formula_total})
         findings.append({"gate": "EXCEL365_ACTUAL", "status": "NOT_VERIFIED",
@@ -171,7 +171,7 @@ def synthetic_markers(path: Path, z: ZipFile, names_in_pkg: set[str], all_text: 
         if m.upper() in upper:
             markers.append(f"FILENAME:{m}")
     if "docProps/core.xml" in names_in_pkg:
-        core = ET.fromstring(z.read("docProps/core.xml"))
+        core = safe_xml.fromstring(z.read("docProps/core.xml"))
         kw = core.find("cp:keywords", NS)
         if kw is not None and kw.text and DEMO_KEYWORD in kw.text:
             markers.append("CORE_KEYWORDS:" + DEMO_KEYWORD)

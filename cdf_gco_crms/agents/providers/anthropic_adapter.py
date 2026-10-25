@@ -12,6 +12,7 @@ from __future__ import annotations
 import time
 
 from ..contracts import MODE_LIVE, AgentRequest, TokenUsage
+from ..provenance import official_endpoint
 from .base import ProviderAdapter, ProviderConfig, ProviderFailure, ProviderResult
 
 MAX_RATE_LIMIT_WAIT = 30.0
@@ -20,6 +21,7 @@ MAX_RATE_LIMIT_WAIT = 30.0
 class AnthropicAdapter(ProviderAdapter):
     name = "anthropic"
     mode = MODE_LIVE
+    endpoint = official_endpoint("anthropic")
 
     def __init__(self, config: ProviderConfig | None = None, client=None):
         super().__init__(config)
@@ -32,7 +34,9 @@ class AnthropicAdapter(ProviderAdapter):
                 import anthropic
             except ImportError as exc:                  # the SDK is an optional dependency of the live runtime
                 raise ProviderFailure("anthropic SDK not installed (pip install anthropic)", kind="SDK_MISSING") from exc
-            self._client = anthropic.Anthropic(timeout=self.config.timeout_seconds, max_retries=self.config.max_retries)
+            # base_url pinned: ANTHROPIC_BASE_URL never redirects a trusted adapter
+            self._client = anthropic.Anthropic(base_url=self.endpoint, timeout=self.config.timeout_seconds,
+                                               max_retries=self.config.max_retries)
         return self._client
 
     def complete(self, request: AgentRequest) -> ProviderResult:

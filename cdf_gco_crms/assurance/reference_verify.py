@@ -35,7 +35,7 @@ VERDICT_TEXT_ONLY = "TEXT_VERIFIED_ONLY"
 VERDICT_NOT_VERIFIED = "NOT_VERIFIED"
 MIN_EXCERPT_CHARS = 8
 
-_MARKS = re.compile("[​-‏‪-‮⁦-⁩﻿ؐ-ًؚ-ٰٟـ]")
+_MARKS = re.compile("[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeffؐ-ًؚ-ٰٟـ]")
 
 
 def norm(s: str) -> str:

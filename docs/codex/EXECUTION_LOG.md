@@ -94,3 +94,27 @@ Preserved PR #11 at `2cbc880795027b0b3642a22b3fa881e7725d8d1f` and created `code
 One new explicitly authorized fictional drafting diagnostic, distinct from the earlier ambiguous job, persisted thread/turn start, connection/HTTP 403/reconnect categories and no completion. Zero successful native/API completions; no further request followed the access-denial observation. Metadata-only progress, bounded native pipes, an inner timeout publication margin, fail-fast denied-access handling and daemon isolation prevent losing these diagnostics. The earlier job remains unreplayed. New independent read-only audit verifies source/attempt/trace consistency without fabricating external attestation.
 
 Implemented a separate TLS-only public synthetic OAuth resource server with pinned JWT keys/issuer/audience/profile, explicit subject/client mappings, existing revocable sessions and case grants, exact metadata/challenges and transport/body/rate defenses. Managed authorization-code/PKCE/client registration is delegated to an actual external issuer; none is fabricated. Added disabled deployment configuration, real local TLS/independent SDK checks and security regressions. Existing copilot/UI/agent/release/private-mode contracts are retained. Public deployment, actual ChatGPT/Claude connections, live-model case reconciliation and live-derived exports remain BLOCKED_EXTERNAL; prior deterministic acceptance is not substituted for this milestone.
+
+## 2026-10-25 — Pre-v7.12-prompt repository health pass
+
+Branch `claude/project-thread-gi42zn` on top of PR #12 (`0e33195`). Rechecked the stack: #1→#12 is strictly linear, #2 is fully contained in #3's history, all latest PR heads have green CI and no open review threads. Full-package Bandit (not only the CI-scoped paths) found two real issues, both fixed:
+
+- Literal Unicode bidi control characters (U+202A–U+202E, U+2066–U+2069) inside string literals in `assurance/reference_verify.py`, `references/textnorm.py` and `word/document_comments.py` (Trojan-source risk, B613). Rewritten as `\u` escapes; compiled values are identical. A new repository test rejects any future literal bidi controls in tracked source.
+- `assurance/challenge.py` and `assurance/production_guard.py` parsed parts of uploaded Office packages with stdlib `ElementTree` (B314). They now use the new `assurance/safe_xml.py`, which refuses any part carrying a DOCTYPE/ENTITY declaration (OOXML never does) before parsing. Negative tests cover entity expansion and external entities.
+
+No behavior, contract or dependency changes. External blockers (CON-01..04, EXT-01/02, EXE-01/03) are unchanged.
+
+## 2026-10-25 — P0 fixes from the owner's stack audit
+
+Verified each P0 finding against the code before changing it; all reproduced.
+
+- D1: `PrivateWorkspace.execute_review` refuses a document flagged `is_demo` (a caller flag can no longer relabel institutional content as synthetic and skip data authorization).
+- D2/D3: one provider registry (`provenance.LIVE_PROVIDERS`) feeds both provenance and the release attestation. Trusted adapters pin the official endpoint (`OPENAI_BASE_URL` / `ANTHROPIC_BASE_URL` no longer redirect them), an adapter with any other endpoint classifies as `PROVIDER_API_UNTRUSTED_CLIENT`, PROVIDER_API trace lines record `Provider_Endpoint`, and attestation binds the invocation-id prefix to the provider (`msg_` Anthropic, `resp_` OpenAI) and rejects a non-official recorded endpoint. OpenAI receipts can now satisfy the gate on the same terms as Anthropic, which the existing OpenAI adapter already assumed.
+- D4: the copilot human checkpoint cannot be closed over an MCP transport and needs a decision recorded after the checkpoint was reached on every material observation. The Phase II acceptance now shows the MCP close being refused and the human closing it on the CLI.
+- D5/D8: case import recomputes materiality flags on the server (callers can add, never remove), rejects unknown categories and refuses `documented_withdrawal` pre-marks.
+- D6: a submitted withdrawal of a material observation needs a reason other than W15, a substantive rationale, and non-empty evidence references or an explicit `GAP: <description>`.
+- D7: operation contracts no longer default `decision` (now required for calibration) or `status` (now `DRAFT`); CLI gains `--status`.
+- C3: reviewer's name removed from the calibration UI text.
+- D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
+
+Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.

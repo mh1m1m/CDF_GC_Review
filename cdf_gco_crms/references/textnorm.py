@@ -64,7 +64,7 @@ _WORD_RULES = (
     ("االت", "الات"),        # مجالات، اتصالات، حالات
 )
 
-_BIDI_MARKS = re.compile("[​‌‍‎‏‪-‮⁦-⁩﻿]")
+_BIDI_MARKS = re.compile("[\u200b\u200c\u200d\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 _TASHKEEL = re.compile("[ؐ-ًؚ-ٰٟۖ-ۭـ]")
 _SPACES = re.compile(r"\s+")
 
