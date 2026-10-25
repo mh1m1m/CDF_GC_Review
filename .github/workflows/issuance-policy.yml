@@ -10,6 +10,7 @@ on:
       - "development/v7.12-production-engineering"
   pull_request:
     branches:
+      - "claude/project-thread-gi42zn"
       - "codex/real-mcp-connectivity"
       - "codex/phase-ii-copilot"
       - "codex/unified-execution"

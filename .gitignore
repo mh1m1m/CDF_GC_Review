@@ -31,6 +31,7 @@ EVIDENCE/
 assets/
 cdf_gco_crms/protocol/v711_amendments.py
 cdf_gco_crms/protocol/v712_amendments.py
+cdf_gco_crms/protocol/v713_amendments.py
 cdf_gco_crms/protocol/consolidate.py
 tools/build_protocol.py
 tools/decisions_traceability.py

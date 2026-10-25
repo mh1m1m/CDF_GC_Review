@@ -118,3 +118,19 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-10-25 — Audit follow-up: calibration gate, transport, redactions, guard (branch `fix/v712-audit-p0`)
+
+Continues the P0 pass above with the items it left open. Each was reproduced before it was fixed.
+
+- Calibration store: optimistic concurrency on decisions (`expected_decision_head`; a stale head is `409 DECISION_CHANGED_SINCE_READ`); decision states with a second-review step (`POST /api/cases/{id}/decisions/review`, the reviewer must differ from the author, a draft cannot be reviewed); rule approval only on rule-eligible evidence (latest, submitted or approved, not returned) and a known profile version; database triggers block UPDATE/DELETE on events and a `chain_heads` anchor detects truncation; the profile compiler reads rule-eligible events only.
+- UI: the decision form resets per observation and preselects nothing; submission stays disabled until a decision is chosen; second-review panel; rule review sends real evidence and a real profile version. The e2e specs now choose a decision explicitly.
+- MCP and copilot: a model can save only DRAFT calibration and cannot record a human decision over MCP (`SUBMITTED_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE`, `HUMAN_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE`).
+- Remote MCP compose: the published port moved to a small TCP relay (`cdf_gco_crms.interfaces.tcp_relay`) on an edge network; the MCP service stays on the internal network with no egress. Checked with Docker: before, the host could not reach the service; after, 200 through the relay and MCP egress still blocked.
+- Receipt audit labels CLI completions apart from provider API receipts; acceptance harnesses refuse to run under `python -O`; threat-model, authorization and integration docs corrected.
+- Redactions: the handoff's MAT section replaced by an engineering-only version; synthetic exports and the UI use a demo mark; the logo registry no longer carries Drive links.
+- Public guard: credential signatures, shareable Drive links, kunya-style personal references, and a private deny-list (file or CI secret) reported by index only; `--history` reports what history already holds (report only).
+- Annex F tier tool (`tools/mat_dna/annex_f_tiers.py`) and spelling-tolerant materiality markers. The tool tiers exemplar rows as observed change, inferred rationale, human-validated rationale or human-approved rule, and never derives a reason from an absence. The review protocol v7.13 that uses it is maintained privately and is not in this repository.
+- CI: the PR base `claude/project-thread-gi42zn` added to the pull-request filters.
+
+Not changed: history (C1) and Drive sharing (C2) are the owner's decisions; no calibration decision was recorded, since only the reviewer can record one; no live provider call was made.

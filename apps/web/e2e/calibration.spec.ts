@@ -21,6 +21,10 @@ test("synthetic calibration persists after browser restart and denies unsubstant
     .getByRole("button", { name: "معايرة الملاحظات" })
     .click();
   await expect(page.getByText("SYN-001", { exact: false })).toBeVisible();
+  // No decision is preselected and submission stays disabled until the reviewer chooses one.
+  await expect(page.getByLabel("الإجراء")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "إرسال قرار المعايرة" })).toBeDisabled();
+  await page.getByLabel("الإجراء").selectOption("CONVERT_TO_QUESTION");
   await page
     .getByPlaceholder("ما الدليل أو السبب وراء هذا القرار؟")
     .fill("Synthetic reason validated in browser.");

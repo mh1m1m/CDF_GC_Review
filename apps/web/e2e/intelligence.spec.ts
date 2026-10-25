@@ -155,6 +155,7 @@ test("draft downloads and recalibration refresh are grounded in persistent event
     "INTERNAL_DRAFT__executive.xlsx",
   );
   await nav(page, "معايرة الملاحظات").click();
+  await page.getByLabel("الإجراء").selectOption("CONVERT_TO_QUESTION");
   await page
     .getByPlaceholder("ما الدليل أو السبب وراء هذا القرار؟")
     .fill("Synthetic executive acceptance decision.");
