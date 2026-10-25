@@ -1,9 +1,12 @@
-"""Content-aware public repository guard (audit C1–C4 follow-up), on a throwaway git repository."""
+"""Content-aware public repository guard (audit C1–C4 follow-up), on throwaway files and, for history, a throwaway git repository."""
 from __future__ import annotations
 
 import importlib.util
 import pathlib
+import shutil
 import subprocess
+
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("guard", ROOT / "tools/mat_dna/public_repository_guard.py")
@@ -17,11 +20,16 @@ DOCS = "https://docs." + "google.com/document/d/" + FAKE_ID + "/edit"
 KUNYA_TEXT = "التأكيد من قبل " + "الأخ " + "أبو " + "فهد"
 
 
-def _repo(tmp_path, files: dict[str, str]):
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+def _write(tmp_path, files: dict[str, str]):
     for rel, text in files.items():
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_text(text, encoding="utf-8")
+    return sorted(files)
+
+
+def _repo(tmp_path, files: dict[str, str]):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    _write(tmp_path, files)
     subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@example.invalid",
                     "commit", "-qm", "c"], check=True)
@@ -29,7 +37,7 @@ def _repo(tmp_path, files: dict[str, str]):
 
 
 def test_drive_links_and_kunya_references_are_findings(tmp_path):
-    files = _repo(tmp_path, {
+    files = _write(tmp_path, {
         "a.json": '{"source": "' + DRIVE + '"}',
         "b.tsx": "<p>" + KUNYA_TEXT + "</p>",
         "ok.py": 'PLACEHOLDER = "الأخ فلان"  # fictional, no kunya',
@@ -40,7 +48,7 @@ def test_drive_links_and_kunya_references_are_findings(tmp_path):
 
 
 def test_private_denylist_matches_spelling_variants_and_never_prints_the_term(tmp_path):
-    files = _repo(tmp_path, {"c.md": "ملاحظات المراجع المستعار إبراهيم الفلاني على الملف"})
+    files = _write(tmp_path, {"c.md": "ملاحظات المراجع المستعار إبراهيم الفلاني على الملف"})
     deny = G.load_denylist({"CDF_PRIVATE_DENYLIST_TERMS": "# comment\nابراهيم الفلانى\nxy"}, root=tmp_path)
     assert deny == [G.fold("ابراهيم الفلانى")], "comments and too-short terms are ignored"
     findings = G.scan_tree(tmp_path, files, deny)
@@ -48,6 +56,8 @@ def test_private_denylist_matches_spelling_variants_and_never_prints_the_term(tm
     assert "الفلان" not in " ".join(findings), "the finding names the term index, never the term"
 
 
+# History is read with the git binary; the stable LibreOffice image has none (it runs on a git archive export).
+@pytest.mark.skipif(shutil.which("git") is None, reason="git binary not installed in this runtime image")
 def test_history_scan_finds_content_removed_from_the_tip(tmp_path):
     _repo(tmp_path, {"d.json": '{"url": "' + DOCS + '"}'})
     (tmp_path / "d.json").write_text("{}", encoding="utf-8")
