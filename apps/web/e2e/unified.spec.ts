@@ -16,6 +16,10 @@ test("CLI-created case, MCP changes and persisted artifacts are visible in real 
   const expected = JSON.parse(
     fs.readFileSync(path.join(output, "expected-interface.json"), "utf8"),
   );
+  // Coverage comes from the CLI's own metrics: it depends on how many decisions the scenario recorded.
+  const calibration = expected.metrics.find((m: { id: string }) => m.id === "calibration");
+  const arabic = (n: number) => n.toLocaleString("ar-EG");
+  const calibrationCoverage = `${arabic(calibration.numerator)} من ${arabic(calibration.denominator)}`;
   await page.goto("/");
   await page
     .getByLabel("رمز جلسة التطوير المحلي", { exact: true })
@@ -132,7 +136,7 @@ test("CLI-created case, MCP changes and persisted artifacts are visible in real 
   await nav("استوديو MAT").click();
   await expect(
     page.locator(".metric-card").filter({ hasText: "تغطية المعايرة" }),
-  ).toContainText("١ من ٨");
+  ).toContainText(calibrationCoverage);
   await page.screenshot({
     path: path.join(output, "screenshots", "unified-mat.png"),
     fullPage: true,
