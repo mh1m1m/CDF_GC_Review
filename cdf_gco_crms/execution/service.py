@@ -150,6 +150,13 @@ class ApplicationService:
         with self.lock, self.store.transaction():
             principal = self.sessions.resolve_id(principal.session_id)
             principal.reviewer.require(role)
+            if str(request.case_id or "").startswith("UPL-"):
+                from ..documents.policy import is_uploaded_case
+                if not is_uploaded_case(request.case_id):
+                    raise AccessDenied("DOCUMENT_UPLOADS_DISABLED")
+                if action in ("create", "recover", "review", "debate", "probe"):
+                    # An uploaded document is reviewed by the review worker, never by the synthetic job runner.
+                    raise CalibrationError("UPLOADED_CASES_ARE_REVIEWED_FROM_THE_DOCUMENTS_PAGE")
             if request.issue:
                 raise AccessDenied(
                     "CENTRAL_RELEASE_AUTHORIZATION_REQUIRED_NEW_EXPORTS_ARE_DRAFT_ONLY"

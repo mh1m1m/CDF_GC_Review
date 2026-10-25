@@ -10,7 +10,7 @@ Executor = Literal[
 
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    case_id: str | None = Field(default=None, pattern=r"^SYN-[A-Za-z0-9_-]{1,100}$")
+    case_id: str | None = Field(default=None, pattern=r"^(SYN|UPL)-[A-Za-z0-9_-]{1,100}$")
     source: Literal["synthetic-cooperation-v1"] = "synthetic-cooperation-v1"
     executor: Executor = "deterministic"
     timeout: int = Field(default=180, ge=1, le=600)
@@ -18,7 +18,7 @@ class Request(BaseModel):
     job_id: str | None = Field(default=None, pattern=r"^JOB-[a-f0-9]{32}$")
     artifact_id: str | None = Field(default=None, pattern=r"^ART-[a-f0-9]{32}$")
     observation_id: str | None = Field(
-        default=None, pattern=r"^SYN-[A-Za-z0-9_-]{1,120}$"
+        default=None, pattern=r"^(SYN|GCO)-[A-Za-z0-9_-]{1,120}$"
     )
     decision: Literal[
         "KEEP_UNCHANGED",

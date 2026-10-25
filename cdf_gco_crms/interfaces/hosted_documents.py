@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import tempfile
 import unicodedata
@@ -34,11 +33,13 @@ from pathlib import Path
 from ..calibration.store import AccessDenied, CalibrationError
 
 MAX_BYTES = 4_000_000          # under Vercel's 4.5 MB request limit
-KINDS = {".docx": "docx", ".xlsx": "xlsx"}
+KINDS = {".docx": "docx", ".xlsx": "xlsx", ".pdf": "pdf"}
 MEDIA = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
 }
+_PDF_ACTIVE = (b"/JavaScript", b"/JS", b"/Launch", b"/EmbeddedFile", b"/RichMedia", b"/XFA")
 ACTIONS = {"qa", "word_report", "excel_rebuild", "comment", "compare"}
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS uploaded_documents (
@@ -68,7 +69,9 @@ _ID = re.compile(r"^DOC-[a-f0-9]{32}$")
 
 
 def uploads_enabled() -> bool:
-    return os.getenv("CDF_DOCUMENT_UPLOADS", "") == "PUBLIC"
+    from ..documents.policy import uploads_public
+
+    return uploads_public()
 
 
 def _now() -> str:
@@ -81,7 +84,7 @@ def clean_filename(name: str) -> tuple[str, str]:
     base = "".join(ch for ch in base if unicodedata.category(ch)[0] != "C" and ch not in '<>:"|?*').strip(" .")
     suffix = Path(base).suffix.lower()
     if suffix not in KINDS:
-        raise CalibrationError("ONLY_DOCX_OR_XLSX_ACCEPTED")
+        raise CalibrationError("ONLY_DOCX_XLSX_OR_PDF_ACCEPTED")
     stem = Path(base).stem.strip(" .")[:150] or "document"
     return stem + suffix, KINDS[suffix]
 
@@ -136,6 +139,12 @@ class DocumentLibrary:
             raise CalibrationError("FILE_TOO_LARGE_MAX_4_MB")
         summary = inspect(content, kind)
         return self._insert(owner, name, kind, content, summary)
+
+    def store_generated(self, owner: str, filename: str, kind: str, content: bytes, derived_from: str,
+                        action: str) -> dict:
+        """Store a file the engine produced (a review output); it is inspected like an upload."""
+        return self._insert(owner, filename, kind, content, inspect(content, kind), derived_from=derived_from,
+                            action=action)
 
     def list(self, owner: str) -> list[dict]:
         rows = self.store.db.execute(
@@ -200,9 +209,46 @@ def _refuse_dtd(path: Path) -> None:
                     raise CalibrationError("UNSAFE_FILE_REFUSED: DTD_IN_" + info.filename[:80])
 
 
+def _pdf_summary(content: bytes, path: Path) -> dict:
+    """A PDF must be a plain document: not encrypted, no scripts, launch actions or embedded files."""
+    from pypdf import PdfReader
+
+    if not content.startswith(b"%PDF-"):
+        raise CalibrationError("NOT_A_VALID_PDF_FILE")
+    for token in _PDF_ACTIVE:
+        if token + b" " in content or token + b"/" in content or token + b"(" in content or token + b"<" in content:
+            raise CalibrationError("UNSAFE_FILE_REFUSED: PDF_ACTIVE_CONTENT " + token.decode())
+    try:
+        reader = PdfReader(str(path))
+        if reader.is_encrypted:
+            raise CalibrationError("UNSAFE_FILE_REFUSED: ENCRYPTED_PDF")
+        root = reader.trailer["/Root"]
+        if "/OpenAction" in root and "/JS" in str(root["/OpenAction"]):
+            raise CalibrationError("UNSAFE_FILE_REFUSED: PDF_OPEN_ACTION_SCRIPT")
+        pages = len(reader.pages)
+    except CalibrationError:
+        raise
+    except Exception as exc:
+        raise CalibrationError("NOT_A_VALID_PDF_FILE") from exc
+    summary = {"package": {"safe": True, "parts": pages}, "pages": pages}
+    try:
+        from ..documents.ingest import extract
+
+        source = extract(path, "pdf")
+        summary.update({"paragraphs": len(source.blocks), "words": sum(len(b.text.split()) for b in source.blocks),
+                        "text_layer": bool(source.blocks), "warnings": source.warnings[:10],
+                        "opening": [b.text[:160] for b in source.blocks[:3]]})
+    except ImportError:                                         # pdfplumber absent: page count only
+        summary["text_layer"] = None
+    return summary
+
+
 def inspect(content: bytes, kind: str) -> dict:
     from ..ingestion.safe_open import inspect_package
 
+    if kind == "pdf":
+        with tempfile.TemporaryDirectory(prefix="cdf-upload-") as tmp:
+            return _pdf_summary(content, _scratch(content, "upload.pdf", Path(tmp)))
     with tempfile.TemporaryDirectory(prefix="cdf-upload-") as tmp:
         path = _scratch(content, "upload." + kind, Path(tmp))
         try:
@@ -257,6 +303,8 @@ def run_action(action: str, first: tuple[dict, bytes], second: tuple[dict, bytes
     meta, content = first
     with tempfile.TemporaryDirectory(prefix="cdf-action-") as tmp:
         directory = Path(tmp)
+        if meta["kind"] == "pdf" and action != "compare":
+            raise CalibrationError("PDF_IS_REVIEWED_WITH_THE_REVIEW_BUTTON")
         if action in ("qa", "word_report", "excel_rebuild"):
             if meta["kind"] != "xlsx" or not meta["summary"].get("review_workbook"):
                 raise CalibrationError("REVIEW_WORKBOOK_REQUIRED")

@@ -2,7 +2,7 @@
 
 import os
 import shutil
-from ..agents.providers.base import ProviderConfig, ProviderFailure, DEFAULT_MODEL
+from ..agents.providers.base import DATA_SYNTHETIC_ONLY, DEFAULT_MODEL, ProviderConfig, ProviderFailure
 
 
 def select_executor(executor, *, timeout):
@@ -68,7 +68,10 @@ def select_executor(executor, *, timeout):
                 provider="anthropic",
                 model=os.getenv("CDF_AI_MODEL", DEFAULT_MODEL),
                 timeout_seconds=timeout,
-                max_retries=0,
+                max_retries=int(os.getenv("CDF_AI_MAX_RETRIES", "0") or 0),
+                # The data-handling guard (agents/security.py) admits non-synthetic content only under an explicit
+                # INSTITUTIONAL_AUTHORIZED:<reference> set by the deployment owner; unset stays SYNTHETIC_ONLY.
+                data_authorization=os.getenv("CDF_AI_DATA_AUTHORIZATION") or DATA_SYNTHETIC_ONLY,
             )
         )
     raise ProviderFailure("Unsupported executor", kind="UNSUPPORTED_EXECUTOR")

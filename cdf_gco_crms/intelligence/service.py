@@ -117,11 +117,17 @@ class IntelligenceService:
             observations = self.store.observations(case_id, user)
             events = self.store.events(case_id, user)
             snap = self._snapshot(case_id)
-            if snap and not snap.synthetic:
+            from ..documents.policy import is_uploaded_case
+            if snap and not snap.synthetic and not is_uploaded_case(case_id):
                 raise AccessDenied('INSTITUTIONAL_EXECUTION_NOT_ALLOWED_IN_SYNTHETIC_API')
-            span.set_attribute('cdf.synthetic', True)
+            uploaded = is_uploaded_case(case_id)
+            span.set_attribute('cdf.synthetic', not uploaded)
             span.set_attribute('cdf.observation_count', len(observations))
-            return self._project(case_id, observations, events, snap, user)
+            data = self._project(case_id, observations, events, snap, user, synthetic=not uploaded)
+            if uploaded:
+                data['uploaded_document'] = True
+                data['limitations'] = ['UPLOADED_DOCUMENT_WORKING_COPY'] + data['limitations'][1:]
+            return data
 
     def _project(self, case_id, observations, events, snap, user, *, synthetic=True):
         latest = {}

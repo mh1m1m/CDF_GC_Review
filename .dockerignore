@@ -1,5 +1,5 @@
-# Allowlist only dependency manifests and this build definition.
-# No source, .git history, private material, databases, keys or outputs enter builds.
+# Allowlist only dependency manifests and build definitions, plus the engine source for the review worker image
+# (Dockerfile.worker). No .git history, private material, databases, keys or outputs enter builds.
 **
 !Dockerfile.libreoffice
 !requirements-lock.txt
@@ -13,3 +13,11 @@
 !apps/web/package.json
 !apps/web/package-lock.json
 !requirements-execution-lock.txt
+!Dockerfile.worker
+!requirements.txt
+!requirements-worker.txt
+!cdf_gco_crms/
+!cdf_gco_crms/**
+!shared/
+!shared/**
+**/__pycache__

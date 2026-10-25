@@ -68,7 +68,7 @@ reviewers. The calibration cases keep their `SYN-` guards; uploaded files never 
 
 | Step | What happens |
 |---|---|
-| Upload | `.docx` or `.xlsx`, at most 4 MB. The engine's package inspection refuses macros, external links, oversized or unexpected parts, and any XML that declares a DTD |
+| Upload | `.docx`, `.xlsx` or `.pdf`, at most 4 MB. The engine's package inspection refuses macros, external links, oversized or unexpected parts, and any XML that declares a DTD |
 | Storage | Table `uploaded_documents` in the same schema, with the SHA-256 of each file; every create, run and delete is logged in `uploaded_document_log` |
 | Access | Only the reviewer who uploaded a file can list, download, run tools on or delete it |
 | Tools | The deterministic engine only; no file is sent to a model provider |
@@ -84,6 +84,13 @@ Tools:
 | Compare returned copy | Delivered `.docx` + returned `.docx` | Tracked changes, silent edits, review comments removed or altered, comments the owner added |
 
 Every generated file is a working copy named `INTERNAL_DRAFT__…`; nothing is issued from the site.
+
+PDF uploads are accepted too: they are refused when encrypted or when they carry scripts, launch actions or
+embedded files.
+
+**AI review of an uploaded document** (Word, PDF or a spreadsheet under review) runs in the separate review worker:
+see [REVIEW_WORKER.md](REVIEW_WORKER.md). The website queues the review, shows its progress and lists the outputs
+under the original document, and the resulting `UPL-` case opens in the calibration screens and executive dashboard.
 
 API (signed-in reviewer): `GET /api/documents`, `POST /api/documents?filename=…` (raw file bytes),
 `GET /api/documents/{id}`, `GET /api/documents/{id}/content`, `DELETE /api/documents/{id}`,

@@ -1,7 +1,7 @@
-// Uploaded Word/Excel documents (shown only when the API reports document_uploads = PUBLIC).
-// Every tool here is the deterministic engine; no file is sent to an AI provider.
-import { useEffect, useState } from "react";
-import { Download, FileSpreadsheet, FileText, Trash2, Upload } from "lucide-react";
+// Uploaded Word/Excel/PDF documents (shown only when the API reports document_uploads = PUBLIC).
+// "Review" queues the AI review run by the review worker; the other tools are the deterministic engine.
+import { useEffect, useRef, useState } from "react";
+import { Download, FileSpreadsheet, FileText, LayoutDashboard, Sparkles, Trash2, Upload } from "lucide-react";
 
 type Summary = {
   package?: { safe: boolean; parts: number };
@@ -15,11 +15,31 @@ type Summary = {
   comments?: number;
   review_comments?: number;
   tracked_changes?: number;
+  pages?: number;
+  text_layer?: boolean | null;
+};
+type Review = {
+  review_id: string;
+  document_id: string;
+  status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
+  stage: string;
+  error: string | null;
+  case_id: string | null;
+  detail: {
+    drafting_window?: string;
+    observations?: number;
+    proposals?: number;
+    adopted?: number;
+    outcome?: string;
+    executor?: string;
+    live_calls?: number;
+    outputs?: Array<{ document_id: string; filename: string; kind: string }>;
+  };
 };
 type Doc = {
   document_id: string;
   filename: string;
-  kind: "docx" | "xlsx";
+  kind: "docx" | "xlsx" | "pdf";
   size: number;
   created_at: string;
   derived_from: string | null;
@@ -40,9 +60,31 @@ const ACTION_NAMES: Record<string, string> = {
   excel_rebuild: "إعادة بناء Excel",
   comment: "إدراج ملاحظات المراجعة في المستند",
   compare: "مقارنة النسخة المعادة",
+  review: "المراجعة",
+};
+const STAGES: Record<string, string> = {
+  QUEUED: "في انتظار خدمة المعالجة",
+  READING: "قراءة المستند",
+  DRAFTING: "وكيل الصياغة يقترح الملاحظات",
+  CHALLENGING: "الفريق الأسود والمحامي والمحكّم يراجعون الملاحظات",
+  RECORDING_CASE: "تسجيل القضية ولوحة المتابعة",
+  WRITING_OUTPUTS: "إعداد ملفات Word وPDF وExcel",
+};
+const REVIEW_ERRORS: Record<string, string> = {
+  ProviderFailure: "تعذر الاتصال بنموذج الذكاء الاصطناعي. تحقق من مفتاح Anthropic في خدمة المعالجة.",
+  DataHandlingViolation: "لم يُفعَّل إذن إرسال المستندات إلى نموذج الذكاء الاصطناعي في خدمة المعالجة.",
+  NO_TEXT_FOUND_SCANNED_PDF_NEEDS_OCR: "ملف PDF ممسوح ضوئياً بلا طبقة نص؛ ارفع ملفاً يحتوي نصاً قابلاً للنسخ.",
+  NO_TEXT_FOUND: "لم يُعثر على نص في المستند.",
+  DRAFTING_FAILED: "تعذر على وكيل الصياغة إكمال القراءة.",
+  WORKER_STOPPED_DURING_REVIEW: "توقفت خدمة المعالجة أثناء المراجعة مرتين؛ أعد المحاولة.",
 };
 const ERRORS: Record<string, string> = {
-  ONLY_DOCX_OR_XLSX_ACCEPTED: "يُقبل ملف Word (.docx) أو Excel (.xlsx) فقط.",
+  ONLY_DOCX_XLSX_OR_PDF_ACCEPTED: "يُقبل ملف Word (.docx) أو Excel (.xlsx) أو PDF فقط.",
+  NOT_A_VALID_PDF_FILE: "الملف ليس PDF سليماً.",
+  REVIEW_ALREADY_RUNNING: "توجد مراجعة قيد التنفيذ لهذا المستند.",
+  REVIEW_TRACKER_USE_NEXT_ROUND_TOOLS: "هذا سجل مراجعة؛ استخدم أدوات السجل بدلاً من مراجعة جديدة.",
+  GENERATED_FILES_ARE_NOT_REVIEWED: "هذا ملف ناتج عن مراجعة سابقة.",
+  PDF_IS_REVIEWED_WITH_THE_REVIEW_BUTTON: "يُراجع ملف PDF بزر «مراجعة المستند».",
   FILE_TOO_LARGE_MAX_4_MB: "حجم الملف أكبر من 4 ميغابايت.",
   EMPTY_FILE: "الملف فارغ.",
   UNSAFE_FILE_REFUSED: "رُفض الملف في فحص السلامة (ماكرو، روابط خارجية، أو بنية غير سليمة).",
@@ -91,6 +133,10 @@ const size = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 102
 
 function describe(d: Doc): string {
   const s = d.summary;
+  if (d.kind === "pdf")
+    return s.text_layer === false
+      ? `PDF · ${s.pages} صفحة · لا توجد طبقة نص (ممسوح ضوئياً)`
+      : `PDF · ${s.pages} صفحة · ${s.paragraphs ?? "؟"} فقرة · ${s.words ?? "؟"} كلمة`;
   if (d.kind === "xlsx")
     return s.review_workbook
       ? `سجل مراجعة · ${s.observations} ملاحظة · الجولات ${(s.rounds ?? []).join("، ")}`
@@ -98,14 +144,22 @@ function describe(d: Doc): string {
   return `${s.paragraphs} فقرة · ${s.words} كلمة · ${s.comments} تعليق (${s.review_comments} من المراجعة) · ${s.tracked_changes} تغيير متتبَّع`;
 }
 
-export default function DocumentsPanel({ token }: { token: string }) {
+function reviewable(d: Doc): boolean {
+  return !d.action && (d.kind !== "xlsx" || !d.summary.review_workbook) && d.summary.text_layer !== false;
+}
+
+export default function DocumentsPanel({ token, onOpenCase }: { token: string; onOpenCase?: (caseId: string) => void }) {
   const [docs, setDocs] = useState<Doc[]>([]),
     [file, setFile] = useState<File | null>(null),
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
     [result, setResult] = useState<ActionResult | null>(null),
     [partner, setPartner] = useState<Record<string, string>>({}),
-    [inputKey, setInputKey] = useState(0);
+    [inputKey, setInputKey] = useState(0),
+    [reviews, setReviews] = useState<Record<string, Review>>({}),
+    [workerOnline, setWorkerOnline] = useState(true),
+    [department, setDepartment] = useState("");
+  const poll = useRef<number | null>(null);
 
   async function request(path: string, init: RequestInit = {}) {
     const r = await fetch(path, { ...init, headers: { ...(init.headers ?? {}), Authorization: "Bearer " + token } });
@@ -123,8 +177,37 @@ export default function DocumentsPanel({ token }: { token: string }) {
   async function refresh() {
     try {
       setDocs(await (await request("/api/documents")).json());
+      const state = await (await request("/api/document-reviews")).json();
+      setReviews(state.latest ?? {});
+      setWorkerOnline(Boolean(state.worker_online));
     } catch (e) {
       setError((e as Error).message);
+    }
+  }
+  const active = Object.values(reviews).some((r) => r.status === "QUEUED" || r.status === "RUNNING");
+  useEffect(() => {
+    if (!token || !active) return;
+    poll.current = window.setInterval(() => void refresh(), 5000);
+    return () => {
+      if (poll.current) window.clearInterval(poll.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, active]);
+  async function startReview(d: Doc) {
+    setBusy(d.document_id + "review");
+    setError("");
+    try {
+      const query = department.trim() ? "?department=" + encodeURIComponent(department.trim()) : "";
+      const r: Review & { worker_online: boolean } = await (
+        await request(`/api/documents/${d.document_id}/review${query}`, { method: "POST" })
+      ).json();
+      setReviews({ ...reviews, [d.document_id]: r });
+      setWorkerOnline(r.worker_online);
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
     }
   }
   useEffect(() => {
@@ -197,52 +280,14 @@ export default function DocumentsPanel({ token }: { token: string }) {
   const words = docs.filter((d) => d.kind === "docx");
   const byId = Object.fromEntries(docs.map((d) => [d.document_id, d]));
 
-  return (
-    <section className="glass documents" aria-labelledby="documents-title">
-      <div className="eyebrow">{institutional ? "DOCUMENTS" : "DOCUMENTS · PUBLIC UPLOADS"}</div>
-      <h2 id="documents-title">المستندات</h2>
-      <p className="documents-note">
-        {institutional ? "" : "كل ملف يُرفع هنا يُعامل كمادة عامة. "}
-        تعمل الأدوات داخل المحرك نفسه، ولا يُرسل أي ملف إلى نموذج ذكاء اصطناعي. كل ناتج نسخة عمل (INTERNAL_DRAFT) إلى أن
-        يُعتمد إصداره بقرار بشري.
-      </p>
-      {!token ? (
-        <p>سجّل الدخول لرفع المستندات.</p>
-      ) : (
-        <>
-          <div className="documents-upload">
-            <label htmlFor="document-file">ملف Word أو Excel (حتى 4 ميغابايت)</label>
-            <input
-              key={inputKey}
-              id="document-file"
-              type="file"
-              accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-            <button className="button dark" onClick={() => void upload()} disabled={!file || busy === "upload"}>
-              <Upload size={15} /> {busy === "upload" ? "جارٍ الرفع والفحص…" : "رفع"}
-            </button>
-          </div>
-          {error && (
-            <div className="error" role="alert">
-              {error}
-            </div>
-          )}
-          {busy && busy !== "upload" && (
-            <p role="status" className="loading-state">
-              جارٍ التشغيل…
-            </p>
-          )}
-          {result && <ResultView result={result} onDownload={download} />}
-          <ul className="document-list">
-            {docs.length === 0 && <li className="document-empty">لا توجد مستندات بعد.</li>}
-            {docs.map((d) => {
+  const roots = docs.filter((d) => !d.derived_from || !byId[d.derived_from]);
+  function renderCard(d: Doc) {
               const partners = d.kind === "docx" ? workbooks : d.summary.review_workbook ? words : [];
               const others = words.filter((w) => w.document_id !== d.document_id);
               return (
                 <li key={d.document_id} className="document-card">
                   <div className="document-head">
-                    {d.kind === "docx" ? <FileText size={20} /> : <FileSpreadsheet size={20} />}
+                    {d.kind === "xlsx" ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
                     <div>
                       <strong>
                         <bdi>{d.filename}</bdi>
@@ -259,7 +304,17 @@ export default function DocumentsPanel({ token }: { token: string }) {
                       <p>{describe(d)}</p>
                     </div>
                   </div>
+                  {reviews[d.document_id] && <ReviewStatus review={reviews[d.document_id]} onOpenCase={onOpenCase} />}
                   <div className="document-actions">
+                    {reviewable(d) && (
+                      <button
+                        className="button dark"
+                        disabled={!!busy || ["QUEUED", "RUNNING"].includes(reviews[d.document_id]?.status ?? "")}
+                        onClick={() => void startReview(d)}
+                      >
+                        <Sparkles size={14} /> {reviews[d.document_id]?.status === "DONE" ? "مراجعة جديدة" : "مراجعة المستند"}
+                      </button>
+                    )}
                     <button className="button" onClick={() => void download(d)}>
                       <Download size={14} /> تنزيل
                     </button>
@@ -269,7 +324,7 @@ export default function DocumentsPanel({ token }: { token: string }) {
                           {ACTION_NAMES[a]}
                         </button>
                       ))}
-                    {partners.length > 0 && (
+                    {d.kind !== "pdf" && partners.length > 0 && (
                       <span className="document-pair">
                         <select
                           aria-label={d.kind === "docx" ? "سجل المراجعة" : "مستند Word"}
@@ -321,11 +376,116 @@ export default function DocumentsPanel({ token }: { token: string }) {
                   </div>
                 </li>
               );
+  }
+
+  return (
+    <section className="glass documents" aria-labelledby="documents-title">
+      <div className="eyebrow">{institutional ? "DOCUMENTS" : "DOCUMENTS · PUBLIC UPLOADS"}</div>
+      <h2 id="documents-title">المستندات</h2>
+      <p className="documents-note">
+        {institutional ? "" : "كل ملف يُرفع هنا يُعامل كمادة عامة. "}
+        «مراجعة المستند» ترسل نصه إلى نموذج الذكاء الاصطناعي ليمر بمسار المنهجية: صياغة الملاحظات ثم التحدي والتحكيم والتحرير.
+        بقية الأدوات تعمل داخل المحرك دون نموذج. كل ناتج نسخة عمل (INTERNAL_DRAFT) إلى أن يُعتمد إصداره بقرار بشري.
+      </p>
+      {!token ? (
+        <p>سجّل الدخول لرفع المستندات.</p>
+      ) : (
+        <>
+          <div className="documents-upload">
+            <label htmlFor="document-file">ملف Word أو PDF أو Excel (حتى 4 ميغابايت)</label>
+            <input
+              key={inputKey}
+              id="document-file"
+              type="file"
+              accept=".docx,.xlsx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+            <button className="button dark" onClick={() => void upload()} disabled={!file || busy === "upload"}>
+              <Upload size={15} /> {busy === "upload" ? "جارٍ الرفع والفحص…" : "رفع"}
+            </button>
+          </div>
+          {error && (
+            <div className="error" role="alert">
+              {error}
+            </div>
+          )}
+          {busy && busy !== "upload" && (
+            <p role="status" className="loading-state">
+              جارٍ التشغيل…
+            </p>
+          )}
+          {result && <ResultView result={result} onDownload={download} />}
+          <label className="documents-department">
+            الإدارة المالكة للمستند (اختياري، يوجّه صياغة الملاحظات)
+            <input value={department} onChange={(e) => setDepartment(e.target.value)} maxLength={120} />
+          </label>
+          {!workerOnline && Object.values(reviews).some((r) => r.status === "QUEUED") && (
+            <p className="documents-warning" role="status">
+              خدمة المعالجة غير متصلة الآن؛ ستبدأ المراجعة تلقائياً عند تشغيلها.
+            </p>
+          )}
+          <ul className="document-list">
+            {docs.length === 0 && <li className="document-empty">لا توجد مستندات بعد.</li>}
+            {roots.map((d) => {
+              const children = docs.filter((c) => c.derived_from === d.document_id);
+              return (
+                <li key={d.document_id} className="document-group">
+                  <ul className="document-group-list">{renderCard(d)}</ul>
+                  {children.length > 0 && (
+                    <details className="document-children" open={children.some((c) => c.action === "review")}>
+                      <summary>الملفات الناتجة ({children.length})</summary>
+                      <ul className="document-list">{children.map((c) => renderCard(c))}</ul>
+                    </details>
+                  )}
+                </li>
+              );
             })}
           </ul>
         </>
       )}
     </section>
+  );
+}
+
+function ReviewStatus({ review, onOpenCase }: { review: Review; onOpenCase?: (caseId: string) => void }) {
+  const d = review.detail ?? {};
+  if (review.status === "FAILED") {
+    const code = review.error ?? "";
+    const text = Object.entries(REVIEW_ERRORS).find(([k]) => code.includes(k))?.[1] ?? code;
+    return (
+      <p className="review-status review-failed" role="status">
+        تعذرت المراجعة: {text}
+      </p>
+    );
+  }
+  if (review.status === "DONE") {
+    if (d.outcome === "NO_OBSERVATIONS_ADOPTED")
+      return (
+        <p className="review-status" role="status">
+          اكتملت المراجعة: لم يقترح وكيل الصياغة ملاحظات قابلة للاعتماد ({d.proposals ?? 0} مقترح).
+        </p>
+      );
+    return (
+      <div className="review-status review-done" role="status">
+        <span>
+          اكتملت المراجعة · {d.observations} ملاحظة من {d.proposals} مقترحاً · {d.outputs?.length ?? 0} ملفات ناتجة
+          {d.executor === "mock" ? " · تشغيل تجريبي (MOCK)" : ""}
+        </span>
+        {review.case_id && onOpenCase && (
+          <button className="button" onClick={() => onOpenCase(review.case_id!)}>
+            <LayoutDashboard size={14} /> فتح لوحة المتابعة والمعايرة
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <p className="review-status review-running" role="status">
+      <span className="review-spinner" aria-hidden="true" />
+      {STAGES[review.stage] ?? review.stage}
+      {review.stage === "DRAFTING" && d.drafting_window ? ` (الجزء ${d.drafting_window})` : ""}
+      {review.stage === "CHALLENGING" && d.observations ? ` · ${d.observations} ملاحظة` : ""}
+    </p>
   );
 }
 

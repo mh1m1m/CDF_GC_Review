@@ -106,7 +106,7 @@ def test_upload_list_download_delete(api, files):
 
 
 @pytest.mark.parametrize("name,content,code", [
-    ("notes.txt", b"plain", "ONLY_DOCX_OR_XLSX_ACCEPTED"),
+    ("notes.txt", b"plain", "ONLY_DOCX_XLSX_OR_PDF_ACCEPTED"),
     ("broken.docx", b"not a zip at all", "UNSAFE_FILE_REFUSED"),
     ("empty.docx", b"", "EMPTY_FILE"),
 ])

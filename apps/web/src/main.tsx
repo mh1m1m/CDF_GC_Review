@@ -466,7 +466,14 @@ function App() {
             </section>
             {uploadsPublic && (
               <Suspense fallback={<p className="loading-state">جارٍ تحميل المستندات…</p>}>
-                <Documents token={token} />
+                <Documents
+                  token={token}
+                  onOpenCase={(caseId) => {
+                    void connect();
+                    void openCase(caseId);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
               </Suspense>
             )}
             </>
@@ -511,7 +518,9 @@ function App() {
                 </details>
               </div>
               <div className="mode-notice">
-                البيئة العامة · قضايا ومراجع افتراضية · الوضع المؤسسي غير مُفعّل
+                {data.uploaded_document
+                  ? "مستند مرفوع · مراجعة آلية بنموذج ذكاء اصطناعي · المراجع المنهجية المستخدمة تجريبية وغير معتمدة · نسخة عمل"
+                  : "البيئة العامة · قضايا ومراجع افتراضية · الوضع المؤسسي غير مُفعّل"}
               </div>
               {(view === "overview" || view === "mat") && (
                 <>
@@ -584,7 +593,7 @@ function App() {
                       </h2>
                     </div>
                     <span className="subtle-pill">
-                      بيانات تجريبية · لا توجد درجات ثقة مُختلقة
+                      {data.uploaded_document ? "مستند مرفوع · لا توجد درجات ثقة مُختلقة" : "بيانات تجريبية · لا توجد درجات ثقة مُختلقة"}
                     </span>
                   </div>
                   <section className="metrics-grid" aria-label="مؤشرات الحوكمة">

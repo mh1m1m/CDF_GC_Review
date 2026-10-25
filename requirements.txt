@@ -19,3 +19,8 @@ anthropic==2.3.0
 httpx==0.28.1
 mcp==1.30.0
 psycopg[binary]==3.2.10
+# Uploaded PDFs: safety check, page count and text (same pins as requirements-execution-lock.txt).
+pypdf==6.21.2
+pdfplumber==0.11.10
+pdfminer.six==20260107
+pypdfium2==5.14.0

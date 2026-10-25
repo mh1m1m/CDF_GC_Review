@@ -54,6 +54,9 @@ _DB_LOCK = application.lock
 from cdf_gco_crms.interfaces import hosted_documents
 # Uploaded Word/Excel files: only when the owner has declared uploads public (CDF_DOCUMENT_UPLOADS=PUBLIC).
 DOCUMENTS = hosted_documents.DocumentLibrary(store) if hosted_documents.uploads_enabled() else None
+from cdf_gco_crms.documents import review as document_review
+# Reviews of uploaded documents are queued here and run by the review worker (cdf_gco_crms.documents.worker).
+REVIEWS = document_review.ReviewQueue(store) if DOCUMENTS is not None else None
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -353,6 +356,33 @@ def documents_content(document_id: str, authorization: str | None = Header(defau
 def documents_delete(document_id: str, authorization: str | None = Header(default=None)):
     owner = _documents(authorization)
     call(DOCUMENTS.delete, owner, document_id)
+
+
+@app.post("/api/documents/{document_id}/review", status_code=202)
+def documents_review(document_id: str, department: str | None = Query(default=None, max_length=120),
+                     authorization: str | None = Header(default=None)):
+    """Queue an AI review of an uploaded Word, PDF or Excel document (run by the review worker)."""
+    owner = _documents(authorization)
+    reviewer = identity(authorization)
+    document = call(DOCUMENTS.get, owner, document_id)
+    review = call(REVIEWS.queue, reviewer, document, department=department)
+    if os.getenv("CDF_REVIEW_RUNNER") == "inline" and not HOSTED:
+        # Local development and tests only: run the queued review in this process.
+        call(document_review.process_next, application, DOCUMENTS, REVIEWS, "inline")
+        review = call(REVIEWS.get, owner, review["review_id"])
+    return {**review, "worker_online": call(REVIEWS.worker_seen)}
+
+
+@app.get("/api/document-reviews")
+def documents_reviews(authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return {"worker_online": call(REVIEWS.worker_seen), "latest": call(REVIEWS.latest_by_document, owner)}
+
+
+@app.get("/api/document-reviews/{review_id}")
+def documents_review_status(review_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return {**call(REVIEWS.get, owner, review_id), "worker_online": call(REVIEWS.worker_seen)}
 
 
 @app.post("/api/documents/{document_id}/actions/{action}")

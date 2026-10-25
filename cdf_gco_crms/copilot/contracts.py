@@ -29,7 +29,7 @@ Operation = Literal[
 
 class Input(BaseModel):
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    case_id: str | None = Field(default=None, pattern=r"^SYN-[A-Za-z0-9_-]{1,100}$")
+    case_id: str | None = Field(default=None, pattern=r"^(SYN|UPL)-[A-Za-z0-9_-]{1,100}$")
     text: str = Field(default="", max_length=4000)
     executor: Executor = "deterministic"
     idempotency_key: str | None = Field(default=None, min_length=8, max_length=128)
@@ -44,7 +44,7 @@ class Input(BaseModel):
         Literal["DOA_CONFLICT", "DEPARTMENT_OVERLAP", "STALE_SOURCE"] | None
     ) = None
     observation_id: str | None = Field(
-        default=None, pattern=r"^SYN-[A-Za-z0-9_-]{1,120}$"
+        default=None, pattern=r"^(SYN|GCO)-[A-Za-z0-9_-]{1,120}$"
     )
     action: Literal[
         "ACCEPT",

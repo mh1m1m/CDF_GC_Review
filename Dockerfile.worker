@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+# Review worker for uploaded documents: python -m cdf_gco_crms.documents.worker
+# Build from the repository root:  docker build -f Dockerfile.worker -t cdf-review-worker .
+# Runtime settings (database, AI key, owner switches) are environment variables of the host; see
+# docs/deploy/REVIEW_WORKER.md. No secret is ever written into the image.
+FROM python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+ENV DEBIAN_FRONTEND=noninteractive \
+    SAL_USE_VCLPLUGIN=svp \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    CDF_DATABASE_SCHEMA=cdf
+RUN set -eu; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc fonts-noto-core \
+      fonts-crosextra-carlito fontconfig; \
+    rm -rf /var/lib/apt/lists/*; \
+    useradd --create-home --uid 10001 worker
+WORKDIR /app
+COPY requirements.txt requirements-worker.txt ./
+RUN python -m pip install --no-cache-dir -r requirements-worker.txt
+COPY cdf_gco_crms ./cdf_gco_crms
+COPY shared ./shared
+USER worker
+CMD ["python", "-m", "cdf_gco_crms.documents.worker"]

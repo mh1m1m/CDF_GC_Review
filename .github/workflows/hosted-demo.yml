@@ -95,3 +95,39 @@ jobs:
           VITE_SUPABASE_URL: https://example-project.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
         run: npm run build && npm run test
+
+  review-worker-image:
+    # Builds the review worker image and runs one full review inside it with the explicit MOCK executor
+    # (no AI key in CI): PDF in, Word/PDF/Excel/dashboard out, LibreOffice included.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.worker -t cdf-review-worker:ci .
+      - name: One mock review inside the image
+        run: |
+          docker run --rm -e CDF_DOCUMENT_UPLOADS=PUBLIC -e CDF_REVIEW_EXECUTOR=mock -e CDF_SITE_IDENTITY=CDF \
+            -e CDF_CALIBRATION_DB=/tmp/ci/public-demo/worker.sqlite \
+            -v "$PWD/tests:/tests:ro" cdf-review-worker:ci python - <<'PY'
+          import sys, tempfile
+          from pathlib import Path
+          sys.path.insert(0, "/tests")
+          from document_fixtures import memo_docx                      # fictional memo, PDF built here by LibreOffice
+          from cdf_gco_crms.qa.lo_engine import to_pdf
+          work = Path(tempfile.mkdtemp())
+          pdf = to_pdf(memo_docx(work / "memo.docx"), work / "pdf", timeout=180)
+          assert pdf is not None, "LibreOffice export failed in the worker image"
+          from cdf_gco_crms.calibration.store import ReviewerContext
+          from cdf_gco_crms.documents.worker import build
+          from cdf_gco_crms.documents.review import process_next
+          app, library, queue = build()
+          user = ReviewerContext("SYN-HOSTED-CI", frozenset({"CALIBRATION_ADMIN", "CALIBRATION_REVIEWER"}), True)
+          document = library.upload(user.reviewer_id, "memo.pdf", pdf.read_bytes())
+          queue.queue(user, document)
+          review = process_next(app, library, queue, "ci")
+          assert review["status"] == "DONE", review
+          kinds = sorted(o["kind"] for o in review["detail"]["outputs"])
+          print(review["case_id"], kinds)
+          assert kinds.count("pdf") == 3, kinds        # commented Word as PDF, annotated original, dashboard PDF
+          print("REVIEW_WORKER_IMAGE: PASS")
+          PY
