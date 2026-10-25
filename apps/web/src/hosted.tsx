@@ -35,6 +35,10 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
   }, [onToken]);
 
   async function run(action: "in" | "up" | "out") {
+    if (action === "up" && password.length < 8) {
+      setMessage("كلمة المرور قصيرة: استخدم 8 أحرف على الأقل.");   // keep what was typed
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -45,7 +49,11 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) setMessage(error.message);
       } else {
-        const { data, error } = await sb.auth.signUp({ email, password });
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
         if (error) setMessage(error.message);
         else if (!data.session) setMessage("أُرسل رابط تأكيد إلى بريدك؛ أكّد الحساب ثم سجّل الدخول.");
       }
@@ -79,12 +87,14 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
+          aria-describedby="password-hint"
         />
+        <small id="password-hint">8 أحرف على الأقل لإنشاء حساب</small>
       </label>
       <button className="button dark" onClick={() => void run("in")} disabled={busy || !email || !password}>
         تسجيل الدخول
       </button>
-      <button className="button" onClick={() => void run("up")} disabled={busy || !email || password.length < 8}>
+      <button className="button" onClick={() => void run("up")} disabled={busy || !email || !password}>
         إنشاء حساب
       </button>
       {message && <p role="status">{message}</p>}

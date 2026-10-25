@@ -345,7 +345,7 @@ function App() {
           </div>
           <span className="environment-pill">
             <span />
-            SYNTHETIC LOCAL DEVELOPMENT ONLY
+            {hosted ? "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS" : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
           </span>
         </header>
         <main id="main-content" dir="rtl" tabIndex={-1}>
