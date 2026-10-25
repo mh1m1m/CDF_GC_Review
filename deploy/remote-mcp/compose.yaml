@@ -14,7 +14,8 @@ services:
     mem_limit: 2g
     cpus: 2
     tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=1024m,mode=1777"]
-    ports: ["${CDF_REMOTE_BIND_IP:?Set an approved bind address}:443:8443"]
+    # No ports here: Docker does not publish ports for a container that is only on an internal network
+    # (verified 2026-10-25). Ingress arrives through the relay below; this service keeps no outbound route.
     environment:
       CDF_OPERATION_MODE: PUBLIC_SYNTHETIC_DEMO
       PYTHONDONTWRITEBYTECODE: "1"
@@ -28,6 +29,26 @@ services:
     command: [python, -m, cdf_gco_crms.interfaces.remote_mcp, --config, /run/cdf-config/remote.json, --db, /var/lib/cdf/public-demo.sqlite, --tls-certfile, /run/cdf-tls/fullchain.pem, --tls-keyfile, /run/cdf-tls/privkey.pem]
     networks: [isolated]
     restart: "no"
+  ingress:
+    # TCP passthrough only: TLS, OAuth and every check stay in the mcp service; the relay holds no secrets.
+    image: cdf-remote-mcp:local
+    depends_on: [mcp]
+    user: "10001:10001"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.5
+    ports: ["${CDF_REMOTE_BIND_IP:?Set an approved bind address}:443:8443"]
+    volumes:
+      - "${CDF_PUBLIC_SOURCE_DIR:?Use a tracked git archive}:/repo:ro"
+    working_dir: /repo
+    command: [python, -m, cdf_gco_crms.interfaces.tcp_relay, --upstream-host, mcp, --upstream-port, "8443", --max-connections, "64"]
+    networks: [edge, isolated]
+    restart: "no"
 networks:
   isolated:
-    internal: true
+    internal: true          # the mcp service has no route to the internet
+  edge: {}                  # ingress only; only the relay is attached

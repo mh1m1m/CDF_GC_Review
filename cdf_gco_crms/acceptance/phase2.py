@@ -237,7 +237,15 @@ def copilot_browser(a, temp):
         )
 
 
+def require_assertions() -> None:
+    """The harness gates PASS through ``assert``; under ``python -O`` those checks vanish and PASS would be written
+    unconditionally. Refuse to run instead."""
+    if not __debug__ or sys.flags.optimize:
+        raise SystemExit("ACCEPTANCE_REQUIRES_ASSERTIONS: run without -O / PYTHONOPTIMIZE")
+
+
 def main(argv=None):
+    require_assertions()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--report-dir", type=Path, default=Path("build/phase2-acceptance")
@@ -587,6 +595,9 @@ def main(argv=None):
                     "institutional_ready": False,
                     "missing": False,
                     "defective": False,
+                    # written only after every check of this run passed (require_assertions forbids -O)
+                    "basis": "ALL_PHASE2_HARNESS_CHECKS_PASSED_IN_THIS_RUN",
+                    "scenarios_passed_in_run": len(scenarios),
                 }
             )
         for name, reason in [

@@ -10,4 +10,4 @@
 | Calibration → DNA profile | calibration/profile_compiler.py → store.py → agents/mat_profile.py | Separate latest rule approval, immutable synthetic snapshot, no institutional binding |
 | Human signature → register revision | assurance/objection_engine.py → release/dispositions.py | Sign exact challenge/proposal digest; changed proposal rejected |
 | Review → official exporter | release/authorization_gate.py, attestation.py → CLI Word/Excel | State/source, trust/expiry and required provenance; no authorized production run |
-| Excel → independent recalc | qa/recalc_verify.py → qa/lo_engine.py | Local runtime timeout remains unresolved; do not claim formula reconciliation |
+| Excel → independent recalc | qa/recalc_verify.py → qa/lo_engine.py | Reconciled in the pinned stable LibreOffice container (STABLE_LIBREOFFICE.md, CI "Stable LibreOffice validation"); the host alpha runtime still times out and is not accepted evidence |

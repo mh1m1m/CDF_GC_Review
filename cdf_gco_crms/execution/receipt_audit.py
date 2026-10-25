@@ -13,6 +13,16 @@ def require(condition, code):
         raise ValueError(code)
 
 
+def evidence_labels(provider_api_completions: int, native_cli_completions: int) -> dict:
+    """Only provider-API completions are live inference evidence. A supervised CLI completion is reported on its own
+    and never under the live label: it cannot satisfy provenance or the release attestation."""
+    return {
+        "live_execution_evidence": ("PROVIDER_API_PRESENT_REQUIRES_EXTERNAL_RECONCILIATION" if provider_api_completions
+                                    else "BLOCKED_EXTERNAL_NO_COMPLETION"),
+        "supervised_cli_evidence": ("CLI_COMPLETION_PRESENT_NOT_PROVIDER_API_EVIDENCE" if native_cli_completions else "NONE"),
+    }
+
+
 def verify(database, case_id):
     if not case_id.startswith("SYN-"):
         raise ValueError("PUBLIC_SYNTHETIC_CASE_REQUIRED")
@@ -126,11 +136,7 @@ def verify(database, case_id):
             "external_provider_reconciliation": "NOT_VERIFIED",
             "actual_chatgpt_registration": "BLOCKED_EXTERNAL",
             "actual_claude_registration": "BLOCKED_EXTERNAL",
-            "live_execution_evidence": (
-                "PRESENT_REQUIRES_EXTERNAL_RECONCILIATION"
-                if api + native
-                else "BLOCKED_EXTERNAL_NO_COMPLETION"
-            ),
+            **evidence_labels(api, native),
             "institutional_authorization": "NOT_AUTHORIZED",
         }
     finally:

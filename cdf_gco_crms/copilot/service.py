@@ -616,6 +616,10 @@ class CopilotService:
         if op in ("knowledge", "quality"):
             return self.knowledge.dispatch(op, r, p)
         if op in ("decision", "decisions", "memory", "calibration"):
+            if op == "decision" and str(getattr(self, "_transport", "")).upper().startswith("MCP"):
+                # Recording a human decision on a model's request would let the model author the "human" record
+                # that a checkpoint later relies on (protocol Art. 00.1, audit D4/D7).
+                raise AccessDenied("HUMAN_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE")
             return self.human.dispatch(op, r, p)
         if op in ("ingest", "documents", "correct"):
             return self.ingestion.dispatch(op, r, p)
