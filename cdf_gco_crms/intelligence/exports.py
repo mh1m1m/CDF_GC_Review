@@ -53,8 +53,25 @@ def export_dashboard(data: dict, kind: str) -> bytes:
         raise PermissionError('PRIVATE_EXPORT_REQUIRES_AUTHORIZED_WORKSPACE')
     from ..institutional.providers import PublicSyntheticProvider
     data={**data,'reference_catalog':PublicSyntheticProvider().catalog()}
-    logo=PublicSyntheticProvider().asset('HORIZONTAL_LIGHT_BACKGROUND')
-    return _render_dashboard(data,kind,logo=logo)
+    # Synthetic exports carry a neutral demo mark, never an institution's wordmark (audit C5); the authorised
+    # private workspace supplies its own brand asset through its own provider.
+    return _render_dashboard(data,kind,logo=demo_mark_png())
+
+
+def demo_mark_png() -> bytes:
+    """Neutral public-demo mark, generated so no image binary is committed: same 1139x225 proportions as the
+    institutional wordmark slot, light background, Latin text only (rendered without a shaping engine)."""
+    from PIL import Image, ImageDraw, ImageFont
+    image=Image.new('RGB',(1139,225),'white')
+    draw=ImageDraw.Draw(image)
+    draw.rounded_rectangle((6,6,1132,218),radius=28,outline=(60,72,88),width=6)
+    try:
+        big,small=ImageFont.load_default(size=78),ImageFont.load_default(size=38)
+    except TypeError:            # Pillow without sized default fonts
+        big=small=ImageFont.load_default()
+    draw.text((1090,92),'SYNTHETIC DEMO',font=big,fill=(30,40,55),anchor='rm')
+    draw.text((1090,165),'NOT AN OFFICIAL DOCUMENT',font=small,fill=(70,82,98),anchor='rm')
+    output=BytesIO();image.save(output,format='PNG');return output.getvalue()
 
 
 def _render_dashboard(data: dict, kind: str, *, logo: bytes) -> bytes:

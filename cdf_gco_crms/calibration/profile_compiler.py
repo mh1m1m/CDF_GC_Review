@@ -20,12 +20,11 @@ def compile_candidate(store: CalibrationStore, case_id: str, reviewer: ReviewerC
     if not store.verify_chain(case_id, reviewer):
         raise CalibrationError("AUDIT_CHAIN_FAILED")
     events = store.events(case_id, reviewer)
+    eligible = store.rule_eligible_events(case_id)   # latest decision per observation; material withdrawals second-reviewed
     submitted = {}
     for event in events:
-        if event["event_type"] == "OBSERVATION_CALIBRATION":
-            payload = json.loads(event["payload_json"])
-            if payload.get("status") == "SUBMITTED":
-                submitted[event["event_hash"]] = event
+        if event["event_type"] == "OBSERVATION_CALIBRATION" and event["event_hash"] in eligible:
+            submitted[event["event_hash"]] = event
     if not submitted:
         raise CalibrationError("SUBMITTED_CALIBRATION_REQUIRED")
     approved = {}

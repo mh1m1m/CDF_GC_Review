@@ -151,3 +151,20 @@ def test_native_export_features_and_explicit_metric_lineage(dashboard):
         comments=archive.read('word/comments.xml')
         assert b'CDF automated draft provenance' in comments
         assert b'Automated draft lineage' in comments
+
+
+def test_synthetic_exports_and_public_ui_never_carry_the_institutional_wordmark(dashboard):
+    """Audit C5: synthetic Word/Excel exports and the public masthead use a neutral demo mark."""
+    import hashlib
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    wordmarks = {hashlib.sha256(p.read_bytes()).hexdigest() for p in (root / "apps/web/public").glob("cdf-wordmark-*")}
+    service, _, user, case = dashboard
+    data = service.dashboard(case, user)
+    for kind, prefix in (("docx", "word/media/"), ("xlsx", "xl/media/")):
+        with zipfile.ZipFile(BytesIO(export_dashboard(data, kind))) as archive:
+            media = [archive.read(n) for n in archive.namelist() if n.startswith(prefix)]
+        assert media, kind
+        assert not {hashlib.sha256(m).hexdigest() for m in media} & wordmarks, kind
+    masthead = (root / "apps/web/src/main.tsx").read_text(encoding="utf-8")
+    assert "cdf-wordmark" not in masthead and "demo-mark-on-dark.svg" in masthead

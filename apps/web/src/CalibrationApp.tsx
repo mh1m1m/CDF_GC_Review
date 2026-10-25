@@ -9,13 +9,24 @@ type Observation = {
   reviewed_text?: string;
   observed_change?: string;
   material_categories?: string[];
+  decision_head?: string | null;
+  decision_state?: {
+    decision_event_hash: string;
+    decision: string;
+    status: string;
+    decided_by: string;
+    heightened_review: boolean;
+    reviewed_by: string | null;
+  } | null;
 };
 type CaseData = {
   case_id: string;
   evidence_hash: string;
   source_hash: string;
   observations: Observation[];
-  statistics: Record<string, number | boolean>;
+  rule_eligible_events?: string[];
+  profile_versions_known?: string[];
+  statistics: Record<string, unknown>;
 };
 type EventData = {
   observation_id: string | null;
@@ -81,10 +92,13 @@ export default function CalibrationApp({
   const [active, setActive] = useState<CaseData | null>(null);
   const [events, setEvents] = useState<EventData[]>([]);
   const [focus, setFocus] = useState(0);
-  const [choice, setChoice] = useState("KEEP_WITH_REVISIONS");
+  // No preselected decision and no preselected withdrawal ground: the reviewer chooses each time.
+  const [choice, setChoice] = useState("");
   const [reason, setReason] = useState("");
-  const [ground, setGround] = useState("W12");
+  const [ground, setGround] = useState("");
   const [evidence, setEvidence] = useState("");
+  const [reviewReason, setReviewReason] = useState("");
+  const [ruleProfile, setRuleProfile] = useState("");
   const [view, setView] = useState("compare");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -100,6 +114,15 @@ export default function CalibrationApp({
     string,
     unknown
   > | null>(null);
+  // Form state belongs to one observation: reset it whenever the reviewer moves to another observation or case,
+  // so a rationale, ground or evidence typed for one observation can never be submitted for the next.
+  useEffect(() => {
+    setChoice("");
+    setReason("");
+    setGround("");
+    setEvidence("");
+    setReviewReason("");
+  }, [focus, active?.case_id]);
   async function api<T>(
     url: string,
     method = "GET",
@@ -237,8 +260,9 @@ export default function CalibrationApp({
           decision: choice,
           rationale: reason,
           expected_evidence_hash: active.evidence_hash,
+          expected_decision_head: obs.decision_head ?? null,
           status,
-          reasons: choice === "WITHDRAW" ? [ground] : [],
+          reasons: choice === "WITHDRAW" && ground ? [ground] : [],
           evidence_refs: evidence.trim() ? [evidence.trim()] : [],
           material_categories: obs.material_categories || [],
         },
@@ -253,17 +277,35 @@ export default function CalibrationApp({
       setError(String(e));
     }
   }
+  async function reviewDecision(outcome: "APPROVED" | "RETURNED") {
+    if (!active) return;
+    const obs = active.observations[focus];
+    if (!obs.decision_state) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api(
+        "/api/cases/" + encodeURIComponent(active.case_id) + "/decisions/review",
+        "POST",
+        {
+          decision_event_hash: obs.decision_state.decision_event_hash,
+          outcome,
+          rationale: reviewReason,
+        },
+      );
+      setSuccess(outcome === "APPROVED" ? "اعتمد مراجع ثانٍ القرار" : "أُعيد القرار للمراجعة");
+      await openCase(active.case_id, focus, "compare");
+    } catch (e) {
+      setError(String(e));
+    }
+  }
   async function reviewRule() {
     if (!active) return;
     setError("");
     setSuccess("");
-    const hashes = events
-      .filter(
-        (e) =>
-          e.event_type === "OBSERVATION_CALIBRATION" &&
-          JSON.parse(e.payload_json).status === "SUBMITTED",
-      )
-      .map((e) => e.event_hash);
+    // Only the latest decision of each observation counts as evidence; material withdrawals need a second review.
+    const hashes = active.rule_eligible_events || [];
+    const version = ruleProfile || active.profile_versions_known?.[0] || "";
     try {
       await api(
         "/api/cases/" +
@@ -276,7 +318,7 @@ export default function CalibrationApp({
           action: ruleAction,
           rationale: ruleReason,
           observation_event_hashes: hashes,
-          profile_version: "PROVISIONAL-v1",
+          profile_version: version,
         },
       );
       setSuccess(
@@ -464,9 +506,39 @@ export default function CalibrationApp({
                   {latest && (
                     <p className="tag">
                       آخر إجراء: {JSON.parse(latest.payload_json).decision} (
-                      {JSON.parse(latest.payload_json).status})
+                      {obs.decision_state?.status || JSON.parse(latest.payload_json).status})
                     </p>
                   )}
+                  {obs.decision_state &&
+                    obs.decision_state.status !== "DRAFT" && (
+                      <div className="form">
+                        <h3>مراجعة ثانية للقرار</h3>
+                        <p className="notice">
+                          يعتمد القرار أو يعيده مراجع غير من سجّله.
+                          {obs.decision_state.heightened_review
+                            ? " سحب ملاحظة جوهرية لا يُستخدم دليلاً لقاعدة قبل اعتماده."
+                            : ""}
+                        </p>
+                        <label>
+                          مبرر المراجعة
+                          <textarea
+                            value={reviewReason}
+                            onChange={(e) => setReviewReason(e.target.value)}
+                          />
+                        </label>
+                        <div className="actions">
+                          <button onClick={() => reviewDecision("RETURNED")}>
+                            إعادة القرار
+                          </button>
+                          <button
+                            className="primary"
+                            onClick={() => reviewDecision("APPROVED")}
+                          >
+                            اعتماد القرار
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   <div className="form">
                     <h3>تسجيل القرار المهني</h3>
                     <label>
@@ -475,6 +547,7 @@ export default function CalibrationApp({
                         value={choice}
                         onChange={(e) => setChoice(e.target.value)}
                       >
+                        <option value="">— اختر القرار —</option>
                         {choices.map((x) => (
                           <option value={x[0]} key={x[0]}>
                             {x[1]}
@@ -489,6 +562,7 @@ export default function CalibrationApp({
                           value={ground}
                           onChange={(e) => setGround(e.target.value)}
                         >
+                          <option value="">— اختر السبب —</option>
                           {grounds.map((x) => (
                             <option value={x[0]} key={x[0]}>
                               {x[1]}
@@ -520,9 +594,12 @@ export default function CalibrationApp({
                       </p>
                     )}
                     <div className="actions">
-                      <button onClick={() => save("DRAFT")}>حفظ مسودة</button>
+                      <button disabled={!choice} onClick={() => save("DRAFT")}>
+                        حفظ مسودة
+                      </button>
                       <button
                         className="primary"
+                        disabled={!choice}
                         onClick={() => save("SUBMITTED")}
                       >
                         إرسال قرار المعايرة
@@ -576,6 +653,19 @@ export default function CalibrationApp({
                 />
               </label>
               <label>
+                نسخة الملف المستهدفة
+                <select
+                  value={ruleProfile || active.profile_versions_known?.[0] || ""}
+                  onChange={(e) => setRuleProfile(e.target.value)}
+                >
+                  {(active.profile_versions_known || []).map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 الإجراء
                 <select
                   value={ruleAction}
@@ -626,8 +716,8 @@ export default function CalibrationApp({
                     </div>
                     <button
                       onClick={() => {
+                        // Opens the observation only; absence is not a withdrawal, so nothing is preselected.
                         setFocus(i);
-                        setChoice("WITHDRAW");
                         setView("compare");
                       }}
                     >

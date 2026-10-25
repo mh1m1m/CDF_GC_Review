@@ -237,3 +237,15 @@ def test_wide_encoded_dtd_is_rejected(encoding):
         safe_xml.fromstring(payload.encode(encoding))
     if not encoding.startswith("utf-32"):          # expat itself does not read UTF-32
         assert safe_xml.fromstring('<?xml version="1.0"?><r>ok</r>'.encode(encoding)).text == "ok"
+
+
+def test_model_cannot_record_a_human_decision_over_mcp(waiting):
+    """A model client may read decisions, but never author the "human" record a checkpoint relies on."""
+    call, state = waiting
+    decisions = call("decisions", transport="MCP_COPILOT_STREAMABLE-HTTP")        # reading is allowed
+    record = decisions["records"][0]
+    with pytest.raises(AccessDenied, match="HUMAN_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE"):
+        call("decision", transport="MCP_COPILOT_STREAMABLE-HTTP", observation_id=record["observation"]["observation_id"],
+             action="ACCEPT", expected_version=record["version"], expected_evidence_hash=decisions["evidence_hash"],
+             rationale="Model-authored acceptance.", idempotency_key="d4-mcp-decide-001")
+

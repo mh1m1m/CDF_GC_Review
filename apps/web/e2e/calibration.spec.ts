@@ -21,6 +21,10 @@ test("synthetic calibration persists after browser restart and denies unsubstant
     .getByRole("button", { name: "معايرة الملاحظات" })
     .click();
   await expect(page.getByText("SYN-001", { exact: false })).toBeVisible();
+  // No decision is preselected and submission stays disabled until the reviewer chooses one.
+  await expect(page.getByLabel("الإجراء")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "إرسال قرار المعايرة" })).toBeDisabled();
+  await page.getByLabel("الإجراء").selectOption("CONVERT_TO_QUESTION");
   await page
     .getByPlaceholder("ما الدليل أو السبب وراء هذا القرار؟")
     .fill("Synthetic reason validated in browser.");
@@ -42,6 +46,9 @@ test("synthetic calibration persists after browser restart and denies unsubstant
   await page.getByRole("button", { name: "التالي" }).click();
   await expect(page.getByText("SYN-002", { exact: false })).toBeVisible();
   await page.getByLabel("الإجراء").selectOption("WITHDRAW");
+  // Nothing is preselected: the reviewer must choose the withdrawal ground explicitly.
+  await expect(page.getByLabel("سبب السحب")).toHaveValue("");
+  await page.getByLabel("سبب السحب").selectOption("W12");
   await page
     .getByPlaceholder("ما الدليل أو السبب وراء هذا القرار؟")
     .fill("Synthetic rationale, missing verification evidence.");

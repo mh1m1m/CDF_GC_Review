@@ -78,3 +78,23 @@ def test_case_permissions_deny_ungranted_identity(app_client):
     impersonator=ReviewerContext("SYNTHETIC_UNGRANTED",frozenset({"CALIBRATION_REVIEWER"}),True)
     with pytest.raises(AccessDenied,match="CASE_ACCESS_DENIED"):
         mod.service.case("SYN-API-001",impersonator)
+
+
+def test_api_stale_decision_head_is_409_and_self_review_is_403(app_client):
+    """D9/D10 over HTTP: a client that read an older decision is refused; the single dev identity cannot second-review itself."""
+    client, _ = app_client
+    digest = make_case(client)
+    url = "/api/cases/SYN-API-001/observations/SYN-OBS-001/decisions"
+    body = {"decision": "KEEP_UNCHANGED", "rationale": "Kept as drafted for the synthetic case.",
+            "expected_evidence_hash": digest, "status": "SUBMITTED", "expected_decision_head": None}
+    first = client.post(url, headers=headers(), json=body)
+    assert first.status_code == 200, first.text
+    stale = client.post(url, headers=headers(), json=body)                 # still claims "no decision seen"
+    assert stale.status_code == 409 and "DECISION_CHANGED_SINCE_READ" in stale.text
+    case = client.get("/api/cases/SYN-API-001", headers=headers()).json()
+    obs = case["observations"][0]
+    assert obs["decision_head"] == first.json()["event_hash"] and obs["decision_state"]["status"] == "SUBMITTED"
+    review = client.post("/api/cases/SYN-API-001/decisions/review", headers=headers(),
+                         json={"decision_event_hash": obs["decision_head"], "outcome": "APPROVED",
+                               "rationale": "Second reviewer checked the evidence."})
+    assert review.status_code == 403 and "SECOND_REVIEWER_MUST_DIFFER" in review.text

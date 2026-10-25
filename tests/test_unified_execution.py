@@ -476,3 +476,22 @@ def test_actual_independent_mcp_protocol_shared_cli_case(tmp_path):
     assert (
         len(json.loads((output / "mcp-tool-discovery.json").read_text())["tools"]) == 24
     )
+
+
+def test_mcp_calibration_is_draft_only(application):
+    """Audit D7 follow-up: a model client may propose a draft; only a direct human interface submits."""
+    service, p, _ = application
+    create(service, p)
+    finish(service, p, queue(service, p))
+    view = service.view("SYN-UNIFIED-001", p)
+    base = {"case_id": view["case_id"], "observation_id": view["observation_ids"][0], "decision": "KEEP_UNCHANGED",
+            "rationale": "Synthetic draft only.", "expected_evidence_hash": view["evidence_hash"]}
+    draft = service.invoke("cdf_calibrate_observation", Request(**base, status="DRAFT", idempotency_key="mcp-draft-key-001"),
+                           p, transport="MCP_STREAMABLE-HTTP")
+    assert draft["data"]["status"] == "DRAFT"
+    with pytest.raises(AccessDenied, match="SUBMITTED_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE"):
+        service.invoke("cdf_calibrate_observation", Request(**base, status="SUBMITTED", idempotency_key="mcp-sub-key-001"),
+                       p, transport="MCP_STREAMABLE-HTTP")
+    done = service.invoke("cdf_calibrate_observation", Request(**base, status="SUBMITTED", idempotency_key="cli-sub-key-001"),
+                          p, transport="CLI")
+    assert done["data"]["status"] == "SUBMITTED"

@@ -6,7 +6,7 @@ case entitlement provisioning, and trusted deployment controls exist.
 from __future__ import annotations
 
 import json
-from .store import CalibrationError, CalibrationStore, ReviewerContext, AccessDenied
+from .store import UNSET, CalibrationError, CalibrationStore, ReviewerContext, AccessDenied
 
 
 def _roles(user):
@@ -46,15 +46,21 @@ class CalibrationService:
     def case(self, case_id, user):
         self.authorize(case_id, user)
         row = self.store._case(case_id)
+        states = self.store.decision_states(case_id)
+        observations = [o | {"decision_head": self.store.decision_head(case_id, o["observation_id"]),
+                             "decision_state": states.get(o["observation_id"])}
+                        for o in self.store.observations(case_id, user)]
         return {"case_id": case_id, "source_hash": row["source_hash"],
                 "evidence_hash": row["evidence_hash"],
-                "observations": self.store.observations(case_id, user),
+                "observations": observations,
+                "rule_eligible_events": sorted(self.store.rule_eligible_events(case_id)),
+                "profile_versions_known": sorted(self.store.known_profile_versions(case_id)),
                 "statistics": self.store.case_statistics(case_id, user)}
 
     def decision(self, case_id, observation_id, request: dict, user):
         self.authorize(case_id, user)
         keyset = {"decision", "rationale", "expected_evidence_hash", "status",
-                  "reasons", "evidence_refs", "material_categories"}
+                  "reasons", "evidence_refs", "material_categories", "expected_decision_head"}
         if set(request) - keyset:
             raise CalibrationError("UNKNOWN_FIELDS")
         return self.store.save_decision(
@@ -63,7 +69,16 @@ class CalibrationService:
             reasons=request.get("reasons"), evidence_refs=request.get("evidence_refs"),
             material_categories=request.get("material_categories"),
             status=request.get("status", "DRAFT"),
+            expected_decision_head=request["expected_decision_head"] if "expected_decision_head" in request else UNSET,
         )
+
+    def review_decision(self, case_id, request: dict, user):
+        """Second-human review (APPROVED / RETURNED) of the latest submitted decision of an observation."""
+        self.authorize(case_id, user)
+        if set(request) - {"decision_event_hash", "outcome", "rationale"}:
+            raise CalibrationError("UNKNOWN_FIELDS")
+        return self.store.review_decision(case_id, request["decision_event_hash"], request["outcome"],
+                                          request.get("rationale", ""), user)
 
     def rule(self, case_id, rule_id, request, user):
         self.authorize(case_id, user, required="DNA_RULE_APPROVER")

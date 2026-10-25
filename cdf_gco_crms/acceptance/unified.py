@@ -751,7 +751,15 @@ def scan_evidence(output, token):
     return scanned
 
 
+def require_assertions() -> None:
+    """The harness gates PASS through ``assert``; under ``python -O`` those checks vanish and PASS would be written
+    unconditionally. Refuse to run instead."""
+    if not __debug__ or sys.flags.optimize:
+        raise SystemExit("ACCEPTANCE_REQUIRES_ASSERTIONS: run without -O / PYTHONOPTIMIZE")
+
+
 def main(argv=None):
+    require_assertions()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode", choices=["public-synthetic"], default="public-synthetic"

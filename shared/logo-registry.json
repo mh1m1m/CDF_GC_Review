@@ -17,16 +17,17 @@
       "artwork": "ORIGINAL_UNMODIFIED",
       "safe_area": "NOT_VERIFIED",
       "minimum_size": "NOT_VERIFIED",
-      "source_url": "https://drive.google.com/file/d/1gnS-JrU1qvTGP3GETZxixURP3zZCGHjk/view",
+      "source_url": "PRIVATE_SOURCE_NOT_PUBLISHED",
       "last_verified_date": "2026-10-24",
       "public_filename": "cdf-wordmark-on-dark.jpg",
-      "source_document": "https://drive.google.com/file/d/1gnS-JrU1qvTGP3GETZxixURP3zZCGHjk/view",
+      "source_document": "PRIVATE_SOURCE_NOT_PUBLISHED",
       "original_asset_version": "NOT_VERIFIED",
       "intended_use": "PUBLIC_DEMONSTRATION_USER_AUTHORIZED",
       "color_restrictions": "ORIGINAL_UNMODIFIED",
       "background_restrictions": "DARK_BACKGROUND",
       "approval_status": "NOT_VERIFIED",
-      "storage_location": "apps/web/public/cdf-wordmark-on-dark.jpg"
+      "storage_location": "apps/web/public/cdf-wordmark-on-dark.jpg",
+      "public_mode_use": "NOT_USED_IN_PUBLIC_DEMO_OR_SYNTHETIC_EXPORTS"
     },
     {
       "variant_id": "HORIZONTAL_LIGHT_BACKGROUND",
@@ -45,17 +46,23 @@
       "artwork": "ORIGINAL_UNMODIFIED",
       "safe_area": "NOT_VERIFIED",
       "minimum_size": "NOT_VERIFIED",
-      "source_url": "https://drive.google.com/file/d/1EiE2A_4WlnXSXIwhQPBaJrfPnyc9WnNE/view",
+      "source_url": "PRIVATE_SOURCE_NOT_PUBLISHED",
       "last_verified_date": "2026-10-24",
       "public_filename": "cdf-wordmark-on-light.jpg",
-      "source_document": "https://drive.google.com/file/d/1EiE2A_4WlnXSXIwhQPBaJrfPnyc9WnNE/view",
+      "source_document": "PRIVATE_SOURCE_NOT_PUBLISHED",
       "original_asset_version": "NOT_VERIFIED",
       "intended_use": "PUBLIC_DEMONSTRATION_USER_AUTHORIZED",
       "color_restrictions": "ORIGINAL_UNMODIFIED",
       "background_restrictions": "LIGHT_BACKGROUND",
       "approval_status": "NOT_VERIFIED",
-      "storage_location": "apps/web/public/cdf-wordmark-on-light.jpg"
+      "storage_location": "apps/web/public/cdf-wordmark-on-light.jpg",
+      "public_mode_use": "NOT_USED_IN_PUBLIC_DEMO_OR_SYNTHETIC_EXPORTS"
     }
   ],
-  "creative_treatment": "SURROUNDING_GLASS_ONLY_NOT_LOGO_GEOMETRY"
+  "creative_treatment": "SURROUNDING_GLASS_ONLY_NOT_LOGO_GEOMETRY",
+  "public_demo_mark": {
+    "file": "apps/web/public/demo-mark-on-dark.svg",
+    "exports": "generated at run time (intelligence.exports.demo_mark_png)",
+    "artwork": "GENERATED_NEUTRAL_NOT_AN_INSTITUTIONAL_IDENTITY"
+  }
 }

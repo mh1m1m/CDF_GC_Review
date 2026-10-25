@@ -154,6 +154,10 @@ class ApplicationService:
                 raise AccessDenied(
                     "CENTRAL_RELEASE_AUTHORIZATION_REQUIRED_NEW_EXPORTS_ARE_DRAFT_ONLY"
                 )
+            if (action == "calibrate" and str(transport).upper().startswith("MCP")
+                    and getattr(request, "status", "DRAFT") != "DRAFT"):
+                # A model client may propose a calibration draft; only a direct human interface submits one.
+                raise AccessDenied("SUBMITTED_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE")
             if action not in (
                 "create",
                 "job",

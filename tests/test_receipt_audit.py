@@ -6,7 +6,7 @@ import pytest
 from cdf_gco_crms.execution.service import ApplicationService
 from cdf_gco_crms.execution.contracts import Request
 from cdf_gco_crms.execution.jobs import JobTrace
-from cdf_gco_crms.execution.receipt_audit import verify
+from cdf_gco_crms.execution.receipt_audit import evidence_labels, verify
 from cdf_gco_crms.agents.runner import AgentRunner
 from cdf_gco_crms.agents.contracts import ROLE_DRAFTING
 from cdf_gco_crms.agents.providers.base import ProviderAdapter, ProviderFailure
@@ -53,3 +53,11 @@ def test_failed_receipt_binds_source_attempt_and_hash_chain_and_rejects_tamper(
     with pytest.raises(ValueError, match="ATTEMPT_BINDING_MISMATCH"):
         verify(app.store.path, case)
     app.close()
+
+
+def test_cli_completions_never_carry_the_live_evidence_label():
+    """D16: a supervised CLI completion is not provider-API inference evidence."""
+    assert evidence_labels(0, 3) == {"live_execution_evidence": "BLOCKED_EXTERNAL_NO_COMPLETION",
+                                     "supervised_cli_evidence": "CLI_COMPLETION_PRESENT_NOT_PROVIDER_API_EVIDENCE"}
+    assert evidence_labels(1, 0)["live_execution_evidence"] == "PROVIDER_API_PRESENT_REQUIRES_EXTERNAL_RECONCILIATION"
+    assert evidence_labels(0, 0) == {"live_execution_evidence": "BLOCKED_EXTERNAL_NO_COMPLETION", "supervised_cli_evidence": "NONE"}
