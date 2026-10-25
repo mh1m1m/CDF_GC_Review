@@ -25,6 +25,9 @@ class TimedAcceptance(Acceptance):
         return result
 
 
+STALE_EXIT = 5  # cli.py maps Conflict (a stale decision version) to exit status 5
+
+
 async def protocol(a, url):
     calls = []
     async with httpx.AsyncClient(
@@ -66,28 +69,36 @@ async def protocol(a, url):
             assert state["status"] == "WAITING_FOR_HUMAN"
             decisions = await call("decisions", {})
             first = decisions["records"][0]
-            decision = await call(
+            first_decision = {
+                "observation_id": first["observation"]["observation_id"],
+                "action": "ACCEPT",
+                "expected_version": first["version"],
+                "expected_evidence_hash": decisions["evidence_hash"],
+                "rationale": "Synthetic reviewer retained the source-grounded observation; other material items remain open.",
+                "idempotency_key": "phase2-human-001",
+            }
+            # A model client cannot record a human decision: the MCP call is refused.
+            refused = await call(
                 "decision",
-                {
-                    "observation_id": first["observation"]["observation_id"],
-                    "action": "ACCEPT",
-                    "expected_version": first["version"],
-                    "expected_evidence_hash": decisions["evidence_hash"],
-                    "rationale": "Synthetic reviewer retained the source-grounded observation; other material items remain open.",
-                    "idempotency_key": "phase2-human-001",
-                },
+                {**first_decision, "idempotency_key": "phase2-human-mcp-denied-001"},
+                error=True,
             )
-            await call(
+            assert "HUMAN_DECISION_REQUIRES_DIRECT_HUMAN_INTERFACE" in json.dumps(refused)
+            # The human records it on the CLI (the direct human interface).
+            decision = payload_cli(a, a.temp, "decision", {"case_id": CASE, **first_decision})
+            # A stale competing form is still rejected on the human interface.
+            payload_cli(
+                a,
+                a.temp,
                 "decision",
                 {
-                    "observation_id": first["observation"]["observation_id"],
-                    "action": "ACCEPT",
+                    "case_id": CASE,
+                    **first_decision,
                     "expected_version": "NONE",
-                    "expected_evidence_hash": decisions["evidence_hash"],
                     "rationale": "Stale competing form",
                     "idempotency_key": "phase2-stale-001",
                 },
-                error=True,
+                expected=STALE_EXIT,
             )
             checkpoint = {
                 "workflow_id": state["workflow_id"],
