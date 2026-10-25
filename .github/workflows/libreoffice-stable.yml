@@ -10,6 +10,7 @@ on:
       - codex/takeover-audit-and-safeguards
       - codex/unified-execution
       - codex/phase-ii-copilot
+      - codex/real-mcp-connectivity
       - codex/institutional-dual-mode
       - codex/visual-intelligence
       - codex/stable-libreoffice
