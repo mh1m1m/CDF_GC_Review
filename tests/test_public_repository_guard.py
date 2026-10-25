@@ -57,7 +57,18 @@ def test_history_scan_finds_content_removed_from_the_tip(tmp_path):
     assert any(f.endswith("SHAREABLE_DRIVE_LINK:d.json") for f in G.scan_history(tmp_path, []))
 
 
+_GENERATED = {".git", "node_modules", "dist", "build", "__pycache__", ".venv", "venv", "test-results"}
+
+
+def _public_files() -> list[str]:
+    """Tracked files; on a `git archive` export (no .git, as in the LibreOffice CI job) every exported file."""
+    if (ROOT / ".git").exists():
+        files = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
+        return [f for f in files if f]
+    return [p.relative_to(ROOT).as_posix() for p in ROOT.rglob("*")
+            if p.is_file() and not _GENERATED.intersection(p.relative_to(ROOT).parts)]
+
+
 def test_current_public_tree_passes_the_public_rules():
-    files = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
-    findings = [f for f in G.scan_tree(ROOT, [f for f in files if f], []) if not f.startswith("PRIVATE_DENYLIST")]
+    findings = [f for f in G.scan_tree(ROOT, _public_files(), []) if not f.startswith("PRIVATE_DENYLIST")]
     assert findings == []
