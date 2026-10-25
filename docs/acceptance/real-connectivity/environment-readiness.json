@@ -1,0 +1,25 @@
+{
+  "observed_at": "2026-10-24",
+  "spec_revision": "18",
+  "observations_current": true,
+  "network_policy": {
+    "mode": "restricted",
+    "state": "enforced",
+    "presets": [
+      "package_managers"
+    ]
+  },
+  "configured_capabilities": [],
+  "secret_names": [],
+  "runtime_variable_names": [],
+  "outbound_identity_aliases": [],
+  "codex_binary_version": "0.163.0",
+  "normal_codex_login": "Logged in using ChatGPT",
+  "claude_binary_available": false,
+  "oauth_resource_configured": false,
+  "oauth_issuer_configured": false,
+  "public_tls_endpoint_provisioned": false,
+  "actual_chatgpt_registration": "BLOCKED_EXTERNAL",
+  "actual_claude_registration": "BLOCKED_EXTERNAL",
+  "native_inference": "BLOCKED_EXTERNAL_NO_COMPLETION"
+}

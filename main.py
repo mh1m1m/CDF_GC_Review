@@ -1,0 +1,713 @@
+#!/usr/bin/env python3
+"""CDF–GCO–CRMS v7.12 workbook engine – command line.
+
+Commands
+  round1   INPUT.json OUT_DIR                 build the round-1 requester workbook
+  append   RETURNED.xlsx INPUT.json OUT_DIR [--delivered DELIVERED.xlsx]
+                                              read the workbook the owner returned, keep the owner's
+                                              entries, restore GCO cells from the delivered copy, append
+                                              the next round and rebuild the dashboard
+  rebuild  WORKBOOK.xlsx OUT_DIR              rebuild helper sheet and dashboard from the data sheet
+  migrate  V710.xlsx OUT_DIR                  v7.10 or v7.11 to v7.12 migration (see migrate_to_v712.py)
+  verify   WORKBOOK.xlsx                      recalculate every round's view in LibreOffice and compare
+  gates    WORKBOOK.xlsx [--previous P.xlsx] [--docx D.docx]
+                                              run the G-DASH and G-UX gates and print the results
+
+v7.12 workflow commands (patch V712-003; every command prints JSON and returns a code)
+  inventory FILE... [--json OUT]             SHA-256 manifest and safe-ingestion report of every input (15A.6)
+  ingest    WORKBOOK.xlsx [--json OUT]        safe-open and parse a workbook; schema, warnings, integrity flags
+  finalize-titles WORKBOOK.xlsx DECISIONS.json OUT_DIR [--issue]
+                                              apply recorded reviewer decisions on titles (10.4A.16, 19A.9)
+  build-excel WORKBOOK.xlsx OUT_DIR [--issue] rebuild the workbook from its data sheet; --issue freezes approved titles
+  build-word  WORKBOOK.xlsx OUT.docx [--round N] [--source CASE.docx]
+                                              Word file with native GCO comments (threads for follow-ups, G-SYNC-9)
+  import-owner-return DELIVERED.xlsx RETURNED.xlsx [--docx-delivered D.docx --docx-returned R.docx] [--json OUT]
+                                              delta of the owner's return: owner inputs, GCO cells restored, tampering
+  audit-history ROUND_DIR OUT_DIR [--external AUDIT.xlsx]
+                                              lineage audit of a round series (16.1 / G-HIST)
+  qa        WORKBOOK.xlsx [--previous P] [--docx D] [--verify] [--json OUT]
+                                              gates as JSON; code 1 on any FAIL (gates whose input is not supplied FAIL)
+  demo-e2e  OUT_DIR [--rounds N]              synthetic round 1 → owner return → rounds 2..N with Word files
+  release   FILE.xlsx... [--json OUT]         production guard; never OPERATIONALLY_APPROVED from this command
+  review    WORKBOOK.xlsx --docx CASE.docx [--department NAME] [--record OUT.json]
+                                              19A challenge of every drafted observation; code 1 while a blocker stands
+  challenge WORKBOOK.xlsx --docx CASE.docx    review + confidentiality scan of the files that would be issued (19A.9)
+  adjudicate WORKBOOK.xlsx DECISIONS.json --docx CASE.docx [--trust-store KEYS.json]
+                                              apply signed reviewer decision records to the blockers; booleans are refused
+  agent-review WORKBOOK.xlsx --docx CASE.docx [--draft] [--decisions D.json --trust-store KEYS.json] [--execution-json OUT]
+                                              the orchestrated pipeline (Article 06): drafting (opt-in) → black team → red
+                                              advocate → adjudicator → editorial → human decisions → independent final
+                                              reviewer → gate record; LIVE only with CDF_AI_PROVIDER=anthropic and a credential
+  evaluate-holdout [--json OUT] [--holdout DIR]   blind evaluation of the challenge roles on the sealed public holdout
+                                              (DETERMINISTIC baseline unless CDF_AI_PROVIDER configures a LIVE provider)
+  apply-dispositions WORKBOOK.xlsx DECISIONS.json OUT_DIR --docx CASE.docx --trust-store KEYS.json
+                                              apply human-authorised dispositions to the register (ledger, new fingerprint);
+                                              the output is an INTERNAL_DRAFT that needs its own review before issue
+
+Return codes: 0 OK · 1 gate or check FAIL · 2 input/schema error · 3 refused by policy · 4 NOT_VERIFIED / BLOCKED_EXTERNAL
+
+Release authorisation gate (19A.9; cdf_gco_crms.release.authorization_gate)
+  round1 and append always write WORKING COPIES (a draft is reviewed before it is issued). rebuild, finalize-titles,
+  build-excel and build-word write an issuable file only when a review/adjudicate record for exactly this content is
+  CLEAR; otherwise they refuse (code 3) unless --working-copy is given, which writes "<name> - WORKING-COPY" with the
+  working-copy marker in the package properties. --gate-dir changes where the gate records live (build/adversarial/gate).
+  review/challenge/adjudicate accept --synthetic-reference (public fixture; such a review never authorises an issue).
+
+JSON input (UTF-8)
+  round1: {"document": {"name": "...", "code": "PL", "cover_version": "...", "owning_department": "..."},
+           "date": "2026-10-23",
+           "observations": [{"location": "ص.3، المادة (2) – البند (2-1)", "quote": "…",
+                             "comment": [["سبب.", false], ["\\nالتوصية:", true], [" الإجراء.", false]]}]}
+  append: {"round": 2, "date": "2026-11-10", "document_version": "الإصدار 0.2",
+           "assessments": [{"internal_id": "GCO-PL-R1-001", "status": "مغلقة",
+                            "feedback": [["عُدّل النص.", false]], "closure_basis": "VERIFIED_TEXT"}],
+           "new_observations": [{"location": "…", "quote": "…", "comment": "…", "reason": "…"}]}
+  A comment or feedback is either a string or a list of [text, bold] runs (labels such as "التوصية:" bold).
+  Every row that is not مغلقة at the start of the round needs an assessment; rows already closed are
+  carried forward automatically (10.2). Dates and versions are written only when supplied.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from cdf_gco_crms.config import workbook_settings as W  # noqa: E402
+from cdf_gco_crms.model.entities import Document, GText, RoundAssessment, Segment  # noqa: E402
+from cdf_gco_crms.rounds.round_expansion import NewObservation, RoundInput, apply_round, build_round1  # noqa: E402
+
+
+def _text(v):
+    if v is None:
+        return None
+    if isinstance(v, str):
+        return GText.plain(v)
+    return GText([Segment(t, bool(b)) for t, b in v])
+
+
+def _new(o):
+    return NewObservation(o["location"], o["quote"], _text(o["comment"]), o.get("reason"), title=o.get("title"))
+
+
+def cmd_round1(a):
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    spec = json.loads(Path(a.input).read_text(encoding="utf-8"))
+    d = spec["document"]
+    doc = Document(name=d["name"], code=d["code"], cover_version=d.get("cover_version"),
+                   owning_department=d.get("owning_department"), is_demo=bool(d.get("is_demo")))
+    st = build_round1(doc, [_new(o) for o in spec["observations"]], date=spec.get("date"),
+                      document_version=d.get("cover_version"))
+    from cdf_gco_crms.release.authorization_gate import working_copy_name
+    out = working_copy_name(Path(a.out_dir) / f"{W.file_stem(doc.name, 1)}.xlsx")
+    build_workbook(st, out, working_copy=True)
+    _emit({"status": "OK", "output": str(out), "working_copy": True,
+           "note": "a round-1 draft is a working copy; it is issued by build-excel after `review` clears it (19A.9)"})
+    return RC_OK
+
+
+def _load_state(path, a=None):
+    from cdf_gco_crms.ingestion.workbook_reader import parse_workbook
+    overrides = {}
+    if a is not None and getattr(a, "name", None):
+        overrides["name"] = a.name
+    return parse_workbook(path, overrides=overrides)
+
+
+def cmd_append(a):
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    from cdf_gco_crms.reconciliation.historical import merge_returned, view_sheet_edits
+    spec = json.loads(Path(a.input).read_text(encoding="utf-8"))
+    returned = _load_state(a.returned, a)
+    state = returned.state
+    report = {}
+    if a.delivered:
+        delivered = _load_state(a.delivered, a).state
+        state, intake = merge_returned(delivered, returned.state)
+        report = {"gco_cell_edits_restored": [f"{d.internal_id}:{d.key}" for d in intake.gco_cell_edits],
+                  "format_losses_restored": [f"{d.internal_id}:{d.key}" for d in intake.format_losses],
+                  "late_owner_edits_kept": [f"{d.internal_id}:{d.key}" for d in intake.late_owner_edits],
+                  "missing_rows_restored": intake.missing_rows, "owner_inputs": intake.owner_inputs,
+                  "notes": intake.notes}
+        vedits, vmissing = view_sheet_edits(a.delivered, a.returned)
+        report["dashboard_or_helper_edits_channel_x"] = [f"{e.sheet}!{e.coordinate}: {e.returned!r}" for e in vedits]
+        report["dashboard_or_helper_missing"] = vmissing
+    n = int(spec["round"])
+    rin = RoundInput(n, spec.get("date"), spec.get("document_version"),
+                     [RoundAssessment(x["internal_id"], n, x["status"], _text(x.get("feedback")), x.get("closure_basis"))
+                      for x in spec.get("assessments", [])],
+                     [_new(o) for o in spec.get("new_observations", [])])
+    new_state, rep = apply_round(state, rin)
+    from cdf_gco_crms.release.authorization_gate import working_copy_name
+    out = working_copy_name(Path(a.out_dir) / f"{W.file_stem(new_state.document.name, new_state.current_round)}.xlsx")
+    build_workbook(new_state, out, working_copy=True)
+    report.update({"action": rep.action, "carried_closed": len(rep.carried_closed), "assessed": len(rep.assessed),
+                   "reopened": rep.reopened, "new": rep.new_ids, "output": str(out), "working_copy": True,
+                   "note": "a new round is a working copy; it is issued by build-excel after `review` clears it (19A.9)"})
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return RC_OK
+
+
+def cmd_rebuild(a):
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    pw = _load_state(a.workbook, a)
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / official_name(a.workbook).name)
+    if out is None:
+        return RC_REFUSED
+    if out.resolve() == Path(a.workbook).resolve():
+        sys.exit("the output must not overwrite the input")
+    build_workbook(pw.state, out, working_copy=wc)
+    _emit({"status": "OK", "output": str(out), **_gate_report(auth, wc)})
+    return RC_OK
+
+
+def cmd_verify(a):
+    from cdf_gco_crms.model.entities import DashboardViewState
+    from cdf_gco_crms.qa.recalc_verify import check_view, standard_views
+    pw = _load_state(a.workbook, a)
+    ok = True
+    for vs in standard_views(pw.state):
+        vc = check_view(pw.state, vs, Path(a.workdir))
+        ok &= vc.ok
+        print(("OK  " if vc.ok else "BAD ") + vc.view, vc.message)
+    sys.exit(0 if ok else 1)
+
+
+def cmd_gates(a):
+    from cdf_gco_crms.qa.gates import GateContext, run_dash_gates
+    from cdf_gco_crms.qa.ux_gates import run_ux_gates
+    ctx = GateContext(xlsx=Path(a.workbook), previous_xlsx=Path(a.previous) if a.previous else None,
+                      docx=Path(a.docx) if a.docx else None,
+                      logo_source=Path(__file__).resolve().parent / "assets" / "cdf_logo_horizontal_source.jpg")
+    dash = run_dash_gates(ctx)
+    for g in dash + run_ux_gates(ctx, dash):
+        print(f"{g.gate:10} {g.status:13} {g.name}: {g.actual[:120]}")
+
+
+# ============================================================================ v7.12 commands
+RC_OK, RC_FAIL, RC_INPUT, RC_REFUSED, RC_NOT_VERIFIED = 0, 1, 2, 3, 4
+
+
+def _gate_dir(a):
+    from cdf_gco_crms.release.authorization_gate import DEFAULT_GATE_DIR
+    return Path(getattr(a, "gate_dir", None) or DEFAULT_GATE_DIR)
+
+
+def _issue_or_working_copy(a, state, out):
+    """Central release gate of every issuing command.
+
+    Returns ``(out_path, working_copy, authorization)``: the authorised path when the gate clears; the WORKING-COPY
+    path when ``--working-copy`` was given; otherwise emits a refusal and returns ``(None, None, auth)`` so that the
+    caller writes nothing and returns RC_REFUSED. Nothing is written by this function.
+    """
+    from cdf_gco_crms.release.authorization_gate import authorize, sha256_file, working_copy_name
+    src = getattr(a, "docx", None) or getattr(a, "source", None)
+    src_sha = sha256_file(src) if src and Path(src).is_file() else None
+    auth = authorize(state, _gate_dir(a), trust_store=_trust_store(a), source_document_sha256=src_sha)
+    if auth.ok:
+        return Path(out), False, auth
+    if getattr(a, "working_copy", False):
+        return working_copy_name(out), True, auth
+    from cdf_gco_crms.release.authorization_gate import DRAFT_CLASSIFICATION
+    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "classification": DRAFT_CLASSIFICATION,
+           "no_output_generated": True, "gate": auth.to_dict(),
+           "detail": "RELEASE_GATE_REQUIRED: no CLEAR review record exists for exactly this content (19A.9); run `review`/"
+                     "`adjudicate` on it, or pass --internal-draft (alias --working-copy) to write a marked, non-issuable draft"})
+    return None, None, auth
+
+
+def _refuse_issue_on_draft():
+    from cdf_gco_crms.release.authorization_gate import DRAFT_CLASSIFICATION
+    _emit({"status": "REFUSED", "reason": "RELEASE_NOT_AUTHORIZED", "classification": DRAFT_CLASSIFICATION,
+           "no_output_generated": True,
+           "detail": "OFFICIAL_ISSUANCE_NOT_AUTHORIZED: --issue freezes titles as ISSUED; that is an issue act and is never "
+                     "done on an internal draft; a caller flag is not an authorisation (19A.9)"})
+    return RC_REFUSED
+
+
+def _gate_report(auth, working_copy):
+    return {"working_copy": bool(working_copy), "release_authorized": bool(auth.ok), "fingerprint": auth.fingerprint,
+            "gate_reasons": list(auth.reasons)}
+
+
+def _emit(obj, path=None):
+    text = json.dumps(obj, ensure_ascii=False, indent=2, default=str)
+    if path:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        Path(path).write_text(text, encoding="utf-8")
+    print(text)
+
+
+def cmd_inventory(a):
+    from cdf_gco_crms.ingestion.safe_open import inspect_package, sha256_file
+    rows = []
+    worst = RC_OK
+    for f in a.files:
+        p = Path(f)
+        if not p.is_file():
+            rows.append({"file": f, "status": "MISSING"}); worst = max(worst, RC_INPUT); continue
+        row = {"file": f, "sha256": sha256_file(p), "bytes": p.stat().st_size}
+        kind = "xlsx" if p.suffix.lower() in (".xlsx", ".xlsm") else "docx" if p.suffix.lower() == ".docx" else None
+        if kind:
+            rep = inspect_package(p, kind)
+            row.update({"kind": kind, "safe": rep.ok, "findings": rep.findings, "members": rep.members})
+            if not rep.ok:
+                worst = max(worst, RC_REFUSED)
+        rows.append(row)
+    _emit({"schema": "CDF-v7.12-INVENTORY-1", "files": rows}, a.json)
+    return worst
+
+
+def cmd_ingest(a):
+    from cdf_gco_crms.rounds.round_parser import SchemaError
+    try:
+        pw = _load_state(a.workbook, a)
+    except SchemaError as e:
+        _emit({"status": "REFUSED" if e.code == "UNSAFE_INPUT" else "SCHEMA_ERROR", "code": e.code, "detail": str(e)}, a.json)
+        return RC_REFUSED if e.code == "UNSAFE_INPUT" else RC_INPUT
+    st = pw.state
+    _emit({"status": "OK", "kind": pw.kind, "document": st.document.name, "code": st.document.code,
+           "rounds": [r.number for r in st.rounds], "observations": len(st.observations),
+           "titles": {k: sum(1 for o in st.observations if o.title_status == k) for k in
+                      ("NONE", "DRAFT", "PROPOSED", "APPROVED", "ISSUED")},
+           "unkeyed_rows": pw.unkeyed_rows, "extra_sheets": pw.extra_sheets, "warnings": pw.warnings}, a.json)
+    return RC_FAIL if any(w.startswith("FORMULA_IN_DATA") for w in pw.warnings) else RC_OK
+
+
+def cmd_finalize_titles(a):
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    from cdf_gco_crms.rounds.round_expansion import TitleDecision, finalize_titles, mark_titles_issued
+    pw = _load_state(a.workbook, a)
+    spec = json.loads(Path(a.decisions).read_text(encoding="utf-8"))
+    items = spec["decisions"] if isinstance(spec, dict) else spec
+    decisions = []
+    for d in items:
+        if not isinstance(d, dict) or isinstance(d.get("decision"), bool):
+            _emit({"status": "REFUSED", "detail": "a decision is a record (reviewer, date, decision_ref), not a boolean (19A.9)"})
+            return RC_REFUSED
+        decisions.append(TitleDecision(d.get("internal_id", ""), str(d.get("decision", "")), d.get("reviewer", ""),
+                                       d.get("date", ""), d.get("decision_ref", ""), d.get("title")))
+    new, rep = finalize_titles(pw.state, decisions)
+    if rep.refused and not a.allow_partial:
+        _emit({"status": "REFUSED", "refused": rep.refused, "detail": "no output written; use --allow-partial to apply the accepted decisions"})
+        return RC_REFUSED
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, new, Path(a.out_dir) / official_name(a.workbook).name)
+    if out is None:
+        return RC_REFUSED
+    if a.issue and wc:
+        return _refuse_issue_on_draft()
+    issued = mark_titles_issued(new) if a.issue else 0
+    if out.resolve() == Path(a.workbook).resolve():
+        sys.exit("the output must not overwrite the input")
+    build_workbook(new, out, working_copy=wc)
+    _emit({"status": "OK", "approved": rep.approved, "rejected": rep.rejected, "withdrawn": rep.withdrawn,
+           "refused": rep.refused, "issued": issued, "output": str(out), **_gate_report(auth, wc)})
+    return RC_OK
+
+
+def cmd_build_excel(a):
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    from cdf_gco_crms.rounds.round_expansion import mark_titles_issued
+    pw = _load_state(a.workbook, a)
+    from cdf_gco_crms.release.authorization_gate import official_name
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out_dir) / official_name(a.workbook).name)
+    if out is None:
+        return RC_REFUSED
+    if a.issue and wc:
+        return _refuse_issue_on_draft()
+    if out.resolve() == Path(a.workbook).resolve():
+        sys.exit("the output must not overwrite the input")
+    issued = mark_titles_issued(pw.state) if a.issue else 0
+    build_workbook(pw.state, out, working_copy=wc)
+    _emit({"status": "OK", "output": str(out), "issued_titles": issued, "warnings": pw.warnings, **_gate_report(auth, wc)})
+    return RC_OK
+
+
+def cmd_build_word(a):
+    from cdf_gco_crms.release.authorization_gate import mark_working_copy_docx
+    pw = _load_state(a.workbook, a)
+    out, wc, auth = _issue_or_working_copy(a, pw.state, Path(a.out))
+    if out is None:
+        return RC_REFUSED
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if a.source:
+        try:
+            from cdf_gco_crms.word.document_comments import comment_document
+        except ImportError:
+            _emit({"status": "NOT_AVAILABLE", "detail": "cdf_gco_crms.word.document_comments is not installed"})
+            return RC_INPUT
+        rep = comment_document(a.source, pw.state, out, round_no=a.round)
+        if wc:
+            mark_working_copy_docx(out)
+        _emit({"status": "OK", "output": str(out), "report": getattr(rep, "__dict__", rep), **_gate_report(auth, wc)})
+        return RC_OK
+    from cdf_gco_crms.word.word_sync import build_review_docx, reconcile
+    build_review_docx(pw.state, out, round_no=a.round)
+    if wc:
+        mark_working_copy_docx(out)
+    sync = reconcile(out, a.workbook, round_no=a.round)
+    _emit({"status": "OK" if sync.ok else "FAIL", "output": str(out), "checks": getattr(sync, "checks", None),
+           **_gate_report(auth, wc)})
+    return RC_OK if sync.ok else RC_FAIL
+
+
+def cmd_import_owner_return(a):
+    from cdf_gco_crms.reconciliation.historical import merge_returned, view_sheet_edits
+    delivered = _load_state(a.delivered, a)
+    returned = _load_state(a.returned, a)
+    merged, intake = merge_returned(delivered.state, returned.state)
+    vedits, vmissing = view_sheet_edits(a.delivered, a.returned)
+    tampering = [f"{d.internal_id}:{d.key}" for d in intake.gco_cell_edits]
+    rep = {"status": "TAMPERED" if tampering else "OK",
+           "owner_inputs": intake.owner_inputs,
+           "gco_cell_edits_restored": tampering,
+           "format_losses_restored": [f"{d.internal_id}:{d.key}" for d in intake.format_losses],
+           "late_owner_edits_kept": [f"{d.internal_id}:{d.key}" for d in intake.late_owner_edits],
+           "missing_rows_restored": intake.missing_rows, "notes": intake.notes,
+           "dashboard_or_helper_edits_channel_x": [f"{e.sheet}!{e.coordinate}: {e.returned!r}" for e in vedits],
+           "dashboard_or_helper_missing": vmissing,
+           "formula_flags": [w for w in returned.warnings if w.startswith("FORMULA_IN_DATA")]}
+    if a.docx_delivered and a.docx_returned:
+        try:
+            from cdf_gco_crms.word.document_comments import diff_returned
+            rep["word"] = diff_returned(a.docx_delivered, a.docx_returned)
+        except ImportError:
+            rep["word"] = "document_comments not available"
+    _emit(rep, a.json)
+    return RC_FAIL if tampering or rep["formula_flags"] else RC_OK
+
+
+def cmd_audit_history(a):
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
+    from lineage_audit import audit
+    rep = audit(Path(a.round_dir), Path(a.out_dir), Path(a.external) if a.external else None)
+    _emit({"status": "OK" if rep["summary"]["fail"] == 0 else "FAIL", "summary": rep["summary"], "totals": rep.get("totals")})
+    return RC_OK if rep["summary"]["fail"] == 0 else RC_FAIL
+
+
+def cmd_qa(a):
+    from cdf_gco_crms.qa.gates import GateContext, run_dash_gates
+    from cdf_gco_crms.qa.ux_gates import run_ux_gates
+    vcs = []
+    if a.verify:
+        from cdf_gco_crms.qa.recalc_verify import check_view, standard_views
+        pw = _load_state(a.workbook, a)
+        vcs = [check_view(pw.state, vs, Path(a.workdir)) for vs in standard_views(pw.state)]
+    ctx = GateContext(xlsx=Path(a.workbook), previous_xlsx=Path(a.previous) if a.previous else None,
+                      docx=Path(a.docx) if a.docx else None, view_checks=vcs,
+                      refresh={"before": a.previous, "after": a.workbook} if a.previous else None,
+                      logo_source=Path(__file__).resolve().parent / "assets" / "cdf_logo_horizontal_source.jpg")
+    dash = run_dash_gates(ctx)
+    res = dash + run_ux_gates(ctx, dash)
+    rows = [{"gate": g.gate, "status": g.status, "name": g.name, "actual": g.actual} for g in res]
+    counts = {}
+    for g in res:
+        counts[g.status] = counts.get(g.status, 0) + 1
+    _emit({"workbook": a.workbook, "counts": counts, "gates": rows}, a.json)
+    if counts.get("FAIL"):
+        return RC_FAIL
+    return RC_NOT_VERIFIED if counts.get("NOT_VERIFIED") else RC_OK
+
+
+def cmd_demo_e2e(a):
+    from cdf_gco_crms.regression import synthetic as SY
+    from cdf_gco_crms.word.word_sync import build_review_docx, reconcile
+    out = Path(a.out_dir); out.mkdir(parents=True, exist_ok=True)
+    h = SY.demo_history(out, rounds=a.rounds)
+    rep = {"status": "OK", "rounds": {}, "note": "synthetic demonstration (is_demo); never an institutional deliverable"}
+    ok = True
+    for r, f in sorted(h.files.items()):
+        docx = out / (f.stem + ".docx")
+        build_review_docx(h.states[r], docx, round_no=r)
+        sync = reconcile(docx, f, round_no=r)
+        ok &= sync.ok
+        rep["rounds"][r] = {"xlsx": str(f), "docx": str(docx), "word_sync": "OK" if sync.ok else "FAIL",
+                            "observations": len(h.states[r].observations)}
+    rep["status"] = "OK" if ok else "FAIL"
+    _emit(rep, out / "demo-e2e.json")
+    return RC_OK if ok else RC_FAIL
+
+
+def cmd_release(a):
+    from cdf_gco_crms.assurance.production_guard import evaluate_many
+    results = evaluate_many(a.files, a.json or "build/release-guard.json", declared_institutional=not a.demo)
+    statuses = {r["status"] for r in results}
+    _emit({"results": results, "note": "a release decision is a human institutional act; this command only reports gates"})
+    if any("INCOMPLETE" in s for s in statuses):
+        return RC_FAIL
+    return RC_NOT_VERIFIED
+
+
+def _trust_store(a):
+    from cdf_gco_crms.release.trust import TrustStore
+    path = getattr(a, "trust_store", None)
+    return TrustStore.load(path) if path else None
+
+
+def _decisions(path):
+    """Signed HumanDecision records from a JSON file; a boolean or a bare dict is refused (19A.9)."""
+    from cdf_gco_crms.assurance.objection_engine import HumanDecision
+    items = json.loads(Path(path).read_text(encoding="utf-8"))
+    items = items["decisions"] if isinstance(items, dict) else items
+    out = []
+    for d in items:
+        if not isinstance(d, dict) or isinstance(d.get("decision"), bool):
+            return None
+        out.append(HumanDecision(**{k: d.get(k, "") for k in HumanDecision.__dataclass_fields__}))
+    return out
+
+
+def _orchestrate(a, *, draft=False, decisions=None, command="review"):
+    """Run the Article 06 pipeline on the workbook state and the case document; returns the execution."""
+    from cdf_gco_crms.agents.orchestrator import ReviewOrchestrator
+    from cdf_gco_crms.agents.providers import provider_from_env
+    from cdf_gco_crms.agents.runner import AgentRunner
+    from cdf_gco_crms.agents.tracing import TraceWriter
+    from cdf_gco_crms.references.synthetic_index import load_reference_index
+    pw = _load_state(a.workbook, a)
+    st = pw.state
+    dept = a.department or st.document.owning_department or ""
+    index = load_reference_index(synthetic="always" if getattr(a, "synthetic_reference", False) else "never")
+    provider = provider_from_env()
+    gate_dir = _gate_dir(a)
+    runner = AgentRunner(provider, TraceWriter(gate_dir.parent / "traces" / "agent-trace.jsonl")) if provider else None
+    mat_profile = _mat_profile(a)
+    orc = ReviewOrchestrator(index, runner=runner, gate_dir=gate_dir, mat_profile=mat_profile)
+    ex = orc.execute(st, a.docx, dept, decisions=decisions, trust=_trust_store(a), draft=draft,
+                     record_path=getattr(a, "record", None), command=command, attestation_key=_attestation_key(a))
+    return ex, index
+
+
+def _challenge_record(a):
+    from cdf_gco_crms.assurance import challenge as CH
+    ex, index = _orchestrate(a, command=a.cmd)
+    return CH, ex.state, ex.registry, ex.record, index.mode, ex
+
+
+def _emit_execution(a, ex, mode, extra=None):
+    rec = ex.record
+    gate = ex.gate_record
+    payload = {"status": ex.status, "record": gate["challenge_record"], "independence": rec.independence,
+               "role_isolation": rec.role_isolation, "chains_verified": rec.verify_chains(), "dispositions": rec.dispositions,
+               "cycles_used": rec.cycles_used, "blockers": ex.blockers, "provider_failures": ex.provider_failures,
+               "reference_mode": mode, "modes": ex.modes(), "final_review": ex.final_review,
+               "editorial_candidates": len(ex.editorial_candidates), "proposals": len(ex.proposals),
+               "human_decisions_applied": len(ex.human_decisions), "rejected_decisions": ex.rejected_decisions,
+               "trace": ex.trace_summary, "run_id": ex.run_id, "independence_verified": ex.independence.get("verified", False),
+               "independence_reasons": ex.independence.get("reasons", []), "attestation": bool(ex.attestation),
+               "purpose": gate.get("purpose"), "mat_advisor": (gate.get("execution_summary") or {}).get("mat_advisor", {"enabled": False}),
+               "gate_record": str(Path(_gate_dir(a)) / f"{gate['fingerprint']}.json"), "fingerprint": gate["fingerprint"],
+               "note": "an issue is refused while a blocker, a provider failure or a NOT_READY final review stands; "
+                       "only a verified reviewer decision record clears a blocker (19A.9)"}
+    payload.update(extra or {})
+    if getattr(a, "execution_json", None):
+        Path(a.execution_json).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.execution_json).write_text(json.dumps(ex.to_dict(), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+        payload["execution_json"] = a.execution_json
+    _emit(payload)
+    return RC_FAIL if ex.status != "CLEAR" else RC_OK
+
+
+def _mat_profile(a):
+    """MAT strategic advisor profile from --mat-profile or CDF_MAT_PROFILE (an authorised private location); the public
+    synthetic fixture only with --mat-profile synthetic. No profile → the advisory stages do not run."""
+    from cdf_gco_crms.agents.mat_profile import ProfileInvalid, ProfileNotConfigured, load_profile, synthetic_fixture_path
+    choice = getattr(a, "mat_profile", None)
+    if choice == "synthetic":
+        return load_profile(synthetic_fixture_path())
+    try:
+        return load_profile(choice)
+    except ProfileNotConfigured:
+        if choice:
+            raise
+        return None
+    except ProfileInvalid as exc:
+        raise SystemExit(f"REFUSED: MAT profile invalid: {exc}")
+
+
+def cmd_review(a):
+    """19A pre-issue challenge of every drafted observation through the orchestrated pipeline (record stays internal)."""
+    CH, st, reg, rec, mode, ex = _challenge_record(a)
+    return _emit_execution(a, ex, mode)
+
+
+def cmd_agent_review(a):
+    """Article 06 pipeline with optional drafting and human decisions; LIVE only when a provider is configured."""
+    decisions = None
+    if getattr(a, "decisions", None):
+        decisions = _decisions(a.decisions)
+        if decisions is None:
+            _emit({"status": "REFUSED", "detail": "a decision is a signed record, not a boolean (19A.9)"})
+            return RC_REFUSED
+    ex, index = _orchestrate(a, draft=a.draft, decisions=decisions, command="agent-review")
+    return _emit_execution(a, ex, index.mode)
+
+
+def cmd_evaluate_holdout(a):
+    """Layer D: score black team / red advocate / adjudicator on the sealed holdout; modes are never pooled."""
+    from cdf_gco_crms.agents import evaluator as E
+    from cdf_gco_crms.agents.providers import provider_from_env
+    from cdf_gco_crms.agents.runner import AgentRunner
+    from cdf_gco_crms.agents.tracing import TraceWriter
+    provider = provider_from_env()
+    runner = AgentRunner(provider, TraceWriter(Path("build/evidence/holdout-trace.jsonl"))) if provider else None
+    rep = E.evaluate(runner, holdout_dir=a.holdout or E.DEFAULT_HOLDOUT_DIR, out_path=a.json)
+    _emit({"score": rep["score"], "trace": rep["trace"], "report": a.json})
+    return RC_OK if rep["score"]["live_threshold_met"] else RC_NOT_VERIFIED
+
+
+def cmd_apply_dispositions(a):
+    """Apply human-authorised dispositions to the register; writes an INTERNAL_DRAFT of the new state plus the ledger."""
+    from cdf_gco_crms.excel.workbook_builder import build_workbook
+    from cdf_gco_crms.release.authorization_gate import working_copy_name
+    from cdf_gco_crms.release.dispositions import apply_dispositions
+    decisions = _decisions(a.decisions)
+    if decisions is None:
+        _emit({"status": "REFUSED", "detail": "a decision is a signed record, not a boolean (19A.9)"})
+        return RC_REFUSED
+    trust = _trust_store(a)
+    if trust is None:
+        _emit({"status": "REFUSED", "detail": "an institution-managed trust store is mandatory (--trust-store)"})
+        return RC_REFUSED
+    ex, index = _orchestrate(a, decisions=decisions, command="apply-dispositions")
+    res = apply_dispositions(ex.state, ex.record, decisions, trust, expected_fingerprint=ex.fingerprint,
+                             ledger_path=_gate_dir(a) / "dispositions" / f"{ex.fingerprint}.jsonl")
+    out = None
+    if res.applied and res.changed:
+        out = working_copy_name(Path(a.out_dir) / Path(a.workbook).name.replace("INTERNAL_DRAFT__", ""))
+        build_workbook(res.state, out, working_copy=True)
+    _emit({"status": "OK" if res.applied and not res.conflicts else "NOTHING_APPLIED", **res.to_dict(),
+           "output": str(out) if out else None, "working_copy": True,
+           "note": "the revised state carries a new fingerprint: it needs its own review before any issue"})
+    return RC_OK if res.applied and not res.conflicts else RC_FAIL
+
+
+def cmd_challenge(a):
+    """Review + confidentiality scan of the requester-facing files that would be issued (19A.9)."""
+    rc = cmd_review(a)
+    from cdf_gco_crms.assurance.challenge import confidentiality_scan
+    hits = confidentiality_scan([Path(a.workbook), Path(a.docx)])
+    _emit({"confidentiality_scan": hits})
+    return RC_REFUSED if hits else rc
+
+
+def cmd_adjudicate(a):
+    """Apply recorded, signed reviewer decisions to the blockers of a re-run challenge (deterministic ids)."""
+    decisions = _decisions(a.decisions)
+    if decisions is None:
+        _emit({"status": "REFUSED", "detail": "a decision is a signed record, not a boolean (19A.9)"})
+        return RC_REFUSED
+    if _trust_store(a) is None:
+        _emit({"status": "REFUSED", "detail": "an institution-managed trust store is mandatory (--trust-store)"})
+        return RC_REFUSED
+    ex, index = _orchestrate(a, decisions=decisions, command="adjudicate")
+    return _emit_execution(a, ex, index.mode, {"applied": ex.human_decisions and [d["decision_id"] for d in ex.human_decisions],
+                                               "remaining_blockers": ex.blockers})
+
+
+def _gate_args(p):
+    p.add_argument("--internal-draft", "--working-copy", dest="working_copy", action="store_true",
+                   help="when the release gate does not clear, write a classified INTERNAL_DRAFT__ file instead of refusing")
+    p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
+    p.add_argument("--trust-store", help="institution-managed trust store (JSON) to re-validate recorded reviewer decisions at issue time")
+    p.add_argument("--docx", dest="docx", help="the reviewed case document; its SHA-256 must match the review record (mandatory for an institutional issue)")
+
+
+def _attestation_key(a):
+    from cdf_gco_crms.release.attestation import load_private_key
+    path = getattr(a, "attestation_key", None)
+    if not path:
+        return None
+    return load_private_key(path), getattr(a, "attestation_key_id", None) or Path(path).stem
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("round1"); p.add_argument("input"); p.add_argument("out_dir"); _gate_args(p)
+    p = sub.add_parser("append"); p.add_argument("returned"); p.add_argument("input"); p.add_argument("out_dir")
+    p.add_argument("--delivered"); p.add_argument("--name"); _gate_args(p)
+    p = sub.add_parser("rebuild"); p.add_argument("workbook"); p.add_argument("out_dir"); p.add_argument("--name")
+    _gate_args(p)
+    p = sub.add_parser("migrate"); p.add_argument("source"); p.add_argument("out_dir"); _gate_args(p)
+    p = sub.add_parser("verify"); p.add_argument("workbook"); p.add_argument("--workdir", default="build/verify_cli")
+    p.add_argument("--name")
+    p = sub.add_parser("gates"); p.add_argument("workbook"); p.add_argument("--previous"); p.add_argument("--docx")
+    # v7.12
+    p = sub.add_parser("inventory"); p.add_argument("files", nargs="+"); p.add_argument("--json")
+    p = sub.add_parser("ingest"); p.add_argument("workbook"); p.add_argument("--json"); p.add_argument("--name")
+    p = sub.add_parser("finalize-titles"); p.add_argument("workbook"); p.add_argument("decisions"); p.add_argument("out_dir")
+    p.add_argument("--issue", action="store_true"); p.add_argument("--allow-partial", action="store_true"); p.add_argument("--name")
+    _gate_args(p)
+    p = sub.add_parser("build-excel"); p.add_argument("workbook"); p.add_argument("out_dir")
+    p.add_argument("--issue", action="store_true"); p.add_argument("--name")
+    _gate_args(p)
+    p = sub.add_parser("build-word"); p.add_argument("workbook"); p.add_argument("out"); p.add_argument("--round", type=int)
+    p.add_argument("--source"); p.add_argument("--name")
+    _gate_args(p)
+    p = sub.add_parser("import-owner-return"); p.add_argument("delivered"); p.add_argument("returned")
+    p.add_argument("--docx-delivered"); p.add_argument("--docx-returned"); p.add_argument("--json"); p.add_argument("--name")
+    p = sub.add_parser("audit-history"); p.add_argument("round_dir"); p.add_argument("out_dir"); p.add_argument("--external")
+    p = sub.add_parser("qa"); p.add_argument("workbook"); p.add_argument("--previous"); p.add_argument("--docx"); p.add_argument("--json")
+    p.add_argument("--verify", action="store_true", help="recalculate the standard views in LibreOffice first")
+    p.add_argument("--workdir", default="build/verify_cli"); p.add_argument("--name")
+    p = sub.add_parser("demo-e2e"); p.add_argument("out_dir"); p.add_argument("--rounds", type=int, default=5)
+    p = sub.add_parser("release"); p.add_argument("files", nargs="+"); p.add_argument("--json"); p.add_argument("--demo", action="store_true")
+    p = sub.add_parser("evaluate-holdout"); p.add_argument("--json"); p.add_argument("--holdout")
+    for name in ("review", "challenge", "adjudicate", "agent-review", "apply-dispositions"):
+        p = sub.add_parser(name); p.add_argument("workbook")
+        if name in ("adjudicate", "apply-dispositions"):
+            p.add_argument("decisions")
+        if name == "apply-dispositions":
+            p.add_argument("out_dir")
+        p.add_argument("--docx", required=True)
+        p.add_argument("--department"); p.add_argument("--record"); p.add_argument("--name")
+        p.add_argument("--gate-dir", help="where the release-gate records live (default build/adversarial/gate)")
+        p.add_argument("--synthetic-reference", action="store_true",
+                       help="use the public SYNTHETIC reference fixture (such a review never authorises an issue)")
+        p.add_argument("--trust-store", help="institution-managed trust store (JSON: legacy {key_id: b64} or CDF-TRUST-STORE-v7.12.1)")
+        p.add_argument("--execution-json", help="write the full execution record (roles, exchanges, trace summary) here")
+        p.add_argument("--attestation-key", help="operator-held Ed25519 private key file (base64 or raw) that signs the release attestation")
+        p.add_argument("--attestation-key-id", help="key id of the attestation key as listed in the trust store (role RELEASE_ATTESTOR)")
+        p.add_argument("--mat-profile", help="MAT strategic advisor profile: a private profile path, or 'synthetic' for the public test fixture "
+                                             "(default: CDF_MAT_PROFILE; unset → advisory stages do not run)")
+        if name == "agent-review":
+            p.add_argument("--draft", action="store_true", help="run the GCO drafting agent (proposals only; LIVE provider needed)")
+            p.add_argument("--decisions", help="signed reviewer decision records to apply inside the pipeline")
+    a = ap.parse_args(argv)
+    # Preflight (PR #2, kept): an --issue request on an internal draft is refused before any input is read.
+    if getattr(a, "issue", False) and getattr(a, "working_copy", False):
+        return _refuse_issue_on_draft()
+    if a.cmd == "migrate":
+        # migration outputs are never issuable: they are written under INTERNAL_DRAFT_ONLY/ (PR #2, kept)
+        from migrate_to_v712 import main as mig
+        return mig([a.source, str(Path(a.out_dir) / "INTERNAL_DRAFT_ONLY")])
+    if a.cmd in ("review", "challenge", "adjudicate", "agent-review", "apply-dispositions"):
+        return {"review": cmd_review, "challenge": cmd_challenge, "adjudicate": cmd_adjudicate,
+                "agent-review": cmd_agent_review, "apply-dispositions": cmd_apply_dispositions}[a.cmd](a)
+    if a.cmd == "evaluate-holdout":
+        return cmd_evaluate_holdout(a)
+    fn = {"round1": cmd_round1, "append": cmd_append, "rebuild": cmd_rebuild, "verify": cmd_verify, "gates": cmd_gates,
+          "inventory": cmd_inventory, "ingest": cmd_ingest, "finalize-titles": cmd_finalize_titles,
+          "build-excel": cmd_build_excel, "build-word": cmd_build_word, "import-owner-return": cmd_import_owner_return,
+          "audit-history": cmd_audit_history, "qa": cmd_qa, "demo-e2e": cmd_demo_e2e, "release": cmd_release}[a.cmd]
+    from cdf_gco_crms.rounds.round_parser import SchemaError
+    try:
+        return fn(a)
+    except FileNotFoundError as exc:
+        # fail closed: a missing input never produces an output and never counts as a refusal of policy
+        _emit({"status": "INPUT_ERROR", "detail": f"{exc}", "no_output_generated": True})
+        return RC_INPUT
+    except SchemaError as exc:
+        unsafe = exc.code == "UNSAFE_INPUT" and "NOT_A_FILE" not in str(exc)
+        _emit({"status": "REFUSED" if unsafe else "INPUT_ERROR", "code": exc.code, "detail": str(exc), "no_output_generated": True})
+        return RC_REFUSED if unsafe else RC_INPUT
+
+
+if __name__ == "__main__":
+    rc = main()
+    sys.exit(rc if isinstance(rc, int) else 0)

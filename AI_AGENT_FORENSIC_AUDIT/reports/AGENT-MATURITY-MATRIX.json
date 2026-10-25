@@ -1,0 +1,143 @@
+{
+ "schema": "CDF-AUDIT-MATURITY-1",
+ "levels": {
+  "L0": "NOT_IMPLEMENTED",
+  "L1": "ROLE_DEFINITION_ONLY",
+  "L2": "DETERMINISTIC_SIMULATION",
+  "L3": "LIVE_LLM_SINGLE_CONTEXT",
+  "L4": "LIVE_ISOLATED_AGENT",
+  "L5": "INTEGRATED_OPERATIONAL_AGENT"
+ },
+ "agents": [
+  {
+   "Agent_Name": "GCO Observation Drafting Agent",
+   "Source_File": null,
+   "Runtime_Entry_Point": "main.py round1/append (human-authored JSON)",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L0 NOT_IMPLEMENTED",
+   "Evidence": "AI-IMPLEMENTATION-INVENTORY: no drafting component; observations are typed by the GCO reviewer",
+   "Operational_Limitations": "drafting is a human act by protocol 06/07",
+   "Failed_Requirements": [
+    "02.3 process source information",
+    "02.4 content-dependent response"
+   ],
+   "Required_Patches": [
+    "V712-039/044 scope decision: keep human drafting (recommended) or add a drafting agent with the same isolation controls"
+   ]
+  },
+  {
+   "Agent_Name": "Black Team — Recipient Department Challenger",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py:black_team",
+   "Runtime_Entry_Point": "main.py review|challenge|adjudicate → run_challenge",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L2 DETERMINISTIC_SIMULATION",
+   "Evidence": "runtime trace 04_review (in-process call, 0 socket attempts); MODE A: detection 0.765 on covered categories, 0.0 on 4 uncovered categories; false objections 0.091",
+   "Operational_Limitations": "10 rule kinds cover ~10 of the 20 objection categories of 06.1; mandate overlap thresholds missed JUR-01/DATA-01/ORG-01; no model, no context, no planning",
+   "Failed_Requirements": [
+    "02.3 invoke an AI model",
+    "02.6 respond to unseen cases outside the rule set",
+    "02.7 separate execution boundary"
+   ],
+   "Required_Patches": [
+    "R-02 provider adapter + role runner",
+    "R-03 isolated contexts",
+    "R-06 evidence tools for agents"
+   ]
+  },
+  {
+   "Agent_Name": "Red Advocate — GCO Observation Defender",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py:red_advocate",
+   "Runtime_Entry_Point": "run_challenge → _argue",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L2 DETERMINISTIC_SIMULATION",
+   "Evidence": "stance table per objection kind; MODE A stance accuracy 0.875 (n=8); DEFEND without evidence raises (test)",
+   "Operational_Limitations": "fixed CONCEDE/DEFEND/REVISE outcome per kind; revised text is template substitution; outputs never applied to the observation",
+   "Failed_Requirements": [
+    "02.3",
+    "02.4",
+    "02.7",
+    "12.2 valid objection changes the final observation"
+   ],
+   "Required_Patches": [
+    "R-02",
+    "R-03",
+    "R-05 apply revisions to ReviewState under human gate"
+   ]
+  },
+  {
+   "Agent_Name": "Independent Institutional Adjudicator",
+   "Source_File": "cdf_gco_crms/assurance/challenge.py:adjudicate",
+   "Runtime_Entry_Point": "run_challenge → _argue → adjudicate",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L2 DETERMINISTIC_SIMULATION",
+   "Evidence": "disposition = _TABLE[kind][stance] + admissibility/verified-basis guards; MODE A adjudicator accuracy 0.656 (threshold 0.80 NOT met); escalation accuracy 1.0; planted 'expected' attribute ignored (isolation probe)",
+   "Operational_Limitations": "no independent reading of arguments; same process and memory as the other roles; independence self-declared SINGLE_PROCESS_RULE_BASED",
+   "Failed_Requirements": [
+    "05.4 independent context",
+    "08.1 evaluates both arguments",
+    "02.3"
+   ],
+   "Required_Patches": [
+    "R-02",
+    "R-03",
+    "R-04 blind adjudication harness in CI"
+   ]
+  },
+  {
+   "Agent_Name": "GCO Editorial Agent",
+   "Source_File": null,
+   "Runtime_Entry_Point": "none (Advocacy.revised_comment has no consumer)",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L0 NOT_IMPLEMENTED",
+   "Evidence": "workflow_integration_audit: 'Can a valid objection change the final observation? NO'",
+   "Operational_Limitations": "a human re-enters any revision by hand",
+   "Failed_Requirements": [
+    "12.2"
+   ],
+   "Required_Patches": [
+    "R-05"
+   ]
+  },
+  {
+   "Agent_Name": "Independent Final Red-Team Reviewer (Art. 20)",
+   "Source_File": null,
+   "Runtime_Entry_Point": "none",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L1 ROLE_DEFINITION_ONLY",
+   "Evidence": "protocol 20.1–20.5 and R1–R7 define the role; no code, no test, no record",
+   "Operational_Limitations": "cannot be assessed for independence",
+   "Failed_Requirements": [
+    "05.5",
+    "03.2"
+   ],
+   "Required_Patches": [
+    "R-07 Article 20 reader as an isolated agent + G-UX-17 gate"
+   ]
+  },
+  {
+   "Agent_Name": "Regulatory and Institutional Evidence Verification Agent",
+   "Source_File": "cdf_gco_crms/assurance/evidence.py, references/index.py, assurance/reference_verify.py",
+   "Runtime_Entry_Point": "EvidenceRegistry.bind_clause / bind_matrix_item / bind_mandate / add_policy",
+   "Provider": "NONE",
+   "Model": "NONE",
+   "Current_Maturity_Level": "L2 DETERMINISTIC_SIMULATION (strong deterministic service)",
+   "Evidence": "three layers present: FILE_INTEGRITY (sha256 MATCH for both references), EXCERPT (occurrence by tolerant search), AUTHORITY (class carried from register, never upgraded: applicability accuracy 1.0); fake ids never resolve; missing clause → CLAUSE_NOT_FOUND",
+   "Operational_Limitations": "applicability is NOT_ESTABLISHED by default and never evaluated; approval status comes from a hand-maintained register; no retrieval beyond the two indexed references",
+   "Failed_Requirements": [
+    "10.1 explain applicability",
+    "13.1 contextual planning"
+   ],
+   "Required_Patches": [
+    "R-06",
+    "R-08 institutional source register with approval evidence"
+   ]
+  }
+ ],
+ "full_operational_requirement": "Black Team, Red Advocate and Adjudicator at L5 — none is above L2"
+}

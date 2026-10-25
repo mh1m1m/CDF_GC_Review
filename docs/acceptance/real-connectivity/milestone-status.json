@@ -1,0 +1,48 @@
+{
+  "schema": "CDF-REAL-CONNECTIVITY-1",
+  "milestone": "BLOCKED_EXTERNAL",
+  "private_activation": "DISABLED",
+  "actual_chatgpt_registration": {
+    "status": "BLOCKED_EXTERNAL",
+    "reason": "ACCOUNT_PORTAL_REGISTRATION_AND_CORRELATED_CLIENT_CALL_NOT_AVAILABLE"
+  },
+  "actual_claude_registration": {
+    "status": "BLOCKED_EXTERNAL",
+    "reason": "ACCOUNT_CLIENT_REGISTRATION_AND_CORRELATED_CALL_NOT_AVAILABLE"
+  },
+  "provider_credentials": {
+    "openai_configured": false,
+    "anthropic_configured": false
+  },
+  "live_case_cross_interface_and_exports": {
+    "status": "BLOCKED_EXTERNAL",
+    "reason": "REQUIRES_SUCCESSFUL_REAL_MODEL_CASE; REGRESSION_FIXTURES_ARE_SEPARATE"
+  },
+  "provenance": {
+    "schema": "CDF-RECEIPT-AUDIT-1",
+    "case_id": "SYN-REAL-CONNECTIVITY-001",
+    "source_hash": "b25ea157540a1bfaef7ed30571aa639580be79b94244851ed01a3b930ad47bbb",
+    "local_integrity": "PASS",
+    "attempts_checked": 1,
+    "provider_api_completions": 0,
+    "native_cli_completions": 0,
+    "incomplete_attempts": 0,
+    "jobs": [
+      {
+        "job_id": "JOB-f4ec4f4f81b24d269ee68f4a5e5f0177",
+        "executor": "codex-cli",
+        "status": "FAILED",
+        "error_code": "INFERENCE_PROBE_FAILED"
+      }
+    ],
+    "external_provider_reconciliation": "NOT_VERIFIED",
+    "actual_chatgpt_registration": "BLOCKED_EXTERNAL",
+    "actual_claude_registration": "BLOCKED_EXTERNAL",
+    "live_execution_evidence": "BLOCKED_EXTERNAL_NO_COMPLETION",
+    "institutional_authorization": "NOT_AUTHORIZED"
+  },
+  "public_mcp_deployment": {
+    "status": "BLOCKED_EXTERNAL",
+    "reason": "APPROVED_PUBLIC_RESOURCE_OAUTH_ISSUER_JWKS_TLS_AND_CLIENT_BINDINGS_NOT_CONFIGURED"
+  }
+}

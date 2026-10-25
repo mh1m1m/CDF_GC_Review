@@ -1,0 +1,40 @@
+name: Unified execution acceptance
+on:
+  pull_request:
+    branches: [codex/institutional-dual-mode, codex/unified-execution, codex/phase-ii-copilot, codex/real-mcp-connectivity]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unified-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Build audited stable document and browser runtimes
+        run: |
+          docker build -f Dockerfile.libreoffice -t cdf-lo-stable .
+          docker build -f Dockerfile.execution-acceptance -t cdf-execution-acceptance .
+      - name: Prepare tracked public source only
+        run: |
+          mkdir -p "$RUNNER_TEMP/cdf-unified-source" build/unified-acceptance
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/cdf-unified-source"
+      - name: Real CLI, MCP, React, draft exports and independent Calc
+        run: |
+          docker image inspect cdf-execution-acceptance --format '{{.Id}}' > build/unified-acceptance-image.txt
+          docker run --rm --init --name cdf-unified-acceptance --user "$(id -u):$(id -g)" --network none --tmpfs /tmp:rw,nosuid,nodev,size=1024m --env CDF_ACCEPTANCE_COMMIT="${{ github.event.pull_request.head.sha || github.sha }}" --cap-drop ALL --security-opt no-new-privileges \
+            --mount "type=bind,src=$RUNNER_TEMP/cdf-unified-source,dst=/repo" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/build/unified-acceptance,dst=/evidence" \
+            cdf-execution-acceptance sh -c 'cp -R /opt/cdf-web/node_modules /repo/apps/web/node_modules && python -m cdf_gco_crms.acceptance.unified --mode public-synthetic --interfaces cli,mcp,react --exports word,excel,pdf --report-dir /evidence'
+      - name: Remove this job container
+        if: always()
+        run: docker rm -f cdf-unified-acceptance || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unified-execution-acceptance
+          path: |
+            build/unified-acceptance/
+            build/unified-acceptance-image.txt

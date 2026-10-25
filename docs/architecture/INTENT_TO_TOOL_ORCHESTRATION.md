@@ -1,0 +1,9 @@
+# Intent planning and tool boundaries
+
+The bounded router recognizes review, reporting, authority, responsibility, quality, calibration and case-summary intents in Arabic/English. Case resolution accepts an explicit authorized case ID or one unambiguous identifier in the request. Missing/ambiguous identifiers require user input; no case is guessed from global data. Unrecognized requests and unsupported targeted-observation debate return explicit unsupported results.
+
+Plans choose fixed tool names and dependencies. Review proceeds through reference reads, existing review/debate jobs, a persisted human checkpoint and draft reports. Source data, tool output and natural language cannot supply arbitrary tool names, SQL, roles, paths or release flags. Injection markers asking to bypass approval/obtain credentials are blocked; this is a deterministic defense layer, not comprehensive semantic injection detection.
+
+State-changing operations require a server-side role/case grant, idempotency key and revalidated session. Workflow resumes and human decisions additionally require expected versions. Reusing a key with changed parameters conflicts. Maximum template length is bounded; there is no unconstrained tool loop. Completed jobs are consumed once, queued jobs resume by the same accepted ID, and ambiguous provider jobs are never automatically repeated. Explicit synthetic retries are limited to one.
+
+The CLI supports `copilot plan/start/status/resume/cancel/ask/... --case SYN-... --text ... --idempotency-key ...`. Rich operations use a caller-local `--payload-file` JSON object; the server never reads that path. `--wait` polls persisted workflow state and stops at human review. MCP takes `{operation, request}` with the same input schema. HTTP and MCP return the existing typed result envelope.
