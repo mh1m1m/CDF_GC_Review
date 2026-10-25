@@ -122,6 +122,7 @@ class ReviewQueue:
         return self.get(reviewer.reviewer_id, review_id)
 
     def get(self, owner: str, review_id: str) -> dict:
+        self.expire_stalled()
         return self.describe(self._row(owner, review_id))
 
     def for_document(self, owner: str, document_id: str) -> list[dict]:
@@ -131,6 +132,7 @@ class ReviewQueue:
         return [self.describe(r) for r in rows]
 
     def latest_by_document(self, owner: str) -> dict[str, dict]:
+        self.expire_stalled()
         rows = self.store.db.execute(
             "SELECT * FROM document_reviews WHERE owner_id=? ORDER BY created_at", (owner,)).fetchall()
         return {r["document_id"]: self.describe(r) for r in rows}
@@ -148,8 +150,30 @@ class ReviewQueue:
         row = self.store.db.execute("SELECT MAX(seen_at) AS seen FROM review_workers").fetchone()
         if row and row["seen"] and now - float(row["seen"]) <= within:
             return True
-        return self.store.db.execute("SELECT 1 FROM document_reviews WHERE status='RUNNING' AND lease_until > ?",
-                                     (now,)).fetchone() is not None
+        return self.store.db.execute(
+            "SELECT 1 FROM document_reviews WHERE status='RUNNING' AND lease_until > ? AND worker NOT LIKE 'website-%'",
+            (now,)).fetchone() is not None
+
+    def expire_stalled(self) -> None:
+        """A website run cut off by the host's time limit leaves a RUNNING row with a lapsed lease: record it."""
+        with self.store.transaction():
+            self.store.db.execute(
+                "UPDATE document_reviews SET status='FAILED', stage='FAILED', error='WEBSITE_TIME_LIMIT_REACHED', "
+                "finished_at=?, lease_until=NULL WHERE status='RUNNING' AND lease_until < ? AND worker LIKE 'website-%'",
+                (_now(), time.time()))
+
+    def claim_review(self, review_id: str, worker_id: str, lease_seconds: float):
+        """Claim one specific queued review (the website runner works on the review its own request queued)."""
+        with self.store.transaction():
+            row = self.store.db.execute("SELECT * FROM document_reviews WHERE review_id=? AND status='QUEUED'",
+                                        (review_id,)).fetchone()
+            if row is None:
+                return None
+            self.store.db.execute(
+                "UPDATE document_reviews SET status='RUNNING', stage='READING', worker=?, lease_until=?, "
+                "attempts=attempts + 1, started_at=? WHERE review_id=? AND status='QUEUED'",
+                (worker_id, time.time() + lease_seconds, _now(), review_id))
+            return self.store.db.execute("SELECT * FROM document_reviews WHERE review_id=?", (review_id,)).fetchone()
 
     def claim(self, worker_id: str):
         now = time.time()
@@ -173,8 +197,10 @@ class ReviewQueue:
 
     def progress(self, review_id: str, stage: str, detail: dict) -> None:
         with self.store.transaction():
+            # A worker's lease is extended at each step; a website run keeps the lease it was given (the host's limit).
             self.store.db.execute(
-                "UPDATE document_reviews SET stage=?, detail_json=?, lease_until=? WHERE review_id=? AND status='RUNNING'",
+                "UPDATE document_reviews SET stage=?, detail_json=?, lease_until=CASE WHEN worker LIKE 'website-%' "
+                "THEN lease_until ELSE ? END WHERE review_id=? AND status='RUNNING'",
                 (stage, json.dumps(detail, ensure_ascii=False, default=str), time.time() + LEASE_SECONDS, review_id))
 
     def finish(self, review_id: str, status: str, detail: dict, *, error: str | None = None,
@@ -317,7 +343,7 @@ def _docx_to_pdf(path: Path, outdir: Path) -> Path | None:
     return pdf if pdf.exists() else None
 
 
-def run_review(application, library, queue: ReviewQueue, row) -> dict:
+def run_review(application, library, queue: ReviewQueue, row, *, deadline: float | None = None) -> dict:
     """Run one claimed review. Returns the final detail; raises on failure (the caller records it)."""
     from ..agents import AgentRunner, TraceWriter
     from ..agents.contracts import new_id
@@ -337,6 +363,10 @@ def run_review(application, library, queue: ReviewQueue, row) -> dict:
     reviewer = ReviewerContext(owner, frozenset(json.loads(row["roles_json"])), True)
     options = json.loads(row["options_json"])
     detail: dict = {"review_id": review_id}
+
+    def in_time(needed: float) -> None:
+        if deadline is not None and time.time() + needed > deadline:
+            raise CalibrationError("WEBSITE_TIME_LIMIT_DOCUMENT_TOO_LONG")
 
     def step(stage, **extra):
         detail.update(extra)
@@ -376,7 +406,7 @@ def run_review(application, library, queue: ReviewQueue, row) -> dict:
         persona = RecipientPersona.from_index(index, options.get("department") or "", registry)
         runner.bind(new_id("RUN"), state_fingerprint(empty))
         proposals, calls = draft_windows(runner, empty, registry, persona,
-                                         on_window=lambda n, of: step("DRAFTING", drafting_window=f"{n}/{of}"))
+                                         on_window=lambda n, of: (in_time(90), step("DRAFTING", drafting_window=f"{n}/{of}")))
         if calls and not any(c["status"] == "OK" for c in calls):
             raise CalibrationError("DRAFTING_FAILED: " + str(calls[0].get("error") or calls[0]["status"])[:300])
         new_observations, adopted, aside = adopt(proposals, source)
@@ -389,6 +419,7 @@ def run_review(application, library, queue: ReviewQueue, row) -> dict:
 
         state = build_round1(document, new_observations, date=datetime.now(timezone.utc).date().isoformat(),
                              document_version=meta["sha256"][:12])
+        in_time(120)
         step("CHALLENGING", observations=len(state.observations))
         # The challenge pass gets its own trace: the dashboard verifies one run's hash chain from its first record.
         trace = TraceWriter()
@@ -478,8 +509,26 @@ def process_next(application, library, queue: ReviewQueue, worker_id: str | None
     row = queue.claim(worker_id)
     if row is None:
         return None
+    return _run_claimed(application, library, queue, row)
+
+
+def run_on_website(application, library, queue: ReviewQueue, owner: str, review_id: str) -> dict:
+    """The website runner (CDF_REVIEW_RUNNER=website): run the review this request queued, within the host's limit.
+
+    A short or medium document finishes inside one request. A longer one stops with WEBSITE_TIME_LIMIT_… and is
+    reviewed by the review worker instead; a run cut off by the host is recorded the same way (expire_stalled).
+    """
+    queue.get(owner, review_id)                                   # ownership
+    budget = float(os.getenv("CDF_REVIEW_WEBSITE_SECONDS", "270") or 270)
+    row = queue.claim_review(review_id, "website-" + uuid.uuid4().hex[:8], budget + 30)
+    if row is None:
+        return queue.get(owner, review_id)
+    return _run_claimed(application, library, queue, row, deadline=time.time() + budget)
+
+
+def _run_claimed(application, library, queue: ReviewQueue, row, *, deadline: float | None = None) -> dict:
     try:
-        detail = run_review(application, library, queue, row)
+        detail = run_review(application, library, queue, row, deadline=deadline)
         queue.finish(row["review_id"], "DONE", detail, case_id=detail.get("case_id"))
     except Exception as exc:                                     # recorded for the reviewer, then the next job
         LOG.exception("review %s failed", row["review_id"])

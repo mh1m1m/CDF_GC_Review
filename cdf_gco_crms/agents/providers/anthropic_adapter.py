@@ -16,6 +16,46 @@ from ..provenance import official_endpoint
 from .base import ProviderAdapter, ProviderConfig, ProviderFailure, ProviderResult
 
 MAX_RATE_LIMIT_WAIT = 30.0
+# Structured outputs accept a subset of JSON Schema: no numeric bounds, no string length bounds, no complex array
+# constraints, and every object closed with additionalProperties: false. The full role schema stays the contract:
+# the runner validates every reply against it client-side (agents/runner.py), so only the copy sent is reduced.
+_UNSUPPORTED_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength",
+                         "maxLength", "pattern", "minItems", "maxItems", "uniqueItems", "minProperties",
+                         "maxProperties", "contains", "minContains", "maxContains"}
+_SUPPORTED_FORMATS = {"date-time", "time", "date", "duration", "email", "hostname", "uri", "ipv4", "ipv6", "uuid"}
+# Current models think before answering and thinking counts against max_tokens; a role's small budget would truncate
+# the reply. Non-streaming requests stay below the SDK's long-request threshold.
+MIN_MAX_TOKENS = 16000
+MAX_NONSTREAMING_TOKENS = 20000
+
+
+def wire_schema(schema):
+    """The copy of a role schema sent as the structured-output format (see the note above)."""
+    if isinstance(schema, list):
+        return [wire_schema(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    out = {}
+    for key, value in schema.items():
+        if key in _UNSUPPORTED_KEYWORDS:
+            continue
+        if key == "format" and value not in _SUPPORTED_FORMATS:
+            continue
+        if key in ("properties", "$defs", "definitions", "patternProperties"):
+            out[key] = {name: wire_schema(sub) for name, sub in value.items()}
+        else:
+            out[key] = wire_schema(value)
+    if out.get("type") == "object" or (isinstance(out.get("type"), list) and "object" in out["type"]) \
+            or "properties" in out:
+        out["additionalProperties"] = False
+    return out
+
+
+def _budget(requested: int) -> int:
+    import os
+
+    floor = int(os.getenv("CDF_AI_MIN_MAX_TOKENS", str(MIN_MAX_TOKENS)) or MIN_MAX_TOKENS)
+    return min(max(int(requested or 0), floor), MAX_NONSTREAMING_TOKENS)
 
 
 class AnthropicAdapter(ProviderAdapter):
@@ -42,17 +82,23 @@ class AnthropicAdapter(ProviderAdapter):
     def complete(self, request: AgentRequest) -> ProviderResult:
         import anthropic
         client = self._get_client()
+        import os
+
         model = request.model or self.model
+        output_config = {"format": {"type": "json_schema", "schema": wire_schema(request.schema)}}
+        effort = os.getenv("CDF_AI_EFFORT", "").strip()
+        if effort:
+            output_config["effort"] = effort
         attempts = 0
         while True:
             attempts += 1
             try:
                 raw = client.messages.with_raw_response.create(
                     model=model,
-                    max_tokens=request.max_tokens,
+                    max_tokens=_budget(request.max_tokens),
                     system=request.system,
                     messages=[{"role": "user", "content": request.user_text}],
-                    output_config={"format": {"type": "json_schema", "schema": request.schema}},
+                    output_config=output_config,
                 )
                 response = raw.parse()
                 request_id = (raw.headers.get("request-id") if getattr(raw, "headers", None) else None) \

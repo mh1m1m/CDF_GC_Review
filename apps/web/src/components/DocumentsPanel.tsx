@@ -71,7 +71,8 @@ const STAGES: Record<string, string> = {
   WRITING_OUTPUTS: "إعداد ملفات Word وPDF وExcel",
 };
 const REVIEW_ERRORS: Record<string, string> = {
-  ProviderFailure: "تعذر الاتصال بنموذج الذكاء الاصطناعي. تحقق من مفتاح Anthropic في خدمة المعالجة.",
+  ProviderFailure: "تعذر الاتصال بنموذج الذكاء الاصطناعي. تحقق من إضافة مفتاح ANTHROPIC_API_KEY في إعدادات الخدمة.",
+  WEBSITE_TIME_LIMIT: "المستند أطول من أن يُراجع داخل الموقع خلال خمس دقائق؛ المستندات الطويلة تحتاج خدمة المعالجة المنفصلة.",
   DataHandlingViolation: "لم يُفعَّل إذن إرسال المستندات إلى نموذج الذكاء الاصطناعي في خدمة المعالجة.",
   NO_TEXT_FOUND_SCANNED_PDF_NEEDS_OCR: "ملف PDF ممسوح ضوئياً بلا طبقة نص؛ ارفع ملفاً يحتوي نصاً قابلاً للنسخ.",
   NO_TEXT_FOUND: "لم يُعثر على نص في المستند.",
@@ -158,6 +159,7 @@ export default function DocumentsPanel({ token, onOpenCase }: { token: string; o
     [inputKey, setInputKey] = useState(0),
     [reviews, setReviews] = useState<Record<string, Review>>({}),
     [workerOnline, setWorkerOnline] = useState(true),
+    [runner, setRunner] = useState<"website" | "worker">("worker"),
     [department, setDepartment] = useState("");
   const poll = useRef<number | null>(null);
 
@@ -180,6 +182,7 @@ export default function DocumentsPanel({ token, onOpenCase }: { token: string; o
       const state = await (await request("/api/document-reviews")).json();
       setReviews(state.latest ?? {});
       setWorkerOnline(Boolean(state.worker_online));
+      setRunner(state.runner === "website" ? "website" : "worker");
     } catch (e) {
       setError((e as Error).message);
     }
@@ -198,11 +201,17 @@ export default function DocumentsPanel({ token, onOpenCase }: { token: string; o
     setError("");
     try {
       const query = department.trim() ? "?department=" + encodeURIComponent(department.trim()) : "";
-      const r: Review & { worker_online: boolean } = await (
+      const r: Review & { worker_online: boolean; runner?: string } = await (
         await request(`/api/documents/${d.document_id}/review${query}`, { method: "POST" })
       ).json();
       setReviews({ ...reviews, [d.document_id]: r });
       setWorkerOnline(r.worker_online);
+      if (r.runner === "website" && !r.worker_online && r.status === "QUEUED") {
+        // The site runs the review itself in this long request; progress is read by the polling meanwhile.
+        void request(`/api/document-reviews/${r.review_id}/run`, { method: "POST" })
+          .catch((e) => setError((e as Error).message))
+          .finally(() => void refresh());
+      }
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -419,7 +428,7 @@ export default function DocumentsPanel({ token, onOpenCase }: { token: string; o
             الإدارة المالكة للمستند (اختياري، يوجّه صياغة الملاحظات)
             <input value={department} onChange={(e) => setDepartment(e.target.value)} maxLength={120} />
           </label>
-          {!workerOnline && Object.values(reviews).some((r) => r.status === "QUEUED") && (
+          {runner === "worker" && !workerOnline && Object.values(reviews).some((r) => r.status === "QUEUED") && (
             <p className="documents-warning" role="status">
               خدمة المعالجة غير متصلة الآن؛ ستبدأ المراجعة تلقائياً عند تشغيلها.
             </p>

@@ -236,3 +236,76 @@ def test_worker_refuses_without_owner_switch(monkeypatch):
     monkeypatch.delenv("CDF_DOCUMENT_UPLOADS", raising=False)
     with pytest.raises(SystemExit):
         build()
+
+
+@pytest.fixture()
+def website(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setenv("CDF_CALIBRATION_MODE", "SYNTHETIC_LOCAL_DEV")
+    monkeypatch.setenv("CDF_CALIBRATION_DEV_TOKEN", TOKEN)
+    monkeypatch.setenv("CDF_CALIBRATION_DB", str(tmp_path / "public-demo" / "website.sqlite"))
+    monkeypatch.setenv("CDF_DOCUMENT_UPLOADS", "PUBLIC")
+    monkeypatch.setenv("CDF_REVIEW_EXECUTOR", "mock")
+    monkeypatch.setenv("CDF_REVIEW_RUNNER", "website")
+    sys.modules.pop("apps.api.main", None)
+    module = importlib.import_module("apps.api.main")
+    with TestClient(module.app) as client:
+        yield client, module
+    module.store.close()
+    sys.modules.pop("apps.api.main", None)
+
+
+def _word_doc():
+    return _word(["مذكرة قصيرة", "يعتمد مدير الإدارة جميع العقود دون حد مالي أو مراجعة مستقلة للعروض.",
+                  "يجوز تجاوز إجراءات المنافسة في الحالات العاجلة دون توثيق المبررات."])
+
+
+def test_website_runner_reviews_inside_the_request(website):
+    client, _ = website
+    document = upload(client, "قصير.docx", _word_doc())
+    queued = review(client, document["document_id"])
+    assert queued["status"] == "QUEUED" and queued["runner"] == "website" and queued["worker_online"] is False
+    assert client.get("/api/document-reviews", headers=headers()).json()["runner"] == "website"
+    done = client.post(f"/api/document-reviews/{queued['review_id']}/run", headers=headers())
+    assert done.status_code == 200, done.text
+    assert done.json()["status"] == "DONE" and done.json()["case_id"].startswith("UPL-")
+    # running it again does nothing: the review is no longer queued
+    again = client.post(f"/api/document-reviews/{queued['review_id']}/run", headers=headers()).json()
+    assert again["status"] == "DONE"
+
+
+def test_website_runner_time_limits(website, monkeypatch):
+    import time as _time
+
+    client, module = website
+    monkeypatch.setenv("CDF_REVIEW_WEBSITE_SECONDS", "1")
+    document = upload(client, "طويل.docx", _word_doc())
+    queued = review(client, document["document_id"])
+    result = client.post(f"/api/document-reviews/{queued['review_id']}/run", headers=headers()).json()
+    assert result["status"] == "FAILED" and result["error"] == "WEBSITE_TIME_LIMIT_DOCUMENT_TOO_LONG"
+
+    # a run the host cut off leaves RUNNING with a lapsed lease: it is recorded as failed on the next read
+    other = upload(client, "ب.docx", _word_doc())
+    stalled = review(client, other["document_id"])
+    module.store.db.execute("UPDATE document_reviews SET status='RUNNING', worker='website-test', lease_until=? "
+                            "WHERE review_id=?", (_time.time() - 5, stalled["review_id"]))
+    module.store.db.commit()
+    seen = client.get(f"/api/document-reviews/{stalled['review_id']}", headers=headers()).json()
+    assert seen["status"] == "FAILED" and seen["error"] == "WEBSITE_TIME_LIMIT_REACHED"
+
+
+def test_website_runner_leaves_reviews_to_an_online_worker(website):
+    client, module = website
+    module.REVIEWS.heartbeat("railway-worker", {"executor": "anthropic"})
+    document = upload(client, "ج.docx", _word_doc())
+    queued = review(client, document["document_id"])
+    assert queued["worker_online"] is True
+    result = client.post(f"/api/document-reviews/{queued['review_id']}/run", headers=headers()).json()
+    assert result["status"] == "QUEUED" and result["worker_online"] is True
+
+
+def test_run_endpoint_refused_when_runner_is_the_worker(api):
+    client, _ = api
+    response = client.post("/api/document-reviews/REV-" + "0" * 32 + "/run", headers=headers())
+    assert response.status_code == 409 and "REVIEW_RUNS_ON_THE_REVIEW_WORKER" in response.text

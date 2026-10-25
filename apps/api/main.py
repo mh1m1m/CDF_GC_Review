@@ -370,19 +370,39 @@ def documents_review(document_id: str, department: str | None = Query(default=No
         # Local development and tests only: run the queued review in this process.
         call(document_review.process_next, application, DOCUMENTS, REVIEWS, "inline")
         review = call(REVIEWS.get, owner, review["review_id"])
-    return {**review, "worker_online": call(REVIEWS.worker_seen)}
+    return {**review, "worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER}
+
+
+# "website": the site runs a review inside the request that asks for it (up to the host's time limit) whenever no
+# review worker is online; "worker": only the review worker runs reviews.
+REVIEW_RUNNER = "website" if os.getenv("CDF_REVIEW_RUNNER") == "website" else "worker"
+
+
+@app.post("/api/document-reviews/{review_id}/run")
+def documents_review_run(review_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    if REVIEW_RUNNER != "website":
+        raise HTTPException(409, "REVIEW_RUNS_ON_THE_REVIEW_WORKER")
+    if call(REVIEWS.worker_seen):
+        return {**call(REVIEWS.get, owner, review_id), "worker_online": True, "runner": REVIEW_RUNNER}
+    try:
+        review = document_review.run_on_website(application, DOCUMENTS, REVIEWS, owner, review_id)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    return {**review, "worker_online": False, "runner": REVIEW_RUNNER}
 
 
 @app.get("/api/document-reviews")
 def documents_reviews(authorization: str | None = Header(default=None)):
     owner = _documents(authorization)
-    return {"worker_online": call(REVIEWS.worker_seen), "latest": call(REVIEWS.latest_by_document, owner)}
+    return {"worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER,
+            "latest": call(REVIEWS.latest_by_document, owner)}
 
 
 @app.get("/api/document-reviews/{review_id}")
 def documents_review_status(review_id: str, authorization: str | None = Header(default=None)):
     owner = _documents(authorization)
-    return {**call(REVIEWS.get, owner, review_id), "worker_online": call(REVIEWS.worker_seen)}
+    return {**call(REVIEWS.get, owner, review_id), "worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER}
 
 
 @app.post("/api/documents/{document_id}/actions/{action}")

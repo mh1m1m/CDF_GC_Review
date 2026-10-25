@@ -33,6 +33,19 @@ The hosted deployment carries the public reference fixture, not CDF's approved p
 therefore treats legal or authority claims as unverified, and the release gate records
 `SYNTHETIC_REFERENCE_NOT_ISSUABLE`.
 
+## Two ways to run reviews
+
+- **On the website** (`CDF_REVIEW_RUNNER=website` on Vercel). With no worker online, the page that queues a review
+  asks the site to run it within the same request.
+  - It suits short and medium documents, because the whole review must finish within the host's limit:
+    `CDF_REVIEW_WEBSITE_SECONDS`, default 270 s, under Vercel's 300 s.
+  - A longer document stops with a clear message, as does a run the host cuts off.
+  - Vercel has no LibreOffice, so the "document with comments as PDF" and the dashboard PDF are not produced. The
+    original PDF with highlights and notes still is.
+  - On Vercel, set `ANTHROPIC_API_KEY`, `CDF_ENABLE_PROVIDER_API=1` and `CDF_AI_DATA_AUTHORIZATION`.
+- **On the review worker** (below). It has no time limit and produces every output. Whenever a worker is online,
+  the website leaves queued reviews to it.
+
 ## Run the worker (Railway, recommended)
 
 1. Create a project at railway.com: **New Project → Deploy from GitHub repo → `mh1m1m/CDF_GC_Review`**.
@@ -63,6 +76,8 @@ checks there. One worker handles one review at a time; run two for two parallel 
 | `CDF_SITE_IDENTITY` | `CDF`: the exported tracker and dashboard carry the CDF wordmark |
 | `CDF_AI_MODEL` | Optional. The engine's default model is used when unset |
 | `CDF_AI_TIMEOUT_SECONDS` | Optional, default `180` |
+| `CDF_AI_EFFORT` | Optional: `low`, `medium`, `high`, `xhigh` or `max`. Unset uses the model's default |
+| `CDF_AI_MIN_MAX_TOKENS` | Optional, default `16000`. Current models think before answering, and thinking counts against this budget |
 | `RAILWAY_DOCKERFILE_PATH` | `Dockerfile.worker` (Railway only) |
 
 **Database password.** Vercel stores `CDF_DATABASE_URL` as a sensitive value that cannot be read back. To give
