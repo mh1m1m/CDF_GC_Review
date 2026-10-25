@@ -117,3 +117,37 @@ def test_key_under_an_owner_chosen_name(monkeypatch):
     assert anthropic_credential_configured()
     assert __import__("os").environ["ANTHROPIC_API_KEY"] == "sk-ant-test"
     assert select_executor("anthropic", timeout=5).config.provider == "anthropic"
+
+
+def test_rejections_name_a_fixed_reason_without_the_error_text():
+    """A 400 from the API becomes BAD_REQUEST plus a fixed reason code; the API's own words never travel on."""
+    import anthropic
+    import httpx
+    import pytest
+    from types import SimpleNamespace
+    from cdf_gco_crms.agents.providers.anthropic_adapter import AnthropicAdapter, rejection_reason
+    from cdf_gco_crms.agents.providers.base import ProviderFailure
+
+    marker = "Your credit balance is too low SYNTHETIC_TEXT_MUST_NOT_ESCAPE"
+    response = httpx.Response(400, headers={"request-id": "req_011Synthetic"},
+                              request=httpx.Request("POST", "https://example.invalid/v1/messages"))
+    body = {"type": "error", "error": {"type": "invalid_request_error", "message": marker}}
+
+    def reject(**kwargs):
+        raise anthropic.BadRequestError(marker, response=response, body=body)
+
+    adapter = AnthropicAdapter(client=SimpleNamespace(messages=SimpleNamespace(
+        with_raw_response=SimpleNamespace(create=reject))))
+    request = SimpleNamespace(model="fixture-model", max_tokens=10, system="S", user_text="U", schema={})
+    with pytest.raises(ProviderFailure) as error:
+        adapter.complete(request)
+    assert error.value.kind == "BAD_REQUEST"
+    assert "[CREDIT_BALANCE_TOO_LOW]" in str(error.value) and "req_011Synthetic" in str(error.value)
+    assert "SYNTHETIC_TEXT_MUST_NOT_ESCAPE" not in str(error.value)
+
+    def reason(message):
+        return rejection_reason(anthropic.BadRequestError(message, response=response,
+                                                          body={"error": {"message": message}}))
+    assert reason("prompt is too long: 1200000 tokens").startswith("[PROMPT_TOO_LONG]")
+    assert reason("output_config.format.schema: unsupported").startswith("[OUTPUT_SCHEMA_REJECTED]")
+    assert reason("something new").startswith("[UNCLASSIFIED]")

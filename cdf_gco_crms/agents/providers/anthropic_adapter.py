@@ -51,6 +51,39 @@ def wire_schema(schema):
     return out
 
 
+# The API's error text is never stored (it can echo the request); it is reduced to one of these fixed reasons, checked
+# in order, so the website can say what to fix. The provider's request id is kept: it carries no content.
+_REJECTION_REASONS = (
+    ("CREDIT_BALANCE_TOO_LOW", ("credit balance",)),
+    ("BILLING", ("billing", "payment", "spend limit", "usage limit")),
+    ("PROMPT_TOO_LONG", ("prompt is too long", "too many tokens", "context window")),
+    ("OUTPUT_SCHEMA_REJECTED", ("schema", "output_config", "output_format")),
+    ("MAX_TOKENS_REJECTED", ("max_tokens",)),
+    ("THINKING_REJECTED", ("thinking",)),
+    ("EFFORT_REJECTED", ("effort",)),
+    ("SAMPLING_PARAMETER_REJECTED", ("temperature", "top_p", "top_k")),
+    ("DATA_RETENTION_POLICY", ("retention",)),
+    ("MODEL_REJECTED", ("model",)),
+)
+
+
+def rejection_reason(exc) -> str:
+    """Fixed reason code and provider request id for an API error, without any of the error text."""
+    body = getattr(exc, "body", None)
+    message = ""
+    if isinstance(body, dict):
+        inner = body.get("error") if isinstance(body.get("error"), dict) else body
+        message = str(inner.get("message") or "")
+    message = (message or str(exc)).lower()
+    code = next((name for name, needles in _REJECTION_REASONS if any(n in message for n in needles)), "UNCLASSIFIED")
+    request_id = getattr(exc, "request_id", None)
+    if not request_id:
+        response = getattr(exc, "response", None)
+        request_id = response.headers.get("request-id") if getattr(response, "headers", None) else None
+    request_id = str(request_id) if request_id and str(request_id).replace("_", "").isalnum() else None
+    return f"[{code}]" + (f" request_id={request_id[:64]}" if request_id else "")
+
+
 def _budget(requested: int) -> int:
     import os
 
@@ -105,21 +138,21 @@ class AnthropicAdapter(ProviderAdapter):
                     or getattr(response, "_request_id", None)
                 break
             except anthropic.AuthenticationError as exc:
-                raise ProviderFailure("authentication failed", kind="AUTHENTICATION") from exc
+                raise ProviderFailure(f"authentication failed {rejection_reason(exc)}", kind="AUTHENTICATION") from exc
             except anthropic.PermissionDeniedError as exc:
-                raise ProviderFailure("permission denied", kind="PERMISSION") from exc
+                raise ProviderFailure(f"permission denied {rejection_reason(exc)}", kind="PERMISSION") from exc
             except anthropic.NotFoundError as exc:
-                raise ProviderFailure("model or endpoint not found", kind="NOT_FOUND") from exc
+                raise ProviderFailure(f"model or endpoint not found {rejection_reason(exc)}", kind="NOT_FOUND") from exc
             except anthropic.BadRequestError as exc:
-                raise ProviderFailure("bad request", kind="BAD_REQUEST") from exc
+                raise ProviderFailure(f"bad request {rejection_reason(exc)}", kind="BAD_REQUEST") from exc
             except anthropic.RateLimitError as exc:
                 if attempts >= self.config.max_retries + 1:
                     raise ProviderFailure("rate limited after bounded retries", retryable=True, kind="RATE_LIMIT") from exc
                 wait = min(MAX_RATE_LIMIT_WAIT, float(exc.response.headers.get("retry-after", "5") or 5))
                 time.sleep(wait)
             except anthropic.APIStatusError as exc:
-                raise ProviderFailure(f"API error {exc.status_code}", retryable=exc.status_code >= 500,
-                                      kind="API_STATUS") from exc
+                raise ProviderFailure(f"API error {exc.status_code} {rejection_reason(exc)}",
+                                      retryable=exc.status_code >= 500, kind="API_STATUS") from exc
             except anthropic.APITimeoutError as exc:
                 raise ProviderFailure("request timed out", retryable=True, kind="TIMEOUT") from exc
             except anthropic.APIConnectionError as exc:

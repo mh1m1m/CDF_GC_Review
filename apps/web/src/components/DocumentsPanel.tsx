@@ -70,7 +70,18 @@ const STAGES: Record<string, string> = {
   RECORDING_CASE: "تسجيل القضية ولوحة المتابعة",
   WRITING_OUTPUTS: "إعداد ملفات Word وPDF وExcel",
 };
+// Checked in order: the specific reasons the AI service gives come before the general stage failures.
 const REVIEW_ERRORS: Record<string, string> = {
+  CREDIT_BALANCE_TOO_LOW:
+    "رصيد حساب Anthropic لا يكفي. أضف رصيداً من console.anthropic.com (Billing) ثم أعد المراجعة.",
+  "[BILLING]": "رفضت Anthropic الطلب لسبب يتعلق بالفوترة أو حد الإنفاق في الحساب؛ راجع Billing في console.anthropic.com.",
+  "AUTHENTICATION:": "رفضت Anthropic مفتاح الوصول. تحقق من صحة المفتاح المحفوظ في إعدادات Vercel.",
+  "PERMISSION:": "مفتاح الوصول لا يملك صلاحية استخدام هذا النموذج؛ راجع إعدادات المفتاح في console.anthropic.com.",
+  "NOT_FOUND:": "النموذج المطلوب غير متاح لهذا الحساب.",
+  RATE_LIMIT: "تجاوز الحساب حد الطلبات المسموح مؤقتاً؛ أعد المحاولة بعد دقائق.",
+  PROMPT_TOO_LONG: "المستند أطول مما يقبله النموذج في طلب واحد.",
+  OUTPUT_SCHEMA_REJECTED: "رفضت خدمة Claude صيغة المخرجات المطلوبة؛ هذا خلل في المنظومة وليس في المستند.",
+  "BAD_REQUEST:": "رفضت خدمة Claude الطلب.",
   ProviderFailure: "تعذر الاتصال بنموذج الذكاء الاصطناعي. تحقق من إضافة مفتاح ANTHROPIC_API_KEY في إعدادات الخدمة.",
   WEBSITE_TIME_LIMIT: "المستند أطول من أن يُراجع داخل الموقع خلال خمس دقائق؛ المستندات الطويلة تحتاج خدمة المعالجة المنفصلة.",
   DataHandlingViolation: "لم يُفعَّل إذن إرسال المستندات إلى نموذج الذكاء الاصطناعي في خدمة المعالجة.",
@@ -461,9 +472,11 @@ function ReviewStatus({ review, onOpenCase }: { review: Review; onOpenCase?: (ca
   if (review.status === "FAILED") {
     const code = review.error ?? "";
     const text = Object.entries(REVIEW_ERRORS).find(([k]) => code.includes(k))?.[1] ?? code;
+    const reason = /\[([A-Z_]+)\]/.exec(code)?.[1];
     return (
       <p className="review-status review-failed" role="status">
         تعذرت المراجعة: {text}
+        {reason && text !== code ? <span className="review-reason" dir="ltr"> ({reason})</span> : null}
       </p>
     );
   }
