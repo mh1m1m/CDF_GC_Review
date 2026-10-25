@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 from cdf_gco_crms.calibration.service import CalibrationService
 from cdf_gco_crms.calibration.analytics import analyze
-from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, CalibrationError, AccessDenied, StaleCase
+from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, CalibrationError, AccessDenied, StaleCase, StaleDecision
 
 if os.getenv("CDF_CALIBRATION_MODE") != "SYNTHETIC_LOCAL_DEV":
     raise RuntimeError("CALIBRATION_API_NOT_AUTHORIZED: set CDF_CALIBRATION_MODE=SYNTHETIC_LOCAL_DEV for local synthetic data only")
@@ -65,7 +65,7 @@ def call(fn, *args, **kwargs):
             return fn(*args, **kwargs)
     except AccessDenied as e:
         raise HTTPException(403, str(e)) from e
-    except StaleCase as e:
+    except (StaleCase, StaleDecision) as e:
         raise HTTPException(409, str(e)) from e
     except Conflict as e:
         raise HTTPException(409,str(e)) from e
@@ -91,6 +91,14 @@ class Decision(BaseModel):
     reasons: list[str] = []
     evidence_refs: list[str] = []
     material_categories: list[str] = []
+    expected_decision_head: str | None = None     # latest decision hash the client read; null = it saw none
+
+
+class DecisionReview(BaseModel):
+    model_config=ConfigDict(extra="forbid",hide_input_in_errors=True)
+    decision_event_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    outcome: str
+    rationale: str
 
 
 class RuleReview(BaseModel):
@@ -139,8 +147,15 @@ def events(case_id: str, authorization: str | None = Header(default=None)):
 
 @app.post("/api/cases/{case_id}/observations/{observation_id}/decisions")
 def decision(case_id: str, observation_id: str, item: Decision, authorization: str | None = Header(default=None)):
-    digest = call(service.decision, case_id, observation_id, item.model_dump(), identity(authorization))
+    digest = call(service.decision, case_id, observation_id, item.model_dump(exclude_unset=True), identity(authorization))
     return {"event_hash": digest, "status": item.status}
+
+
+@app.post("/api/cases/{case_id}/decisions/review")
+def decision_review(case_id: str, item: DecisionReview, authorization: str | None = Header(default=None)):
+    """Second-human review of a submitted decision (a different identity from the decider)."""
+    digest = call(service.review_decision, case_id, item.model_dump(), identity(authorization))
+    return {"event_hash": digest, "outcome": item.outcome}
 
 
 @app.post("/api/cases/{case_id}/rules/{rule_id}/review")

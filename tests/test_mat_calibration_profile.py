@@ -58,7 +58,7 @@ def test_profile_compile_separate_rule_approval_and_no_binding(private_case, tmp
     with pytest.raises(CalibrationError, match="APPROVED_SYNTHETIC_RULE"):
         compile_candidate(st, "SYN-CASE-001", user)
     st.rule_action("SYN-CASE-001", "SYN-S01", "APPROVE", "Use for demo only",
-                   user, observation_event_hashes=[eid], profile_version="synthetic-test")
+                   user, observation_event_hashes=[eid], profile_version="0.1.0-synthetic")
     result=compile_candidate(st, "SYN-CASE-001", user)
     assert result["status"]=="PROVISIONAL"
     version=result["profile_version"]
@@ -80,7 +80,7 @@ def test_activation_history_and_rollback_event(private_case):
     e=st.save_decision("SYN-CASE-001", "SYN-OBS-001", "KEEP_WITH_REVISIONS",
                        "Synthetic rationale", digest, user, status="SUBMITTED")
     st.rule_action("SYN-CASE-001", "SYN-S01", "APPROVE", "Synthetic review",
-                   user, observation_event_hashes=[e], profile_version="v1")
+                   user, observation_event_hashes=[e], profile_version="0.1.0-synthetic")
     first=compile_candidate(st,"SYN-CASE-001",user)
     st.activate_synthetic_profile("SYN-CASE-001",first["profile_version"],user)
     versions=st.profile_versions("SYN-CASE-001",user)
@@ -96,4 +96,4 @@ def test_draft_evidence_cannot_approve_rule(private_case):
                        "Draft", digest, user, status="DRAFT")
     with pytest.raises(CalibrationError, match="UNKNOWN_CALIBRATION_EVIDENCE"):
         st.rule_action("SYN-CASE-001", "SYN-S01", "APPROVE", "Must be submitted",
-                       user, observation_event_hashes=[e], profile_version="v1")
+                       user, observation_event_hashes=[e], profile_version="0.1.0-synthetic")

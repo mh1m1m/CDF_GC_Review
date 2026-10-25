@@ -42,6 +42,9 @@ test("synthetic calibration persists after browser restart and denies unsubstant
   await page.getByRole("button", { name: "التالي" }).click();
   await expect(page.getByText("SYN-002", { exact: false })).toBeVisible();
   await page.getByLabel("الإجراء").selectOption("WITHDRAW");
+  // Nothing is preselected: the reviewer must choose the withdrawal ground explicitly.
+  await expect(page.getByLabel("سبب السحب")).toHaveValue("");
+  await page.getByLabel("سبب السحب").selectOption("W12");
   await page
     .getByPlaceholder("ما الدليل أو السبب وراء هذا القرار؟")
     .fill("Synthetic rationale, missing verification evidence.");

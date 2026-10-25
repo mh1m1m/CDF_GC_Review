@@ -37,7 +37,7 @@ def test_unauthenticated_identity_does_not_satisfy_roles(env):
         st.observations("CASE-SYN", spoof)
     with pytest.raises(AccessDenied):
         st.rule_action("CASE-SYN", "SYN-R1", "APPROVE", "reason", spoof,
-                       observation_event_hashes=["bogus"], profile_version="1.0")
+                       observation_event_hashes=["bogus"], profile_version="0.1.0-synthetic")
 
 
 def test_material_withdrawal_requires_reason_and_evidence(env):
@@ -65,12 +65,12 @@ def test_no_implicit_rule_approval_from_calibration(env):
     assert st.case_statistics("CASE-SYN", reviewer)["approved_dna_rules"] == 0
     with pytest.raises(AccessDenied):
         st.rule_action("CASE-SYN", "SYN-R1", "APPROVE", "Evidence reason", reviewer,
-                       observation_event_hashes=[e], profile_version="1.0")
+                       observation_event_hashes=[e], profile_version="0.1.0-synthetic")
     with pytest.raises(CalibrationError, match="UNKNOWN_CALIBRATION"):
         st.rule_action("CASE-SYN", "SYN-R1", "APPROVE", "Evidence reason", admin,
-                       observation_event_hashes=["f" * 64], profile_version="1.0")
+                       observation_event_hashes=["f" * 64], profile_version="0.1.0-synthetic")
     st.rule_action("CASE-SYN", "SYN-R1", "APPROVE", "Synthetic documented support", admin,
-                   observation_event_hashes=[e], profile_version="1.0")
+                   observation_event_hashes=[e], profile_version="0.1.0-synthetic")
     assert st.case_statistics("CASE-SYN", reviewer)["approved_dna_rules"] == 1
 
 
@@ -78,7 +78,15 @@ def test_hash_chain_detects_post_hoc_tampering(env):
     st, admin, reviewer, digest = env
     st.save_decision("CASE-SYN", "OBS-002", "SHORTEN", "Remove redundant preface", digest, reviewer, status="SUBMITTED")
     assert st.verify_chain("CASE-SYN", reviewer)
+    # first layer: the store refuses to rewrite or delete audit rows
+    import sqlite3
+    with pytest.raises(sqlite3.IntegrityError, match="AUDIT_LOG_APPEND_ONLY"):
+        with st.db:
+            st.db.execute("UPDATE events SET payload_json=? WHERE event_type='OBSERVATION_CALIBRATION'",
+                          (json.dumps({"decision": "WITHDRAW"}),))
+    # second layer: a privileged writer who drops the trigger is still caught by the hash chain
     with st.db:
+        st.db.execute("DROP TRIGGER events_no_update")
         st.db.execute("UPDATE events SET payload_json=? WHERE event_type='OBSERVATION_CALIBRATION'",
                       (json.dumps({"decision": "WITHDRAW"}),))
     assert not st.verify_chain("CASE-SYN", reviewer)

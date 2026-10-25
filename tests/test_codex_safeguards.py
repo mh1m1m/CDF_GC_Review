@@ -60,9 +60,9 @@ def with_case(tmp_path, action=None):
         user=ReviewerContext('SYN-TEST',frozenset({'CALIBRATION_ADMIN','CALIBRATION_REVIEWER','DNA_RULE_APPROVER'}),True)
         digest=store.import_case('SYN-CASE','a'*64,[{'observation_id':'SYN-1','original_text':'Synthetic fixture'}],user)
         event=store.save_decision('SYN-CASE','SYN-1','KEEP_UNCHANGED','Synthetic rationale',digest,user,status='SUBMITTED')
-        store.rule_action('SYN-CASE','SYN-S01','APPROVE','Synthetic approval',user,observation_event_hashes=[event],profile_version='v1')
+        store.rule_action('SYN-CASE','SYN-S01','APPROVE','Synthetic approval',user,observation_event_hashes=[event],profile_version='0.1.0-synthetic')
         if action:
-            store.rule_action('SYN-CASE','SYN-S01',action,'Synthetic later review',user,observation_event_hashes=[event],profile_version='v1')
+            store.rule_action('SYN-CASE','SYN-S01',action,'Synthetic later review',user,observation_event_hashes=[event],profile_version='0.1.0-synthetic')
             with pytest.raises(CalibrationError,match='APPROVED_SYNTHETIC_RULE_REQUIRED'):
                 compile_candidate(store,'SYN-CASE',user)
         else:

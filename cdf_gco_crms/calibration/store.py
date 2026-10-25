@@ -30,6 +30,8 @@ MATERIAL_CATEGORIES = frozenset({
     "AUDIT_RIGHTS", "CONTROL_FAILURE", "CONTRACTUAL_LIABILITY",
 })
 RULE_ACTIONS = frozenset({"APPROVE", "APPROVE_WITH_CHANGES", "REJECT", "DEFER", "REQUEST_MORE_EVIDENCE"})
+REVIEW_OUTCOMES = frozenset({"APPROVED", "RETURNED"})
+UNSET = object()                # "the caller did not say which decision it read" (see save_decision)
 
 
 UNKNOWN_REASON = "W15"          # "reason not known": never enough on its own to withdraw a material observation
@@ -75,6 +77,10 @@ def normalize_evidence(evidence: list[dict]) -> list[dict]:
 
 class StaleCase(CalibrationError):
     pass
+
+
+class StaleDecision(CalibrationError):
+    """Optimistic-concurrency conflict: the observation's latest decision changed since the caller read it."""
 
 
 class AccessDenied(CalibrationError):
@@ -155,6 +161,17 @@ class CalibrationStore:
                 changed_at TEXT NOT NULL,
                 FOREIGN KEY(case_id, profile_version) REFERENCES profile_versions(case_id,profile_version)
             );
+            -- Append-only audit log: rows are never updated or deleted through this store.
+            CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events
+                BEGIN SELECT RAISE(ABORT, 'AUDIT_LOG_APPEND_ONLY'); END;
+            CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
+                BEGIN SELECT RAISE(ABORT, 'AUDIT_LOG_APPEND_ONLY'); END;
+            -- Head anchor: event count and last hash per case, so truncating the newest events is detected.
+            CREATE TABLE IF NOT EXISTS chain_heads (
+                case_id TEXT PRIMARY KEY REFERENCES cases(case_id),
+                event_count INTEGER NOT NULL,
+                head_hash TEXT NOT NULL
+            );
         """)
         if os.name == "posix":
             os.chmod(self.path, 0o600)
@@ -224,7 +241,64 @@ class CalibrationStore:
         digest = fingerprint(material)
         self.db.execute("INSERT INTO events(case_id,observation_id,event_type,payload_json,actor,created_at,previous_hash,event_hash) VALUES (?,?,?,?,?,?,?,?)",
                         (case_id, obs_id, kind, canonical(payload), actor, timestamp, previous, digest))
+        self.db.execute("INSERT INTO chain_heads VALUES (?, 1, ?) ON CONFLICT(case_id) DO UPDATE SET "
+                        "event_count = event_count + 1, head_hash = excluded.head_hash", (case_id, digest))
         return digest
+
+    # ------------------------------------------------------------ derived decision state
+    def _decision_events(self, case_id: str, observation_id: str | None = None) -> list[dict]:
+        sql = "SELECT * FROM events WHERE case_id=? AND event_type='OBSERVATION_CALIBRATION'"
+        args: list = [case_id]
+        if observation_id is not None:
+            sql += " AND observation_id=?"
+            args.append(observation_id)
+        return [dict(r) | {"payload": json.loads(r["payload_json"])} for r in self.db.execute(sql + " ORDER BY event_id", args)]
+
+    def decision_head(self, case_id: str, observation_id: str) -> str | None:
+        """Hash of the observation's latest decision event (drafts included), or None when none exists."""
+        events = self._decision_events(case_id, observation_id)
+        return events[-1]["event_hash"] if events else None
+
+    def _reviews(self, case_id: str) -> dict[str, dict]:
+        """Latest second-human review per decision event hash."""
+        out: dict[str, dict] = {}
+        for r in self.db.execute("SELECT * FROM events WHERE case_id=? AND event_type='DECISION_REVIEW' ORDER BY event_id", (case_id,)):
+            payload = json.loads(r["payload_json"])
+            out[payload["decision_event_hash"]] = payload | {"reviewer": r["actor"], "review_event_hash": r["event_hash"]}
+        return out
+
+    def decision_states(self, case_id: str) -> dict[str, dict]:
+        """Per observation: the latest decision and its effective status.
+
+        DRAFT / SUBMITTED come from the decision itself; APPROVED / RETURNED from a review by a different identity.
+        A material withdrawal stays AWAITING_SECOND_REVIEW until such a review approves it.
+        """
+        reviews = self._reviews(case_id)
+        latest: dict[str, dict] = {}
+        for e in self._decision_events(case_id):
+            latest[e["observation_id"]] = e
+        out = {}
+        for obs_id, e in latest.items():
+            p = e["payload"]
+            review = reviews.get(e["event_hash"])
+            if p["status"] == "DRAFT":
+                status = "DRAFT"
+            elif review:
+                status = review["outcome"]
+            elif p.get("heightened_review"):
+                status = "AWAITING_SECOND_REVIEW"
+            else:
+                status = "SUBMITTED"
+            out[obs_id] = {"decision_event_hash": e["event_hash"], "decision": p["decision"], "status": status,
+                           "decided_by": e["actor"], "heightened_review": bool(p.get("heightened_review")),
+                           "reviewed_by": review["reviewer"] if review else None}
+        return out
+
+    def rule_eligible_events(self, case_id: str) -> set[str]:
+        """Decision events a rule review may cite: the latest decision of its observation, submitted, and — for a
+        material withdrawal — approved by a second human."""
+        return {s["decision_event_hash"] for s in self.decision_states(case_id).values()
+                if s["status"] in ("SUBMITTED", "APPROVED")}
 
     def observations(self, case_id: str, reviewer: ReviewerContext) -> list[dict]:
         reviewer.require("CALIBRATION_REVIEWER")
@@ -233,7 +307,11 @@ class CalibrationStore:
     def save_decision(self, case_id: str, observation_id: str, decision: str, rationale: str,
                       expected_evidence_hash: str, reviewer: ReviewerContext, *,
                       reasons: list[str] | None = None, evidence_refs: list[str] | None = None,
-                      material_categories: list[str] | None = None, status: str = "DRAFT"):
+                      material_categories: list[str] | None = None, status: str = "DRAFT",
+                      expected_decision_head=UNSET):
+        """Record a decision. ``expected_decision_head`` is the latest decision hash the caller read (None when it saw
+        no decision). A mismatch is refused (``DECISION_CHANGED_SINCE_READ``). A caller that does not say what it
+        read may only overwrite its own decisions, never another reviewer's."""
         reviewer.require("CALIBRATION_REVIEWER")
         row = self._case(case_id)
         if row["evidence_hash"] != expected_evidence_hash:
@@ -272,7 +350,37 @@ class CalibrationStore:
                    "status": status, "evidence_hash": expected_evidence_hash,
                    "heightened_review": bool(decision == "WITHDRAW" and categories)}
         with self.transaction():
+            prior = self._decision_events(case_id, observation_id)
+            head = prior[-1]["event_hash"] if prior else None
+            if expected_decision_head is not UNSET:
+                if expected_decision_head != head:
+                    raise StaleDecision("DECISION_CHANGED_SINCE_READ")
+            elif any(e["actor"] != reviewer.reviewer_id for e in prior):
+                raise StaleDecision("EXPECTED_DECISION_HEAD_REQUIRED")
             return self._append(case_id, observation_id, "OBSERVATION_CALIBRATION", payload, reviewer.reviewer_id)
+
+    def review_decision(self, case_id: str, decision_event_hash: str, outcome: str, rationale: str,
+                        reviewer: ReviewerContext) -> str:
+        """Second-human review of a submitted decision: APPROVED or RETURNED, by an identity other than the decider.
+        Only the observation's latest decision can be reviewed."""
+        reviewer.require("CALIBRATION_REVIEWER")
+        self._case(case_id)
+        if outcome not in REVIEW_OUTCOMES:
+            raise CalibrationError("INVALID_REVIEW_OUTCOME")
+        if not _substantive(rationale):
+            raise CalibrationError("REVIEW_RATIONALE_REQUIRED")
+        with self.transaction():
+            state = next((s | {"observation_id": o} for o, s in self.decision_states(case_id).items()
+                          if s["decision_event_hash"] == decision_event_hash), None)
+            if state is None:
+                raise CalibrationError("DECISION_NOT_LATEST_OR_UNKNOWN")
+            if state["status"] == "DRAFT":
+                raise CalibrationError("DRAFT_CANNOT_BE_REVIEWED")
+            if state["decided_by"] == reviewer.reviewer_id:
+                raise AccessDenied("SECOND_REVIEWER_MUST_DIFFER")
+            return self._append(case_id, state["observation_id"], "DECISION_REVIEW",
+                                {"decision_event_hash": decision_event_hash, "outcome": outcome, "rationale": rationale},
+                                reviewer.reviewer_id)
 
     def rule_action(self, case_id: str, rule_id: str, action: str, rationale: str,
                     reviewer: ReviewerContext, *, observation_event_hashes: list[str],
@@ -281,16 +389,38 @@ class CalibrationStore:
         self._case(case_id)
         if action not in RULE_ACTIONS or not rule_id or not profile_version or not rationale.strip():
             raise CalibrationError("INVALID_RULE_APPROVAL")
-        event_hashes = {x["event_hash"] for x in self.db.execute(
-            "SELECT event_hash, payload_json FROM events WHERE case_id=? AND event_type='OBSERVATION_CALIBRATION'",
-            (case_id,)) if json.loads(x["payload_json"]).get("status") == "SUBMITTED"}
-        if not observation_event_hashes or not set(observation_event_hashes).issubset(event_hashes):
+        if profile_version not in self.known_profile_versions(case_id):
+            raise CalibrationError("UNKNOWN_PROFILE_VERSION")
+        submitted = {x["event_hash"] for x in self._decision_events(case_id) if x["payload"].get("status") == "SUBMITTED"}
+        if not observation_event_hashes or not set(observation_event_hashes).issubset(submitted):
             raise CalibrationError("UNKNOWN_CALIBRATION_EVIDENCE")
+        states = {s["decision_event_hash"]: s for s in self.decision_states(case_id).values()}
+        for h in observation_event_hashes:
+            st = states.get(h)
+            if st is None:
+                raise CalibrationError("SUPERSEDED_CALIBRATION_EVIDENCE")
+            if st["status"] == "AWAITING_SECOND_REVIEW":
+                raise CalibrationError("MATERIAL_WITHDRAWAL_NOT_SECOND_REVIEWED")
+            if st["status"] == "RETURNED":
+                raise CalibrationError("RETURNED_DECISION_CANNOT_SUPPORT_RULE")
         payload = {"rule_id": rule_id, "action": action, "rationale": rationale,
                    "observation_event_hashes": sorted(set(observation_event_hashes)),
                    "profile_version": profile_version}
         with self.transaction():
             return self._append(case_id, None, "DNA_RULE_REVIEW", payload, reviewer.reviewer_id)
+
+    def known_profile_versions(self, case_id: str) -> set[str]:
+        """Versions a rule review may target: the base profile the case starts from and every stored version."""
+        from cdf_gco_crms.agents.mat_profile import load_profile, synthetic_fixture_path
+        versions = {r["profile_version"] for r in self.db.execute("SELECT profile_version FROM profile_versions WHERE case_id=?", (case_id,))}
+        versions.add(load_profile(synthetic_fixture_path()).version)
+        return versions
+
+    def chain_head(self, case_id: str) -> dict:
+        """Event count and head hash, for recording outside this database (the in-database anchor detects
+        truncation by this store's users; an external copy detects a privileged rewrite)."""
+        row = self.db.execute("SELECT event_count, head_hash FROM chain_heads WHERE case_id=?", (case_id,)).fetchone()
+        return {"case_id": case_id, "event_count": row["event_count"] if row else 0, "head_hash": row["head_hash"] if row else "GENESIS"}
 
     def events(self, case_id: str, reviewer: ReviewerContext):
         reviewer.require("CALIBRATION_REVIEWER")
@@ -308,7 +438,8 @@ class CalibrationStore:
             if e["previous_hash"] != previous or e["event_hash"] != fingerprint(material):
                 return False
             previous = e["event_hash"]
-        return True
+        anchor = self.chain_head(case_id)
+        return anchor["event_count"] == len(events) and anchor["head_hash"] == previous
 
     def case_statistics(self, case_id: str, reviewer: ReviewerContext):
         items = self.observations(case_id, reviewer)
@@ -318,13 +449,24 @@ class CalibrationStore:
         latest = {}
         for e in submitted:
             latest[e["observation_id"]] = json.loads(e["payload_json"])
+        states = self.decision_states(case_id)
+        rule_latest: dict[str, str] = {}
+        for e in events:
+            if e["event_type"] == "DNA_RULE_REVIEW":
+                p = json.loads(e["payload_json"])
+                rule_latest[p["rule_id"]] = p["action"]          # the latest review of a rule is the effective one
         return {"observation_count": len(items), "submitted_observations": len(latest),
                 "pending_observations": len(items) - len(latest),
                 "withdrawal_proposals": sum(d["decision"] == "WITHDRAW" for d in latest.values()),
                 "heightened_review": sum(bool(d["heightened_review"]) for d in latest.values()),
-                "approved_dna_rules": sum(e["event_type"] == "DNA_RULE_REVIEW" and
-                        json.loads(e["payload_json"])["action"] in ("APPROVE", "APPROVE_WITH_CHANGES") for e in events),
-                "audit_chain_valid": self.verify_chain(case_id, reviewer)}
+                "awaiting_second_review": sum(s["status"] == "AWAITING_SECOND_REVIEW" for s in states.values()),
+                "approved_decisions": sum(s["status"] == "APPROVED" for s in states.values()),
+                "returned_decisions": sum(s["status"] == "RETURNED" for s in states.values()),
+                "approved_dna_rules": sum(a == "APPROVE" for a in rule_latest.values()),
+                # APPROVE_WITH_CHANGES needs the changed wording before it can compile (CAL-01); never counted as approved
+                "rules_approved_with_changes_pending_wording": sum(a == "APPROVE_WITH_CHANGES" for a in rule_latest.values()),
+                "audit_chain_valid": self.verify_chain(case_id, reviewer),
+                "audit_chain_head": self.chain_head(case_id)}
 
     def save_synthetic_profile(self, case_id: str, profile: dict, reviewer: ReviewerContext) -> dict:
         reviewer.require("DNA_RULE_APPROVER")
