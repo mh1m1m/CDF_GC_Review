@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { hosted, HostedSignIn } from "./hosted";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -364,16 +365,20 @@ function App() {
             className="connection glass"
             aria-label="الاتصال ببيئة التجربة"
           >
-            <label>
-              رمز جلسة التطوير المحلي
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="رمز الجلسة المؤقت"
-                autoComplete="off"
-              />
-            </label>
+            {hosted ? (
+              <HostedSignIn onToken={setToken} />
+            ) : (
+              <label>
+                رمز جلسة التطوير المحلي
+                <input
+                  type="password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="رمز الجلسة المؤقت"
+                  autoComplete="off"
+                />
+              </label>
+            )}
             <button
               className="button dark"
               onClick={() => void connect()}

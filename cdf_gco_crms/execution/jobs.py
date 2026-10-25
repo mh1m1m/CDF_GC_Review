@@ -7,6 +7,7 @@ prevents duplicate accepted operations; external exactly-once inference is not c
 from __future__ import annotations
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import subprocess  # nosec B404
@@ -39,10 +40,19 @@ def kill_tree(pid):
         pass
 
 
+def inline_runner() -> bool:
+    """Serverless hosts (Vercel functions) kill detached processes when the response ends, so jobs run inside
+    the request there: CDF_JOB_RUNNER=inline. The claim, lease, authorization and publication steps are the same."""
+    return os.getenv("CDF_JOB_RUNNER", "").strip().lower() == "inline"
+
+
 def launch(service, job_id, principal):
     job = service.job(job_id, principal)
     if job["status"] != "QUEUED":
         return
+    if inline_runner():
+        supervise(service.store.path, job_id, inline=True)
+        return None
     # No user-supplied executable, shell, path or credential argument.
     process = subprocess.Popen(
         [
@@ -88,7 +98,7 @@ def recover_stale(service, *, case_id=None):
     return len(rows)
 
 
-def supervise(database, job_id):
+def supervise(database, job_id, *, inline=False):
     service = ApplicationService(database)
     lease = uuid.uuid4().hex
     try:
@@ -123,6 +133,16 @@ def supervise(database, job_id):
             ).rowcount
             if changed != 1:
                 return 0
+        if inline:
+            with tempfile.TemporaryDirectory(prefix="cdf-job-") as workspace:
+                try:
+                    compute(database, job_id, lease, workspace)
+                except Exception as exc:  # noqa: BLE001 - the job is marked failed below; the cause is logged
+                    logging.getLogger(__name__).warning("inline job %s raised %s", job_id, type(exc).__name__)
+            current = service.store.db.execute("SELECT status FROM app_jobs WHERE job_id=?", (job_id,)).fetchone()
+            if current["status"] == "RUNNING":
+                fail(service, job_id, lease, "WORKER_EXITED_WITHOUT_PUBLICATION")
+            return 0
         with tempfile.TemporaryDirectory(prefix="cdf-job-") as workspace:
             process = subprocess.Popen(
                 [

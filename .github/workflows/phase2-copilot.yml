@@ -1,7 +1,7 @@
 name: Phase II governed copilot acceptance
 on:
   pull_request:
-    branches: [codex/unified-execution, codex/phase-ii-copilot, codex/real-mcp-connectivity, claude/project-thread-gi42zn]
+    branches: [codex/unified-execution, codex/phase-ii-copilot, codex/real-mcp-connectivity, claude/project-thread-gi42zn, fix/v712-audit-p0]
   workflow_dispatch:
 permissions:
   contents: read

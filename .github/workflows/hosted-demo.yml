@@ -1,0 +1,97 @@
+name: Hosted demo (Postgres, serverless runtime, hosted build)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - claude/project-thread-gi42zn
+      - fix/v712-audit-p0
+  push:
+    branches:
+      - feature/hosted-vercel-supabase
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-suite:
+    # The whole public suite against PostgreSQL with the serverless (inline) job runner, as deployed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-local-password
+          POSTGRES_DB: cdf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      CDF_AI_PROVIDER: ""
+      CDF_DATABASE_URL: postgresql://postgres:ci-only-local-password@127.0.0.1:5432/cdf
+      CDF_JOB_RUNNER: inline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-execution.txt -r requirements-security.txt "psycopg[binary]==3.2.10"
+      - run: python -m pytest tests qa_public -q -p no:cacheprovider -rs
+
+  hosted-function-smoke:
+    # Installs only what Vercel installs (requirements.txt) and starts the function entry in hosted mode.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-local-password
+          POSTGRES_DB: cdf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Start api/index.py and api/mcp.py in hosted mode
+        env:
+          CDF_DATABASE_URL: postgresql://postgres:ci-only-local-password@127.0.0.1:5432/cdf
+          CDF_SUPABASE_URL: https://example-project.supabase.co
+          CDF_HOSTED_REVIEWERS: '[{"email":"ci@example.invalid","principal_id":"SYN-HOSTED-CI","roles":["CALIBRATION_REVIEWER"]}]'
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from starlette.testclient import TestClient
+          def load(name, path):
+              spec = importlib.util.spec_from_file_location(name, path); m = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(m); return m
+          api = TestClient(load("entry", "api/index.py").app)
+          assert api.get("/api/health").json()["status"] == "HOSTED_SYNTHETIC_DEMO"
+          assert api.get("/api/cases").status_code == 401
+          mcp = TestClient(load("mcp_entry", "api/mcp.py").app, base_url="https://ci.example.invalid")
+          assert mcp.get("/.well-known/oauth-protected-resource/mcp").status_code == 200
+          assert mcp.post("/mcp", content="{}").status_code == 401
+          print("HOSTED_FUNCTION_SMOKE: PASS")
+          PY
+
+  hosted-web-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+      - working-directory: apps/web
+        env:
+          VITE_SUPABASE_URL: https://example-project.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: npm run build && npm run test

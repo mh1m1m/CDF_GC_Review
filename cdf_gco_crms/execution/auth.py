@@ -44,7 +44,7 @@ class DevelopmentSessions:
         digest = hashlib.sha256(token.encode()).hexdigest()
         with self.store.transaction():
             self.store.db.execute(
-                "INSERT OR IGNORE INTO app_sessions VALUES (?,?,?,?,?,0)",
+                "INSERT INTO app_sessions VALUES (?,?,?,?,?,0) ON CONFLICT DO NOTHING",
                 (
                     digest,
                     principal_id,

@@ -1,7 +1,11 @@
-"""Local MAT calibration API: synthetic development mode ONLY.
+"""MAT calibration API: synthetic data only, in one of two modes.
 
-Never expose this service beyond localhost. Its ephemeral bearer token is
-for developer exercise only, not organizational SSO or production authorization.
+* SYNTHETIC_LOCAL_DEV (default): loopback only, ephemeral developer bearer token.
+* HOSTED_SYNTHETIC_DEMO: served from a host (Vercel); sign-in through Supabase Auth, limited to the reviewers
+  listed in CDF_HOSTED_REVIEWERS (cdf_gco_crms.interfaces.hosted_auth); data in Postgres (CDF_DATABASE_URL).
+  The public-synthetic guards still apply: only SYN- cases, no institutional activation, no issuance.
+
+Neither mode is organizational SSO or production authorization.
 """
 from __future__ import annotations
 import hmac
@@ -19,10 +23,18 @@ from cdf_gco_crms.calibration.service import CalibrationService
 from cdf_gco_crms.calibration.analytics import analyze
 from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, CalibrationError, AccessDenied, StaleCase, StaleDecision
 
-if os.getenv("CDF_CALIBRATION_MODE") != "SYNTHETIC_LOCAL_DEV":
+MODE = os.getenv("CDF_CALIBRATION_MODE", "")
+if MODE not in ("SYNTHETIC_LOCAL_DEV", "HOSTED_SYNTHETIC_DEMO"):
     raise RuntimeError("CALIBRATION_API_NOT_AUTHORIZED: set CDF_CALIBRATION_MODE=SYNTHETIC_LOCAL_DEV for local synthetic data only")
+HOSTED = MODE == "HOSTED_SYNTHETIC_DEMO"
 TOKEN = os.getenv("CDF_CALIBRATION_DEV_TOKEN", "")
-if len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
+if HOSTED:
+    from cdf_gco_crms.interfaces import hosted_auth
+    if not os.getenv("CDF_DATABASE_URL") or not os.getenv("CDF_SUPABASE_URL"):
+        raise RuntimeError("HOSTED_MODE_REQUIRES_CDF_DATABASE_URL_AND_CDF_SUPABASE_URL")
+    VERIFIER = hosted_auth.SupabaseVerifier(os.environ["CDF_SUPABASE_URL"], hosted_auth.load_reviewers())
+    TOKEN = None          # no developer bearer is ever accepted by a hosted deployment
+elif len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
     raise RuntimeError("Set a random CDF_CALIBRATION_DEV_TOKEN of at least 32 characters")
 DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/public-demo/mat-calibration-dev.sqlite")).resolve()
 from cdf_gco_crms.institutional.contracts import activation_status
@@ -32,7 +44,10 @@ store = CalibrationStore(DB_PATH)
 bind_public_database(store)
 from cdf_gco_crms.execution.service import ApplicationService, Conflict
 from cdf_gco_crms.execution.contracts import Request as OperationRequest
-application = ApplicationService(store=store, token=TOKEN)
+application = ApplicationService(store=store, token=TOKEN if TOKEN else "")
+if HOSTED:
+    from cdf_gco_crms.interfaces.hosted_seed import seed_and_grant
+    seed_and_grant(DB_PATH, VERIFIER.reviewers)
 service = application.calibration
 intelligence = application.intelligence
 _DB_LOCK = application.lock
@@ -42,16 +57,25 @@ app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0
 
 @app.middleware("http")
 async def localhost_only(request: Request, call_next):
-    # Do NOT trust forwarded-for headers; reject non-loopback socket clients.
-    if not request.client or request.client.host not in ("127.0.0.1", "::1", "testclient"):
+    # Local mode: do NOT trust forwarded-for headers; reject non-loopback socket clients.
+    # Hosted mode: every data route needs a verified Supabase session instead (see principal()).
+    if not HOSTED and (not request.client or request.client.host not in ("127.0.0.1", "::1", "testclient")):
         return JSONResponse({"detail": "LOOPBACK_ONLY"}, status_code=403)
-    return await call_next(request)
+    response = await call_next(request)
+    if HOSTED:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def principal(authorization):
     if not authorization or not authorization.startswith('Bearer '):
-        raise HTTPException(401,'DEV_TOKEN_REQUIRED')
-    try:return application.authenticate(authorization[7:])
+        raise HTTPException(401,'SIGN_IN_REQUIRED' if HOSTED else 'DEV_TOKEN_REQUIRED')
+    try:
+        if HOSTED:
+            with _DB_LOCK:
+                return hosted_auth.authenticate(application, VERIFIER, authorization[7:])
+        return application.authenticate(authorization[7:])
     except AccessDenied as exc:raise HTTPException(403,str(exc)) from exc
 
 
@@ -116,6 +140,9 @@ def operating_mode():
 
 @app.get("/api/health")
 def health():
+    if HOSTED:
+        return {"status": "HOSTED_SYNTHETIC_DEMO", "institutional_auth": "NOT_CONFIGURED",
+                "sign_in": "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_ONLY"}
     return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED"}
 
 

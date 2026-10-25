@@ -1714,3 +1714,9 @@ th {
     flex: 0 0 44px;
   }
 }
+
+/* Hosted demo sign-in (Supabase Auth) */
+.hosted-signin { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.hosted-signin label { display: grid; gap: 6px; font-weight: 600; }
+.hosted-signin input { min-width: 220px; }
+.hosted-signin p { flex-basis: 100%; margin: 0; }

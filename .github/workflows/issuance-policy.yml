@@ -11,6 +11,7 @@ on:
   pull_request:
     branches:
       - "claude/project-thread-gi42zn"
+      - "fix/v712-audit-p0"
       - "codex/real-mcp-connectivity"
       - "codex/phase-ii-copilot"
       - "codex/unified-execution"

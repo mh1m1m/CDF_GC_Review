@@ -20,6 +20,7 @@ from ..agents.security import sanitize
 from ..calibration.analytics import analyze
 from ..calibration.service import CalibrationService
 from ..calibration.store import CalibrationError, AccessDenied, canonical, fingerprint
+from ..storage import table_exists
 from ..release.authorization_gate import authorize, PURPOSE_INSTITUTIONAL
 
 RENDER_SPEC=json.loads((Path(__file__).resolve().parents[2]/'shared/rendering-specification.json').read_text())
@@ -225,7 +226,7 @@ class IntelligenceService:
             heatmap.append({'category': category, 'pending': sum(i not in latest for i in ids),
                             'submitted': sum(i in latest for i in ids), 'lineage': ids})
         human_reviews={}
-        if self.store.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cp_human'").fetchone():
+        if table_exists(self.store.db, 'cp_human'):
             for record in self.store.db.execute('SELECT * FROM cp_human WHERE case_id=? ORDER BY at,event_hash',(case_id,)):
                 human_reviews[record['observation_id']]={**json.loads(record['payload_json']),'version':record['event_hash'],'actor':record['actor'],'at':record['at']}
         live = sum(i['source'] == PV.SOURCE_PROVIDER_API and i['status'] == 'OK' for i in invocations)

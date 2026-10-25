@@ -1,0 +1,9 @@
+# Never uploaded to Vercel (also git-ignored, listed here as a second barrier)
+private/
+sources/
+deliverables/
+EVIDENCE/
+build/
+dist/
+.env*
+**/node_modules
