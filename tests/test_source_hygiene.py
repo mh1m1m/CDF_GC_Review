@@ -1,6 +1,5 @@
 """Source hygiene and hardened package-part parsing."""
 import re
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -11,13 +10,23 @@ ROOT = Path(__file__).resolve().parents[1]
 _BIDI_CONTROLS = re.compile("[\u202a-\u202e\u2066-\u2069]")
 
 
-def test_tracked_source_has_no_literal_bidi_controls():
-    files = subprocess.run(["git", "ls-files", "*.py", "*.ts", "*.tsx", "*.js"], cwd=ROOT,
-                           capture_output=True, text=True, check=True).stdout.split()
+_SKIP_DIRS = {".git", "node_modules", "dist", "build", "__pycache__", ".venv", "venv", "test-results"}
+_SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js"}
+
+
+def _source_files():
+    # Walk the tree rather than ask git: CI also runs this suite on a `git archive` export.
+    for path in ROOT.rglob("*"):
+        if path.suffix in _SOURCE_SUFFIXES and path.is_file() and not _SKIP_DIRS.intersection(path.relative_to(ROOT).parts):
+            yield path
+
+
+def test_source_has_no_literal_bidi_controls():
     offenders = []
-    for name in files:
+    for path in _source_files():
+        name = path.relative_to(ROOT).as_posix()
         try:
-            text = (ROOT / name).read_text(encoding="utf-8")
+            text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
         offenders += [f"{name}:{n}" for n, line in enumerate(text.splitlines(), 1) if _BIDI_CONTROLS.search(line)]
