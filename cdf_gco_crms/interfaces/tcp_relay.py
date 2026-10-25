@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import logging
 import signal
 
@@ -28,10 +29,9 @@ async def _pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, idle
     except (asyncio.TimeoutError, ConnectionError):
         pass
     finally:
-        try:
+        # closing a broken socket must not crash the relay
+        with contextlib.suppress(Exception):
             writer.close()
-        except Exception:  # noqa: BLE001 - closing a broken socket must not crash the relay
-            pass
 
 
 class Relay:
