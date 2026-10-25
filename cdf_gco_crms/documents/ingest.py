@@ -150,6 +150,79 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", _INVISIBLE.sub("", text)).strip()
 
 
+def _glyph_lines(chars: list[dict]) -> list[list[dict]]:
+    """Group glyphs into lines by vertical overlap: Arabic and Latin fonts sit on different boxes in one line."""
+    lines: list[dict] = []
+    for char in sorted(chars, key=lambda c: (c["top"], c["x0"])):
+        middle = (char["top"] + char["bottom"]) / 2
+        for line in reversed(lines[-4:]):
+            if line["top"] - 0.5 <= middle <= line["bottom"] + 0.5:
+                line["chars"].append(char)
+                line["top"], line["bottom"] = min(line["top"], char["top"]), max(line["bottom"], char["bottom"])
+                break
+        else:
+            lines.append({"top": char["top"], "bottom": char["bottom"], "chars": [char]})
+    return [line["chars"] for line in sorted(lines, key=lambda l: l["top"])]
+
+
+_ALEF_FORMS = "اأإآ"
+
+
+def _lam_alef(text: str) -> str:
+    """The lam-alef ligature is always lam then alef in reading order, whatever order its two characters came in."""
+    if len(text) == 2 and "ل" in text and any(a in text for a in _ALEF_FORMS):
+        return "ل" + text.replace("ل", "", 1)
+    return text
+
+
+def _visual_units(chars: list[dict]) -> list[str]:
+    """Glyph texts left to right; a wide gap without a space glyph becomes a space; zero-width stray marks go."""
+    # A ligature glyph may come out as several characters at one position (``ل`` + zero-width ``ا``): they form one
+    # unit, in content-stream (logical) order.
+    indexed = sorted(enumerate(chars), key=lambda item: (round(item[1]["x0"], 1), item[0]))
+    ordered: list[dict] = []
+    for _, char in indexed:
+        if ordered and abs(char["x0"] - ordered[-1]["x0"]) < 0.05 and not char["text"].isspace() \
+                and not ordered[-1]["text"].isspace():
+            ordered[-1] = {**ordered[-1], "text": _lam_alef(ordered[-1]["text"] + char["text"]),
+                           "x1": max(ordered[-1]["x1"], char["x1"])}
+        else:
+            ordered.append(char)
+    units: list[str] = []
+    previous = None
+    for i, char in enumerate(ordered):
+        text = char["text"]
+        if not text:
+            continue
+        neighbours = "".join(c["text"] for c in ordered[max(0, i - 1):i + 2])
+        if (not _ARABIC.search(text) and not text.isspace() and (char["x1"] - char["x0"]) < 1.6
+                and _ARABIC.search(neighbours)):
+            continue                                   # a diacritic the font maps to a stray glyph
+        if previous is not None and not text.isspace() and units and not units[-1].isspace():
+            size = float(char.get("size") or 10)
+            if char["x0"] - previous["x1"] > max(2.0, size * 0.33):
+                units.append(" ")
+        units.append(text)
+        previous = char
+    return units
+
+
+def _line_from_glyphs(chars: list[dict], rtl: bool) -> str:
+    units = _visual_units(chars)
+    if rtl:
+        return _clean(visual_to_logical(units))
+    words, current = [], []
+    for unit in units + [" "]:
+        if unit.isspace():
+            if current:
+                text = "".join(current)
+                words.append(visual_to_logical(current) if _ARABIC.search(text) else text)
+                current = []
+        else:
+            current.append(unit)
+    return _clean(" ".join(words))
+
+
 def _pdf(path: Path) -> SourceText:
     import pdfplumber
 
@@ -158,18 +231,12 @@ def _pdf(path: Path) -> SourceText:
         out.pages = len(pdf.pages)
         for pno, page in enumerate(pdf.pages, 1):
             out.page_sizes[pno] = (float(page.width), float(page.height))
-            words = page.extract_words(keep_blank_chars=False, use_text_flow=False, x_tolerance=1.5, y_tolerance=3,
-                                       return_chars=True)
-            if not words:
+            chars = [c for c in page.chars if c.get("upright", True)]
+            if not any(c["text"].strip() for c in chars):
                 out.warnings.append(f"PAGE_{pno}_HAS_NO_TEXT_LAYER")
                 continue
-            lines: list[list[dict]] = []
-            for word in sorted(words, key=lambda w: (round(w["top"]), w["x0"])):
-                if lines and abs(word["top"] - lines[-1][0]["top"]) <= 3:
-                    lines[-1].append(word)
-                else:
-                    lines.append([word])
-            heights = sorted(l[0]["bottom"] - l[0]["top"] for l in lines)
+            lines = [l for l in _glyph_lines(chars) if any(c["text"].strip() for c in l)]
+            heights = sorted(max(c["bottom"] for c in l) - min(c["top"] for c in l) for l in lines)
             typical = heights[len(heights) // 2] if heights else 10.0
             paragraph: list[list[dict]] = []
             para_no = 0
@@ -178,12 +245,15 @@ def _pdf(path: Path) -> SourceText:
                 nonlocal paragraph, para_no
                 if not paragraph:
                     return
-                rtl = _rtl([w for l in paragraph for w in l])        # a paragraph has one base direction
-                text = " ".join(_line_text(l, rtl) for l in paragraph).strip()
+                letters = "".join(c["text"] for l in paragraph for c in l)
+                arabic = len(_ARABIC.findall(letters))
+                latin = len(re.findall("[A-Za-z]", letters))
+                rtl = arabic >= latin                      # a paragraph has one base direction
+                text = " ".join(_line_from_glyphs(l, rtl) for l in paragraph).strip()
                 if text:
                     para_no += 1
-                    boxes = [(min(w["x0"] for w in l), min(w["top"] for w in l), max(w["x1"] for w in l),
-                              max(w["bottom"] for w in l)) for l in paragraph]
+                    boxes = [(min(c["x0"] for c in l), min(c["top"] for c in l), max(c["x1"] for c in l),
+                              max(c["bottom"] for c in l)) for l in paragraph]
                     box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes),
                            max(b[3] for b in boxes))
                     out.blocks.append(Block(len(out.blocks) + 1, text, f"صفحة {pno}، فقرة {para_no}", page=pno,
@@ -192,11 +262,11 @@ def _pdf(path: Path) -> SourceText:
 
             previous_bottom = None
             for line in lines:
-                top = min(w["top"] for w in line)
-                if previous_bottom is not None and top - previous_bottom > typical * 0.9:
+                top = min(c["top"] for c in line)
+                if previous_bottom is not None and top - previous_bottom > typical * 0.6:
                     close()
                 paragraph.append(line)
-                previous_bottom = max(w["bottom"] for w in line)
+                previous_bottom = max(c["bottom"] for c in line)
             close()
             if len(out.blocks) >= MAX_BLOCKS:
                 out.warnings.append("TOO_MANY_BLOCKS_TRUNCATED")

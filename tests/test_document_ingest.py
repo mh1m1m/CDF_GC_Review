@@ -97,3 +97,35 @@ def test_loose_matching_key(tmp_path):
     found = find_block(source, "يوماً من توقيع الاتفاق")              # tanween in the quote, possibly absent in the PDF
     assert found is not None and "توقيع الاتفاق" in found.text
     assert find_block(source, "") is None
+
+
+def _glyph(text, x0, x1, top=100.0, bottom=111.0, size=11.0):
+    return {"text": text, "x0": x0, "x1": x1, "top": top, "bottom": bottom, "size": size, "upright": True}
+
+
+def test_glyph_lines_from_real_world_layouts():
+    """Layouts seen across LibreOffice/font versions, rebuilt without any font: Naskh splits the lam-alef ligature
+    into two characters at one position (in either order), Latin and digit glyphs sit on a different box than the
+    Arabic ones, and a line may carry no space glyph between words."""
+    from cdf_gco_crms.documents.ingest import _glyph_lines, _line_from_glyphs
+
+    # visual (left-to-right) glyphs of the RTL line "خلال 2024 KYC" with Latin on a shifted baseline
+    chars = [
+        _glyph("K", 10, 15, 103, 112), _glyph("Y", 15, 20, 103, 112), _glyph("C", 20, 25, 103, 112),
+        _glyph(" ", 25, 28),
+        _glyph("2", 28, 33, 102, 113), _glyph("0", 33, 38, 102, 113), _glyph("2", 38, 43, 102, 113),
+        _glyph("4", 43, 48, 102, 113),
+        _glyph(" ", 48, 51),
+        _glyph("ل", 51, 56),                                                  # final lam (leftmost)
+        _glyph("ل", 56, 62), _glyph("ا", 56, 56),                             # lam-alef: lam + zero-width alef
+        _glyph("خ", 62, 70),
+    ]
+    lines = _glyph_lines(chars)
+    assert len(lines) == 1
+    assert _line_from_glyphs(lines[0], rtl=True) == "خلال 2024 KYC"
+    # the same ligature with its two characters in the other order
+    chars[10], chars[11] = _glyph("ا", 56, 56), _glyph("ل", 56, 62)
+    assert _line_from_glyphs(_glyph_lines(chars)[0], rtl=True) == "خلال 2024 KYC"
+    # no space glyph between two words: a wide gap still separates them
+    words = [_glyph("ب", 10, 16), _glyph("ا", 16, 19), _glyph("ب", 30, 36), _glyph("ل", 36, 40)]
+    assert _line_from_glyphs(_glyph_lines(words)[0], rtl=True) == "لب اب"
