@@ -33,6 +33,7 @@ type ActionResult = {
   output: Doc | null;
 };
 
+const institutional = import.meta.env.VITE_SITE_IDENTITY === "CDF";
 const ACTION_NAMES: Record<string, string> = {
   qa: "فحوص الجودة",
   word_report: "تقرير Word",
@@ -198,11 +199,12 @@ export default function DocumentsPanel({ token }: { token: string }) {
 
   return (
     <section className="glass documents" aria-labelledby="documents-title">
-      <div className="eyebrow">DOCUMENTS · PUBLIC UPLOADS</div>
+      <div className="eyebrow">{institutional ? "DOCUMENTS" : "DOCUMENTS · PUBLIC UPLOADS"}</div>
       <h2 id="documents-title">المستندات</h2>
       <p className="documents-note">
-        كل ملف يُرفع هنا يُعامل كمادة عامة. تعمل الأدوات داخل المحرك نفسه، ولا يُرسل أي ملف إلى نموذج ذكاء اصطناعي. كل ناتج نسخة
-        عمل (INTERNAL_DRAFT) غير مصرح بإصدارها.
+        {institutional ? "" : "كل ملف يُرفع هنا يُعامل كمادة عامة. "}
+        تعمل الأدوات داخل المحرك نفسه، ولا يُرسل أي ملف إلى نموذج ذكاء اصطناعي. كل ناتج نسخة عمل (INTERNAL_DRAFT) إلى أن
+        يُعتمد إصداره بقرار بشري.
       </p>
       {!token ? (
         <p>سجّل الدخول لرفع المستندات.</p>

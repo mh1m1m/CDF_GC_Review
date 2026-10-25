@@ -91,6 +91,9 @@ const categoryNames: Record<string, string> = {
   AUDIT_RIGHTS: "حقوق المراجعة",
   DATA_PROTECTION: "حماية البيانات",
 };
+// The institution's identity is shown only when the deployment owner sets VITE_SITE_IDENTITY=CDF at build time.
+// Every other build (local development, CI, forks) keeps the neutral demo mark (audit C5).
+const institutional = import.meta.env.VITE_SITE_IDENTITY === "CDF";
 const fmt = (n: number) => new Intl.NumberFormat("ar-SA").format(n);
 function App() {
   const [token, setToken] = useState(""),
@@ -345,22 +348,27 @@ function App() {
       </aside>
       <div className="app-body">
         <header className="masthead">
-          {/* Public mode never shows an institution's identity on synthetic data (audit C5). */}
-          <img src="/demo-mark-on-dark.svg" alt="عرض تجريبي — بيانات افتراضية" />
+          {institutional ? (
+            <img className="masthead-logo" src="/cdf-logo-on-dark.png" alt="الصندوق الثقافي — Cultural Development Fund" />
+          ) : (
+            <img src="/demo-mark-on-dark.svg" alt="عرض تجريبي — بيانات افتراضية" />
+          )}
           <div className="masthead-center">
             <span>GOVERNANCE INTELLIGENCE</span>
             <small>منظومة المراجعة والامتثال</small>
           </div>
-          <span className="environment-pill">
-            <span />
-            {hosted
-              ? uploadsPublic
-                ? "HOSTED DEMO · UPLOADS ARE TREATED AS PUBLIC"
-                : "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS"
-              : uploadsPublic
-                ? "LOCAL DEVELOPMENT · UPLOADS ARE TREATED AS PUBLIC"
-                : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
-          </span>
+          {!institutional && (
+            <span className="environment-pill">
+              <span />
+              {hosted
+                ? uploadsPublic
+                  ? "HOSTED DEMO · UPLOADS ARE TREATED AS PUBLIC"
+                  : "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS"
+                : uploadsPublic
+                  ? "LOCAL DEVELOPMENT · UPLOADS ARE TREATED AS PUBLIC"
+                  : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
+            </span>
+          )}
         </header>
         <main id="main-content" dir="rtl" tabIndex={-1}>
           <div className="workspace-heading">
@@ -372,7 +380,7 @@ function App() {
             </div>
             <div className="heading-state">
               <LockKeyhole size={16} />
-              <span>مساحة تجريبية · غير مصرح بالإصدار</span>
+              <span>{institutional ? "نسخ عمل · الإصدار بقرار بشري معتمد" : "مساحة تجريبية · غير مصرح بالإصدار"}</span>
             </div>
           </div>
           <section

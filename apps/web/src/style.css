@@ -1751,3 +1751,9 @@ th {
   .documents { padding: 20px 16px; }
   .document-pair select { max-width: 100%; }
 }
+
+/* Institutional masthead (VITE_SITE_IDENTITY=CDF) */
+.masthead img.masthead-logo { width: 300px; max-width: 46%; }
+@media (max-width: 640px) {
+  .masthead img.masthead-logo { width: 230px; max-width: 70%; }
+}

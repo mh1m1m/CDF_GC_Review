@@ -35,6 +35,7 @@ How the pieces behave:
 | `CDF_HOSTED_REVIEWERS` | sensitive | JSON list of `{"email", "principal_id": "SYN-HOSTED-…", "roles": [...]}` |
 | `ANTHROPIC_API_KEY` | sensitive, optional | Live provider inference. Absent means jobs run with mock or deterministic executors, and are labelled so |
 | `CDF_DOCUMENT_UPLOADS` | plain, optional | `PUBLIC` turns on document uploads (below). Any other value, or none, keeps them off |
+| `VITE_SITE_IDENTITY` | plain, optional, build time | `CDF` shows the institution's logo in the masthead and removes the demo labels. Any other build keeps the neutral demo mark |
 
 Never commit any of these values.
 
