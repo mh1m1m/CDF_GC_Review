@@ -17,3 +17,11 @@ def test_authority_and_false_withdrawal_preservation():
     assert "DELEGATED_AUTHORITY" in material_review_flags("التحقق من المفوضين بالتوقيع")
     assert requires_heightened_review({"observed_change":"REMOVED_FROM_VERSION","material_categories":[]})
     assert not requires_heightened_review({"observed_change":"KEEP_UNCHANGED","material_categories":[]})
+
+
+def test_flags_match_arabic_spelling_variants_and_inflections():
+    """«المزوّرة» is a forgery marker, «مسؤولاً» a liability marker, «حسن النية» a control-failure marker."""
+    flags = material_review_flags("الاعتماد على حسن النية ينقل مخاطر الخطابات المزوّرة، ويكون الطرف مسؤولاً عن الخسارة")
+    assert {"CONTROL_FAILURE", "CONTRACTUAL_LIABILITY"} <= set(flags)
+    assert "FINANCIAL_EXPOSURE" in material_review_flags("يتحمّل الصندوق فرق السعر وحده")
+    assert material_review_flags("عنوان المادة جاء في آخر الفقرة") == []

@@ -6,6 +6,17 @@ comment. Flags can only increase scrutiny of a withdrawal proposal.
 from __future__ import annotations
 
 import re
+import unicodedata
+
+_DIACRITICS = re.compile("[\u064b-\u0652\u0670\u0640]")
+
+
+def _fold(text: str) -> str:
+    """Diacritic-, hamza-, ta-marbuta- and case-insensitive form: «المزوّرة» meets «مزور», «مسؤولاً» meets «مسؤول»."""
+    t = _DIACRITICS.sub("", unicodedata.normalize("NFKC", text or ""))
+    t = t.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").replace("ؤ", "و").replace("ئ", "ي").replace("ة", "ه").replace("ى", "ي")
+    return re.sub(r"\s+", " ", t).casefold()
+
 
 TRIGGERS: dict[str, tuple[str, ...]] = {
     "AML": ("غسل الأموال", "غسل الاموال", "تمويل الإرهاب", "تمويل الارهاب",
@@ -18,20 +29,20 @@ TRIGGERS: dict[str, tuple[str, ...]] = {
                             "المخولين", "التفويض", "delegated authority", "signatory"),
     "SEGREGATION_OF_DUTIES": ("فصل المهام", "فصل الصلاحيات", "segregation of duties",
                               "maker checker", "maker-checker"),
-    "FINANCIAL_EXPOSURE": ("تعرض مالي", "خسارة مالية", "الرسوم", "سقف مالي",
+    "FINANCIAL_EXPOSURE": ("تعرض مالي", "خسارة مالية", "الرسوم", "سقف مالي", "فرق السعر", "فروق اسعار",
                            "financial exposure", "liquidity risk"),
     "AUDIT_RIGHTS": ("حق الاطلاع", "مراجعيه", "المراجعين", "التدقيق",
                       "audit rights", "audit access", "books and records"),
-    "CONTROL_FAILURE": ("فشل الضوابط", "ضعف الرقابة", "التحقق من صحة",
-                         "تزوير", "fraudulent instruction", "control failure"),
-    "CONTRACTUAL_LIABILITY": ("مسؤولية", "التعويض", "أضرار", "غرامة",
-                              "liability", "indemnification"),
+    "CONTROL_FAILURE": ("فشل الضوابط", "ضعف الرقابة", "التحقق من صحة", "تزوير", "مزور", "حسن النية",
+                         "fraudulent instruction", "control failure"),
+    "CONTRACTUAL_LIABILITY": ("مسؤولية", "مسؤول", "التعويض", "أضرار", "غرامة", "يسأل عنه", "إعفاء",
+                              "إخلالا جوهريا", "إخلال جوهري", "liability", "indemnification"),
 }
 
 
 def material_review_flags(text: str | None, anchor: str | None = None, *, absent: bool = False) -> list[str]:
-    haystack = f"{text or ''} {anchor or ''}".casefold()
-    flags = {category for category, phrases in TRIGGERS.items() if any(p.casefold() in haystack for p in phrases)}
+    haystack = _fold(f"{text or ''} {anchor or ''}")
+    flags = {category for category, phrases in TRIGGERS.items() if any(_fold(p) in haystack for p in phrases)}
     # Fail-safe for an absent observation whose subject cannot be classified:
     # do not call it immaterial merely because the keyword dictionary missed it.
     if absent and not flags:
