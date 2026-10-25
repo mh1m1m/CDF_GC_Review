@@ -18,8 +18,12 @@ def bind_public_database(store):
         raise InstitutionalAccessDenied('DATABASE_MODE_MISMATCH')
     from ..documents.policy import uploads_public
     # Uploaded-document cases (UPL-) are allowed only while the owner keeps uploads switched on.
-    extra = " AND case_id NOT LIKE 'UPL-%'" if uploads_public() else ""
-    if store.db.execute("SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%'" + extra + " LIMIT 1").fetchone():
+    if uploads_public():
+        foreign = store.db.execute(
+            "SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%' AND case_id NOT LIKE 'UPL-%' LIMIT 1").fetchone()
+    else:
+        foreign = store.db.execute("SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%' LIMIT 1").fetchone()
+    if foreign:
         raise InstitutionalAccessDenied('INSTITUTIONAL_CASES_IN_PUBLIC_DATABASE')
     store.db.execute('INSERT INTO runtime_mode VALUES (?) ON CONFLICT DO NOTHING',(OperatingMode.PUBLIC_SYNTHETIC_DEMO.value,))
     store.db.commit()
