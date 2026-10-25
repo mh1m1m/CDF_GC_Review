@@ -111,9 +111,9 @@ def test_key_under_an_owner_chosen_name(monkeypatch):
     monkeypatch.setenv("CDF_ANTHROPIC_KEY_VAR", "bad name; rm")
     assert not anthropic_credential_configured()
     # the owner's own name works
-    monkeypatch.setenv("Owner_Key", "sk-ant-api03-test-not-a-real-key")
+    monkeypatch.setenv("Owner_Key", "sk-ant-test")
     monkeypatch.setenv("CDF_ANTHROPIC_KEY_VAR", "Owner_Key")
     monkeypatch.setenv("CDF_ENABLE_PROVIDER_API", "1")
     assert anthropic_credential_configured()
-    assert __import__("os").environ["ANTHROPIC_API_KEY"] == "sk-ant-api03-test-not-a-real-key"
+    assert __import__("os").environ["ANTHROPIC_API_KEY"] == "sk-ant-test"
     assert select_executor("anthropic", timeout=5).config.provider == "anthropic"
