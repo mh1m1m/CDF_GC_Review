@@ -51,6 +51,9 @@ if HOSTED:
 service = application.calibration
 intelligence = application.intelligence
 _DB_LOCK = application.lock
+from cdf_gco_crms.interfaces import hosted_documents
+# Uploaded Word/Excel files: only when the owner has declared uploads public (CDF_DOCUMENT_UPLOADS=PUBLIC).
+DOCUMENTS = hosted_documents.DocumentLibrary(store) if hosted_documents.uploads_enabled() else None
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -140,10 +143,12 @@ def operating_mode():
 
 @app.get("/api/health")
 def health():
+    uploads = "PUBLIC" if DOCUMENTS is not None else "OFF"
     if HOSTED:
         return {"status": "HOSTED_SYNTHETIC_DEMO", "institutional_auth": "NOT_CONFIGURED",
-                "sign_in": "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_ONLY"}
-    return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED"}
+                "sign_in": "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_CASES_ONLY",
+                "document_uploads": uploads}
+    return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED", "document_uploads": uploads}
 
 
 @app.get("/api/cases")
@@ -289,6 +294,81 @@ def artifact_bytes(artifact_id: str,authorization: str | None=Header(default=Non
     return Response(row['content'],media_type=descriptor['media_type'],headers={
         'Content-Disposition':'attachment; filename="'+descriptor['filename']+'"','X-CDF-Artifact-ID':artifact_id,
         'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
+
+
+def _documents(authorization):
+    if DOCUMENTS is None:
+        raise HTTPException(404, "DOCUMENT_UPLOADS_DISABLED")
+    reviewer = identity(authorization)
+    try:
+        reviewer.require("CALIBRATION_REVIEWER")
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    return reviewer.reviewer_id
+
+
+@app.get("/api/documents")
+def documents_list(authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return call(DOCUMENTS.list, owner)
+
+
+@app.post("/api/documents", status_code=201)
+async def documents_upload(request: Request, filename: str = Query(..., min_length=1, max_length=255),
+                           authorization: str | None = Header(default=None)):
+    from starlette.concurrency import run_in_threadpool
+
+    owner = await run_in_threadpool(_documents, authorization)
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > hosted_documents.MAX_BYTES:
+        raise HTTPException(413, "FILE_TOO_LARGE_MAX_4_MB")
+    body = bytearray()
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > hosted_documents.MAX_BYTES:
+            raise HTTPException(413, "FILE_TOO_LARGE_MAX_4_MB")
+    return await run_in_threadpool(call, DOCUMENTS.upload, owner, filename, bytes(body))
+
+
+@app.get("/api/documents/{document_id}")
+def documents_get(document_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return call(DOCUMENTS.get, owner, document_id)
+
+
+@app.get("/api/documents/{document_id}/content")
+def documents_content(document_id: str, authorization: str | None = Header(default=None)):
+    from urllib.parse import quote
+    from fastapi.responses import Response
+
+    owner = _documents(authorization)
+    meta, content = call(DOCUMENTS.content, owner, document_id)
+    ascii_name = "document." + meta["kind"]
+    return Response(content, media_type=hosted_documents.MEDIA[meta["kind"]], headers={
+        "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(meta['filename'])}",
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
+
+
+@app.delete("/api/documents/{document_id}", status_code=204)
+def documents_delete(document_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    call(DOCUMENTS.delete, owner, document_id)
+
+
+@app.post("/api/documents/{document_id}/actions/{action}")
+def documents_action(document_id: str, action: str, other: str | None = Query(default=None, max_length=40),
+                     authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    first, second = call(DOCUMENTS.prepare, owner, document_id, action, other)
+    try:
+        result, output = hosted_documents.run_action(action, first, second)   # engine work runs outside the lock
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("document action %s failed", action)
+        raise HTTPException(422, "DOCUMENT_ACTION_FAILED: " + type(exc).__name__) from exc
+    return call(DOCUMENTS.record, owner, document_id, action, result, output)
 
 
 # Phase II shares the same authenticated application, case grants and database.

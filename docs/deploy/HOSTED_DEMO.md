@@ -1,6 +1,7 @@
 # Hosted synthetic demo: Vercel + Supabase
 
-Status: **HOSTED_SYNTHETIC_DEMO**. It runs on fictional `SYN-` cases only. It has no institutional activation and no
+Status: **HOSTED_SYNTHETIC_DEMO**. Its calibration cases are fictional `SYN-` cases only; uploaded documents, when
+the owner turns them on, are treated as public (see "Document uploads"). It has no institutional activation and no
 issuance, and it is not institutional SSO. Every guard of the public synthetic mode still applies; for example, the
 database refuses any case whose ID does not start with `SYN-`.
 
@@ -33,6 +34,7 @@ How the pieces behave:
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | plain | Frontend sign-in, read at build time |
 | `CDF_HOSTED_REVIEWERS` | sensitive | JSON list of `{"email", "principal_id": "SYN-HOSTED-…", "roles": [...]}` |
 | `ANTHROPIC_API_KEY` | sensitive, optional | Live provider inference. Absent means jobs run with mock or deterministic executors, and are labelled so |
+| `CDF_DOCUMENT_UPLOADS` | plain, optional | `PUBLIC` turns on document uploads (below). Any other value, or none, keeps them off |
 
 Never commit any of these values.
 
@@ -56,6 +58,35 @@ Never commit any of these values.
    alter role cdf_app with password '<new>';
    ```
    Then update `CDF_DATABASE_URL` in Vercel.
+
+## Document uploads (`CDF_DOCUMENT_UPLOADS=PUBLIC`)
+
+Setting this variable records the owner's decision that every file uploaded to this deployment is public
+material. The site then labels itself "UPLOADS ARE TREATED AS PUBLIC" and shows a Documents section to signed-in
+reviewers. The calibration cases keep their `SYN-` guards; uploaded files never become cases.
+
+| Step | What happens |
+|---|---|
+| Upload | `.docx` or `.xlsx`, at most 4 MB. The engine's package inspection refuses macros, external links, oversized or unexpected parts, and any XML that declares a DTD |
+| Storage | Table `uploaded_documents` in the same schema, with the SHA-256 of each file; every create, run and delete is logged in `uploaded_document_log` |
+| Access | Only the reviewer who uploaded a file can list, download, run tools on or delete it |
+| Tools | The deterministic engine only; no file is sent to a model provider |
+
+Tools:
+
+| Tool | Input | Output |
+|---|---|---|
+| Quality checks | Review workbook | The dashboard and UX gates. Checks that need an earlier round or a returned file stay FAIL or NOT_VERIFIED |
+| Word report | Review workbook | Review report `.docx`, checked against the workbook |
+| Rebuild Excel | Review workbook | Rebuilt workbook |
+| Insert review comments | Word document + review workbook | The document with each observation anchored as a comment (round 1) or a reply (later rounds) |
+| Compare returned copy | Delivered `.docx` + returned `.docx` | Tracked changes, silent edits, review comments removed or altered, comments the owner added |
+
+Every generated file is a working copy named `INTERNAL_DRAFT__…`; nothing is issued from the site.
+
+API (signed-in reviewer): `GET /api/documents`, `POST /api/documents?filename=…` (raw file bytes),
+`GET /api/documents/{id}`, `GET /api/documents/{id}/content`, `DELETE /api/documents/{id}`,
+`POST /api/documents/{id}/actions/{qa|word_report|excel_rebuild|comment|compare}?other={id}`.
 
 ## CI/CD
 

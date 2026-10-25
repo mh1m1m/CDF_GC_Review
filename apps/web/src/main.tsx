@@ -34,6 +34,7 @@ const ExecutionWorkspace = lazy(
 const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
 const GovernanceCopilot = lazy(() => import("./components/GovernanceCopilot"));
 const Calibration = lazy(() => import("./CalibrationApp"));
+const Documents = lazy(() => import("./components/DocumentsPanel"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
 type References = {
   synthetic: boolean;
@@ -102,7 +103,14 @@ function App() {
     [references, setReferences] = useState<References | null>(null),
     [observationFilter, setObservationFilter] = useState(""),
     [playback, setPlayback] = useState(2000),
-    [tree, setTree] = useState(false);
+    [tree, setTree] = useState(false),
+    [uploadsPublic, setUploadsPublic] = useState(false);
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((h) => setUploadsPublic(h?.document_uploads === "PUBLIC"))
+      .catch(() => setUploadsPublic(false));
+  }, []);
   async function api<T>(path: string): Promise<T> {
     const r = await fetch(path, {
       headers: { Authorization: "Bearer " + token },
@@ -345,7 +353,13 @@ function App() {
           </div>
           <span className="environment-pill">
             <span />
-            {hosted ? "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS" : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
+            {hosted
+              ? uploadsPublic
+                ? "HOSTED DEMO · UPLOADS ARE TREATED AS PUBLIC"
+                : "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS"
+              : uploadsPublic
+                ? "LOCAL DEVELOPMENT · UPLOADS ARE TREATED AS PUBLIC"
+                : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
           </span>
         </header>
         <main id="main-content" dir="rtl" tabIndex={-1}>
@@ -404,6 +418,7 @@ function App() {
             </p>
           )}
           {!data ? (
+            <>
             <section className="glass welcome">
               <div className="welcome-symbol">
                 <Workflow size={40} />
@@ -441,6 +456,12 @@ function App() {
                 )}
               </div>
             </section>
+            {uploadsPublic && (
+              <Suspense fallback={<p className="loading-state">جارٍ تحميل المستندات…</p>}>
+                <Documents token={token} />
+              </Suspense>
+            )}
+            </>
           ) : (
             <>
               <div className="view-bar">
