@@ -336,10 +336,8 @@ function App() {
       </aside>
       <div className="app-body">
         <header className="masthead">
-          <img
-            src="/cdf-wordmark-on-dark.jpg"
-            alt="الصندوق الثقافي — Cultural Development Fund"
-          />
+          {/* Public mode never shows an institution's identity on synthetic data (audit C5). */}
+          <img src="/demo-mark-on-dark.svg" alt="عرض تجريبي — بيانات افتراضية" />
           <div className="masthead-center">
             <span>GOVERNANCE INTELLIGENCE</span>
             <small>منظومة المراجعة والامتثال</small>

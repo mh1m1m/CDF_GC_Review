@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1139 225" role="img" aria-label="عرض تجريبي — بيانات افتراضية">
+  <!-- Neutral public-demo mark. Same proportions as the institutional wordmark it replaces in public mode,
+       so layouts do not shift. It deliberately resembles no real organisation's identity. -->
+  <rect x="6" y="6" width="1127" height="213" rx="28" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="6" stroke-dasharray="22 14"/>
+  <text x="1090" y="112" text-anchor="end" font-family="Noto Sans Arabic, Tahoma, sans-serif" font-size="92" font-weight="700" fill="#ffffff" direction="rtl">عرض تجريبي</text>
+  <text x="1090" y="182" text-anchor="end" font-family="Noto Sans, Arial, sans-serif" font-size="46" letter-spacing="6" fill="#ffffff" fill-opacity="0.8">SYNTHETIC DEMO · NOT AN OFFICIAL DOCUMENT</text>
+</svg>

@@ -12,7 +12,7 @@ import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
 SHARED={'shared/demo-reference-fixtures.json','shared/logo-registry.json','shared/visual-tokens.json','shared/rendering-specification.json'}
-PUBLIC_ASSETS={'apps/web/public/cdf-wordmark-on-dark.jpg','apps/web/public/cdf-wordmark-on-light.jpg'}
+PUBLIC_ASSETS={'apps/web/public/demo-mark-on-dark.svg'}   # the public demo never ships an institution's wordmark (audit C5)
 TOOLS={'tools/public_demo_entrypoint.py','tools/seed_visual_demo.py','tools/mat_dna/seed_calibration_demo.py'}
 
 

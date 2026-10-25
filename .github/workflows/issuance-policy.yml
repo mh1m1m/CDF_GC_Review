@@ -42,6 +42,9 @@ jobs:
         run: python -m pip install -r requirements-execution.txt -r requirements-security.txt
       - name: Public repository confidential-content and credential guard
         run: python tools/mat_dna/public_repository_guard.py
+        env:
+          # Optional private deny-list (names, source titles, file ids); matches are reported by index only.
+          CDF_PRIVATE_DENYLIST_TERMS: ${{ secrets.CDF_PRIVATE_DENYLIST_TERMS }}
       - name: Compile every module
         run: python -m compileall -q main.py migrate_to_v712.py cdf_gco_crms/ tools/ tests/ qa_public/
       - name: Public-safe suite (institutional-source tests skip with their reason)
@@ -136,6 +139,9 @@ jobs:
         run: python -m pip install -r requirements-execution.txt -r requirements-security.txt
       - name: Public source and secret signature guard
         run: python tools/mat_dna/public_repository_guard.py
+        env:
+          # Optional private deny-list (names, source titles, file ids); matches are reported by index only.
+          CDF_PRIVATE_DENYLIST_TERMS: ${{ secrets.CDF_PRIVATE_DENYLIST_TERMS }}
       - name: Static scan of new API and projection boundary
         run: |
           mkdir -p build/security

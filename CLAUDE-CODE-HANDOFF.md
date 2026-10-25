@@ -1,52 +1,23 @@
 # CLAUDE CODE → CHATGPT HANDOFF — MAT professional DNA × strategic advisor (Article 20)
 
-Branch: `feature/v712-mat-professional-dna-agent` (from `feature/v712-live-multi-agent-runtime` @ 7fe7444) · Draft PR: https://github.com/mh1m1m/CDF_GC_Review/pull/4 (base `feature/v712-live-multi-agent-runtime`; do not merge) · Public branch head: see the PR (code commit ce3a9ca + this handoff/CI-trigger commit) · Local suite: 291 passed / 4 skipped (`python -m pytest tests qa_public -q`).
+Branch: `feature/v712-mat-professional-dna-agent` · Draft PR: https://github.com/mh1m1m/CDF_GC_Review/pull/4 (base `feature/v712-live-multi-agent-runtime`).
 
-## Source forensics (private; nothing below is in git)
-- Corpus: two Word files supplied by the user. SRC-01 original GCO review export (36 comments, created 11:46:39Z); SRC-02 reviewed version (24 comments; file created 13:48Z; new comments 15:18, 15:27, 15:29, 16:41Z). Body text identical (208 paragraphs); no tracked changes; no replies; no resolved flags.
-- Authorship: every comment in both files is recorded under the department's shared account (people.xml holds no personal identity). MAT's authorship of SRC-02 is **user-attested** (file name + the user's statement), supported by the editing timeline. Attribution_Confidence: **MEDIUM**.
-- Matching: PARA_ID 2 · REF_CODE 8 · ANCHOR_TEXT 11 (date continuity or textual derivation) · none 18. Three earlier mis-pairings were eliminated by the evidence rules; no article-only or similarity-only match remains.
-
-## Counts (one review case; raw counts, not causal preferences)
-```
-Original_Observation_Count: 36          Final_Observation_Count: 24
-Recommendation family:      33 (91.7%)  → 15 (62.5%)   [+1 recommendation with a typo opener classified OTHER]
-Direct questions:            0 (0.0%)   →  2 (8.3%)
-Question + recommendation:   3 (8.3%)   →  2 (8.3%)
-Converted recommendation→question: 2 (OBS-019, OBS-030)   question→recommendation: 0
-Retained unchanged 2 · revised in place 18 (1 of them emptied) · recreated at anchor 1 · absent 15 · new 3 (2 at the passage of an absent original) · merged 0
-Documented withdrawals: 0 — every absence is DECISION_NOT_OBSERVED
-Words per comment (median): 67.5 → 46 · MAT-authored passages (10): median 5.5 words
-Attribution_Confidence: MEDIUM (user-attested, shared account)
-```
-
-## Deliverables (private workspace `private/mat_dna_workspace/deliverables/`, delivered to the user, never committed)
-1 MAT_FORENSIC_COMPARISON_REPORT.md · 2 MAT_OBSERVATION_EVOLUTION_REGISTER.json/.xlsx (39 rows) · 3 MAT_PROFESSIONAL_DNA_QUESTIONNAIRE.json/.xlsx (64 questions, 16 dimensions: ESTABLISHED_SINGLE_CASE 30, SUPPORTED_INFERENCE 12, HYPOTHESIS 9, NOT_ESTABLISHED 13 — every answer SINGLE_CASE) · 4 MAT_RECOMMENDATION_QUESTION_DISTRIBUTION.json/.xlsx · 5 MAT_WRITING_STYLE_DNA.json · 6 MAT_OBSERVATION_SELECTION_RULES.json (12 rules, none approved) · 7 MAT_WITHDRAWAL_DECISION_RULES.json (15 grounds; 0 verified; hypotheses only; W15 default) · 8 MAT_GRC_WRITING_STYLE_GUIDE.md · 9 MAT_PROFILE_EVIDENCE_REGISTER.json (39 items) · 10 MAT_METHOD_VALIDATION_REPORT.md · plus MAT_PROFESSIONAL_DNA_PROFILE.json (PROVISIONAL / NOT_APPROVED), MAT_EXECUTIVE_PROFILE.md, MAT_SOURCE_IMPORT_MANIFEST.json.
-
-## Patterns observed (single case; not the reviewer's documented decisions)
-- Engine headers dropped in 18/20 edited comments, REF lines in 11/20; two comments untouched; numbering not maintained (one truncated REF, two blank, one dangling cross-reference).
-- Rationale dropped when the ask is a text replacement (4); kept when the control is complex (9); 4 rewritten as short asks.
-- Every sanction / liability / breach-consequence clause absent or cut (OBS-014, 021, 024, 022 emptied, 015 tail, 025 test duty); prohibitive control wording kept.
-- Own Sharia/legal appraisal removed (OBS-008) while the referral to the Sharia body stayed.
-- Authority-matrix drafting reduced to a data request, a business-fit question and a cap; one authority control tied to an operational safeguard kept in full.
-- Questions (3) are internal consultation devices (verification, suitability, fallback), two naming colleagues; none addressed to the counterparty.
-- Formal items absent (3) or reduced to a flag (1); legal-structure re-architecture items absent (4); regulatory safeguards absent (OBS-029, OBS-031) **without any reason — flagged as a false-withdrawal risk for human scrutiny**.
-- MAT-authored text: one move, median 5.5 words, نوصي/نؤكد/نأمل or a closed هل…؟, no risk statement, no citation, informal hamza spelling in 7/10, one example value.
+Redacted 2026-10-25 (owner's stack audit, finding C4). An earlier version of this section summarised the private review case
+used to derive the reviewer profile: counts, timestamps, observation identifiers and the reviewer's writing traits. That
+material belongs in the private workspace only and was moved there; it is not reproduced here. Git history still contains it.
 
 ## Engineering (public, in the PR)
-- `tools/mat_dna/ooxml_forensics.py`, `tools/mat_dna/dna_deliverables.py` · `cdf_gco_crms/agents/mat_profile.py` (schema, loader, binding: a rule binds only when VALIDATED + APPROVED + explicitly approved) · `cdf_gco_crms/agents/mat_advisor.py` (MAT-01/02/03, schemas, fallback, guards, Article 15 state) · orchestrator/debate/context_builder/roles integration (advisory turns outside the chain; adjudicator firewall; mat-state file; gate-record summary) · `main.py --mat-profile` · `tests/fixtures/mat/synthetic_mat_profile.json` · `tests/test_mat_forensics.py` (4) · `tests/test_mat_advisor.py` (11) · `docs/MAT-STRATEGIC-ADVISOR.md`.
+- `tools/mat_dna/ooxml_forensics.py`, `tools/mat_dna/dna_deliverables.py`; `cdf_gco_crms/agents/mat_profile.py` (schema, loader, binding: a rule binds only when VALIDATED + APPROVED + explicitly approved); `cdf_gco_crms/agents/mat_advisor.py` (MAT-01/02/03, schemas, fallback, guards, Article 15 state); orchestrator/debate/context-builder integration; `main.py --mat-profile`; synthetic profile and tests.
 - Execution modes in tests: DETERMINISTIC fallback and MOCK only. Actual_Live_Inference_Count = 0. Independence classification and attestation roles unchanged.
-- Release-gate regression: identical dispositions, cycles and gate outcome with and without the advisor; the full suite passed.
-- Coverage summary: no coverage tool is installed in this environment (pytest-cov / coverage absent); not produced.
-- CI: the workflow now triggers on this branch and on PRs to the live-runtime branch (this commit); check the run on the PR head.
+- Release-gate regression: identical dispositions, cycles and gate outcome with and without the advisor.
 
 ## Not done / needs the institution or the reviewer
-- Reviewer calibration (Article 14): the 15 absences, 2 conversions, 5 consequence removals, 2 regulatory absences and 12 rules await MAT's approve / reject / amend. Until then every rule is advisory.
-- Validation on an unseen case (Article 13) and the fidelity scores / baselines (Article 16): NOT_RUN — a second independent reviewed case and a live provider are required.
-- Live inference: no credential; nothing live was executed; no institutional content was sent to any provider.
+- Reviewer calibration: every extracted rule awaits the reviewer's approve / reject / amend; until then every rule is advisory.
+- Validation on an unseen case and fidelity scores: NOT_RUN — a second independent reviewed case and an authorised live provider are required.
+- Live inference: none executed; no institutional content was sent to any provider.
 
 ## Integration judgement
-Sufficient for an ADVISORY profile with single-case confidence and mandatory human validation; insufficient for binding rules. The advisor is integrated so that it can never change an engine outcome, remove a candidate, approve, adjudicate, or consume a debate cycle.
+The profile is advisory with single-case confidence and mandatory human validation; it is insufficient for binding rules. The advisor can never change an engine outcome, remove a candidate, approve, adjudicate, or consume a debate cycle.
 
 ---
 
