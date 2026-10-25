@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 from xml.etree import ElementTree as ET
 
+from . import safe_xml
 from ..model.entities import GText, Observation, ReviewState, plain_text
 from ..references.authority_matrix import BODIES, ROLE_APPROVE
 from ..references.textnorm import match_key, nfc
@@ -909,7 +910,7 @@ _DOCX_PARTS = ("word/document.xml", "word/comments.xml", "word/commentsExtended.
 
 def _part_text(data: bytes) -> str:
     try:
-        root = ET.fromstring(data)
+        root = safe_xml.fromstring(data)
     except ET.ParseError:
         return data.decode("utf-8", "replace")
     return " ".join(t for t in root.itertext() if t)

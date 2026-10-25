@@ -40,3 +40,5 @@ All source fixes await independent review. No institutional acceptance inferred.
 - CON-02: BLOCKED_EXTERNAL — approve/provision public MCP DNS/TLS, external OAuth issuer/JWKS and exact registered client identities. The new resource server's local security tests do not establish deployment or authorization-server/client compatibility.
 - CON-03: BLOCKED_EXTERNAL — actual ChatGPT/Claude account registration and correlated authenticated calls unavailable. Independent SDK connections must remain separately classified.
 - CON-04: BLOCKED_EXTERNAL — live-model case reconciliation, native exports and provider-side receipt reconciliation require a successful authorized real execution. No new mock/UI run may replace that evidence.
+
+- HYG-01: FIX_IMPLEMENTED (2026-10-25) — literal bidi controls in source and unhardened stdlib XML parsing of uploaded packages; see EXECUTION_LOG. Remaining B314 hits are in `tools/` scripts that read files this repo generates; low risk, not changed.
