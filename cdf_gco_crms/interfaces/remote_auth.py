@@ -184,8 +184,8 @@ class OAuthVerifier:
                     ttl=max(1, c["exp"] - int(time.time())),
                 )
                 self.application.store.db.execute(
-                    "UPDATE app_sessions SET expires_at=MIN(expires_at,?) WHERE session_id=?",
-                    (c["exp"], digest),
+                    "UPDATE app_sessions SET expires_at=CASE WHEN expires_at<? THEN expires_at ELSE ? END WHERE session_id=?",
+                    (c["exp"], c["exp"], digest),
                 )
                 p = self.application.sessions.resolve_id(digest)
                 if (

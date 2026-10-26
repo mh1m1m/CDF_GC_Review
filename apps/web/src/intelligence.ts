@@ -49,6 +49,7 @@ export type Observation = {
 export type Dashboard = {
   case_id: string;
   synthetic: boolean;
+  uploaded_document?: boolean;
   run_id: string | null;
   captured_at: string | null;
   evidence_hash: string;

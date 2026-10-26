@@ -49,13 +49,39 @@ def gauge_artwork(data: dict) -> bytes:
 
 
 def export_dashboard(data: dict, kind: str) -> bytes:
-    if data.get('synthetic') is not True:
+    from ..documents.policy import is_uploaded_case, site_identity
+    uploaded = is_uploaded_case(data.get('case_id'))
+    if data.get('synthetic') is not True and not uploaded:
         raise PermissionError('PRIVATE_EXPORT_REQUIRES_AUTHORIZED_WORKSPACE')
+    if uploaded and site_identity() == 'CDF':
+        # The owner's branded deployment: an uploaded document's dashboard carries the institution's wordmark.
+        logo = institution_wordmark_png()
+        if logo:
+            from ..institutional.providers import PublicSyntheticProvider
+            return _render_dashboard({**data, 'reference_catalog': PublicSyntheticProvider().catalog()}, kind, logo=logo)
     from ..institutional.providers import PublicSyntheticProvider
     data={**data,'reference_catalog':PublicSyntheticProvider().catalog()}
     # Synthetic exports carry a neutral demo mark, never an institution's wordmark (audit C5); the authorised
     # private workspace supplies its own brand asset through its own provider.
     return _render_dashboard(data,kind,logo=demo_mark_png())
+
+
+def brand_wordmark_path() -> Path:
+    return Path(__file__).resolve().parents[2] / 'shared' / 'brand' / 'cdf-wordmark-on-light.png'
+
+
+def institution_wordmark_png() -> bytes | None:
+    """The CDF wordmark (light background) from shared/brand, as PNG; None when it is not deployed."""
+    from PIL import Image
+
+    path = brand_wordmark_path()
+    try:
+        image = Image.open(path).convert('RGB')
+    except OSError:
+        return None
+    output = BytesIO()
+    image.save(output, format='PNG')
+    return output.getvalue()
 
 
 def demo_mark_png() -> bytes:

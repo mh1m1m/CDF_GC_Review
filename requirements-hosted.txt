@@ -1,0 +1,3 @@
+# Hosted deployment (Vercel functions + Supabase Postgres). Local and CI installs do not need it.
+-r requirements-execution.txt
+psycopg[binary]==3.2.10

@@ -26,8 +26,9 @@ def evidence_labels(provider_api_completions: int, native_cli_completions: int) 
 def verify(database, case_id):
     if not case_id.startswith("SYN-"):
         raise ValueError("PUBLIC_SYNTHETIC_CASE_REQUIRED")
-    db = sqlite3.connect(Path(database).resolve().as_uri() + "?mode=ro", uri=True)
-    db.row_factory = sqlite3.Row
+    from ..storage import connect
+
+    db = connect(database, readonly=True)
     try:
         require(
             {r[0] for r in db.execute("SELECT mode FROM runtime_mode")}

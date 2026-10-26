@@ -1,7 +1,7 @@
 name: Unified execution acceptance
 on:
   pull_request:
-    branches: [codex/institutional-dual-mode, codex/unified-execution, codex/phase-ii-copilot, codex/real-mcp-connectivity, claude/project-thread-gi42zn]
+    branches: [codex/institutional-dual-mode, codex/unified-execution, codex/phase-ii-copilot, codex/real-mcp-connectivity, claude/project-thread-gi42zn, fix/v712-audit-p0]
   workflow_dispatch:
 permissions:
   contents: read

@@ -16,9 +16,16 @@ def bind_public_database(store):
     modes={r[0] for r in store.db.execute('SELECT mode FROM runtime_mode')}
     if modes and modes!={OperatingMode.PUBLIC_SYNTHETIC_DEMO.value}:
         raise InstitutionalAccessDenied('DATABASE_MODE_MISMATCH')
-    if store.db.execute("SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%' LIMIT 1").fetchone():
+    from ..documents.policy import uploads_public
+    # Uploaded-document cases (UPL-) are allowed only while the owner keeps uploads switched on.
+    if uploads_public():
+        foreign = store.db.execute(
+            "SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%' AND case_id NOT LIKE 'UPL-%' LIMIT 1").fetchone()
+    else:
+        foreign = store.db.execute("SELECT 1 FROM cases WHERE case_id NOT LIKE 'SYN-%' LIMIT 1").fetchone()
+    if foreign:
         raise InstitutionalAccessDenied('INSTITUTIONAL_CASES_IN_PUBLIC_DATABASE')
-    store.db.execute('INSERT OR IGNORE INTO runtime_mode VALUES (?)',(OperatingMode.PUBLIC_SYNTHETIC_DEMO.value,))
+    store.db.execute('INSERT INTO runtime_mode VALUES (?) ON CONFLICT DO NOTHING',(OperatingMode.PUBLIC_SYNTHETIC_DEMO.value,))
     store.db.commit()
 
 
@@ -27,5 +34,5 @@ def bind_private_database(store):
     modes={r[0] for r in store.db.execute('SELECT mode FROM runtime_mode')}
     if modes and modes!={OperatingMode.PRIVATE_INSTITUTIONAL.value}:
         raise InstitutionalAccessDenied('DATABASE_MODE_MISMATCH')
-    store.db.execute('INSERT OR IGNORE INTO runtime_mode VALUES (?)',(OperatingMode.PRIVATE_INSTITUTIONAL.value,))
+    store.db.execute('INSERT INTO runtime_mode VALUES (?) ON CONFLICT DO NOTHING',(OperatingMode.PRIVATE_INSTITUTIONAL.value,))
     store.db.commit()

@@ -1,10 +1,26 @@
-openpyxl>=3.1
-python-docx>=1.1
-lxml>=5.0
-pillow>=10.0
-pytest>=8.0
-cryptography>=42
-pypdf>=4.0
-pymupdf>=1.24    # optional: reading colours from the design-guide PDF
-# optional system tool: LibreOffice (soffice) for independent recalculation and rendering
-anthropic>=2.3      # LIVE provider adapter (cdf_gco_crms/agents/providers); unused unless CDF_AI_PROVIDER=anthropic
+# Runtime of the hosted API (Vercel Python function, api/index.py). Vercel installs this file.
+# Local work and CI use the other requirements files; the engine's base list is requirements-engine.txt.
+# Exact pins come from requirements-execution-lock.txt; psycopg is added for Supabase Postgres.
+fastapi==0.162.0
+starlette==1.9.0
+pydantic==2.13.4
+python-multipart==0.0.32
+lxml==6.1.3
+openpyxl==3.1.5
+python-docx==1.2.0
+pillow==13.0.0
+numpy==2.5.4
+psutil==7.2.2
+opentelemetry-api==1.45.1
+defusedxml==0.7.1
+pyjwt==2.15.1
+cryptography==50.0.1
+anthropic==2.3.0
+httpx==0.28.1
+mcp==1.30.0
+psycopg[binary]==3.2.10
+# Uploaded PDFs: safety check, page count and text (same pins as requirements-execution-lock.txt).
+pypdf==6.21.2
+pdfplumber==0.11.10
+pdfminer.six==20260107
+pypdfium2==5.14.0

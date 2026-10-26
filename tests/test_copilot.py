@@ -262,6 +262,13 @@ def test_grounded_conflicts_ownership_and_quality(cp):
 
 
 def test_backup_restore_staging_and_tamper(cp):
+    from cdf_gco_crms.storage import is_postgres
+
+    if is_postgres(cp[0].app.store.db):
+        # Hosted: the database provider backs up; the copilot must refuse rather than fake a file backup.
+        with pytest.raises(CalibrationError, match="BACKUP_MANAGED_BY_DATABASE_PROVIDER"):
+            call(cp, "backup", idempotency_key="backup-key-001")
+        return
     receipt = call(cp, "backup", idempotency_key="backup-key-001")
     assert receipt["public_download"] is False
     result = call(

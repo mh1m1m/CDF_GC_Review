@@ -10,6 +10,7 @@ from ..calibration.store import (
     fingerprint,
 )
 from ..execution.providers import readiness
+from ..storage import integrity_ok, is_postgres
 
 
 class OperationsService:
@@ -24,7 +25,7 @@ class OperationsService:
         )
         with app.store.transaction():
             app.store.db.execute(
-                "INSERT OR IGNORE INTO cp_migrations VALUES (1,?)", (now_utc(),)
+                "INSERT INTO cp_migrations VALUES (1,?) ON CONFLICT DO NOTHING", (now_utc(),)
             )
 
     def rate(self, p):
@@ -34,7 +35,7 @@ class OperationsService:
                 "DELETE FROM cp_rates WHERE window<?", (window - 2,)
             )
             self.app.store.db.execute(
-                "INSERT INTO cp_rates VALUES (?,?,1) ON CONFLICT(session_id,window) DO UPDATE SET count=count+1",
+                "INSERT INTO cp_rates VALUES (?,?,1) ON CONFLICT(session_id,window) DO UPDATE SET count=cp_rates.count+1",
                 (p.session_id, window),
             )
             count = self.app.store.db.execute(
@@ -129,7 +130,7 @@ class OperationsService:
                     )
                     key = row["kind"] + "/" + row["executor"]
                     by_kind.setdefault(key, []).append(durations[-1])
-            integrity = a.store.db.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+            integrity = integrity_ok(a.store.db)
             audit = self.audit_valid(a.store.db)
             events = [
                 dict(row)
@@ -174,6 +175,9 @@ class OperationsService:
         }
         for case in ids:
             a.authorize_case(case, p, "CALIBRATION_ADMIN")
+        if is_postgres(a.store.db):
+            # The hosted database is backed up by its provider (point-in-time recovery); no file copy exists.
+            raise CalibrationError("BACKUP_MANAGED_BY_DATABASE_PROVIDER")
         directory = a.store.path.parent / "managed-backups"
         directory.mkdir(mode=0o700, exist_ok=True)
         if action == "backup":

@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { hosted, HostedSignIn } from "./hosted";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -13,6 +14,7 @@ import {
   LockKeyhole,
   RefreshCw,
   ScanLine,
+  Settings,
   ShieldCheck,
   Sparkles,
   Workflow,
@@ -33,6 +35,8 @@ const ExecutionWorkspace = lazy(
 const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
 const GovernanceCopilot = lazy(() => import("./components/GovernanceCopilot"));
 const Calibration = lazy(() => import("./CalibrationApp"));
+const Documents = lazy(() => import("./components/DocumentsPanel"));
+const AISettings = lazy(() => import("./components/AISettingsPanel"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
 type References = {
   synthetic: boolean;
@@ -89,6 +93,9 @@ const categoryNames: Record<string, string> = {
   AUDIT_RIGHTS: "حقوق المراجعة",
   DATA_PROTECTION: "حماية البيانات",
 };
+// The institution's identity is shown only when the deployment owner sets VITE_SITE_IDENTITY=CDF at build time.
+// Every other build (local development, CI, forks) keeps the neutral demo mark (audit C5).
+const institutional = import.meta.env.VITE_SITE_IDENTITY === "CDF";
 const fmt = (n: number) => new Intl.NumberFormat("ar-SA").format(n);
 function App() {
   const [token, setToken] = useState(""),
@@ -101,7 +108,14 @@ function App() {
     [references, setReferences] = useState<References | null>(null),
     [observationFilter, setObservationFilter] = useState(""),
     [playback, setPlayback] = useState(2000),
-    [tree, setTree] = useState(false);
+    [tree, setTree] = useState(false),
+    [uploadsPublic, setUploadsPublic] = useState(false);
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((h) => setUploadsPublic(h?.document_uploads === "PUBLIC"))
+      .catch(() => setUploadsPublic(false));
+  }, []);
   async function api<T>(path: string): Promise<T> {
     const r = await fetch(path, {
       headers: { Authorization: "Bearer " + token },
@@ -336,16 +350,27 @@ function App() {
       </aside>
       <div className="app-body">
         <header className="masthead">
-          {/* Public mode never shows an institution's identity on synthetic data (audit C5). */}
-          <img src="/demo-mark-on-dark.svg" alt="عرض تجريبي — بيانات افتراضية" />
+          {institutional ? (
+            <img className="masthead-logo" src="/cdf-logo-on-dark.png" alt="الصندوق الثقافي — Cultural Development Fund" />
+          ) : (
+            <img src="/demo-mark-on-dark.svg" alt="عرض تجريبي — بيانات افتراضية" />
+          )}
           <div className="masthead-center">
             <span>GOVERNANCE INTELLIGENCE</span>
             <small>منظومة المراجعة والامتثال</small>
           </div>
-          <span className="environment-pill">
-            <span />
-            SYNTHETIC LOCAL DEVELOPMENT ONLY
-          </span>
+          {!institutional && (
+            <span className="environment-pill">
+              <span />
+              {hosted
+                ? uploadsPublic
+                  ? "HOSTED DEMO · UPLOADS ARE TREATED AS PUBLIC"
+                  : "HOSTED SYNTHETIC DEMO · NOT FOR REAL DOCUMENTS"
+                : uploadsPublic
+                  ? "LOCAL DEVELOPMENT · UPLOADS ARE TREATED AS PUBLIC"
+                  : "SYNTHETIC LOCAL DEVELOPMENT ONLY"}
+            </span>
+          )}
         </header>
         <main id="main-content" dir="rtl" tabIndex={-1}>
           <div className="workspace-heading">
@@ -357,23 +382,27 @@ function App() {
             </div>
             <div className="heading-state">
               <LockKeyhole size={16} />
-              <span>مساحة تجريبية · غير مصرح بالإصدار</span>
+              <span>{institutional ? "نسخ عمل · الإصدار بقرار بشري معتمد" : "مساحة تجريبية · غير مصرح بالإصدار"}</span>
             </div>
           </div>
           <section
             className="connection glass"
             aria-label="الاتصال ببيئة التجربة"
           >
-            <label>
-              رمز جلسة التطوير المحلي
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="رمز الجلسة المؤقت"
-                autoComplete="off"
-              />
-            </label>
+            {hosted ? (
+              <HostedSignIn onToken={setToken} />
+            ) : (
+              <label>
+                رمز جلسة التطوير المحلي
+                <input
+                  type="password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="رمز الجلسة المؤقت"
+                  autoComplete="off"
+                />
+              </label>
+            )}
             <button
               className="button dark"
               onClick={() => void connect()}
@@ -381,6 +410,18 @@ function App() {
             >
               الاتصال وعرض القضايا <ArrowUpLeft size={16} />
             </button>
+            {!data && cases.length > 0 && (
+              <a
+                className="button ghost settings-shortcut"
+                href="#ai-settings"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("ai-settings")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <Settings size={16} /> الإعدادات
+              </a>
+            )}
             {data && (
               <div className="case-breadcrumb">
                 <FileCheck2 size={16} />
@@ -399,6 +440,7 @@ function App() {
             </p>
           )}
           {!data ? (
+            <>
             <section className="glass welcome">
               <div className="welcome-symbol">
                 <Workflow size={40} />
@@ -436,6 +478,24 @@ function App() {
                 )}
               </div>
             </section>
+            {uploadsPublic && (
+              <Suspense fallback={<p className="loading-state">جارٍ تحميل المستندات…</p>}>
+                <Documents
+                  token={token}
+                  onOpenCase={(caseId) => {
+                    void connect();
+                    void openCase(caseId);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
+              </Suspense>
+            )}
+            {token && cases.length > 0 && (
+              <Suspense fallback={<p className="loading-state">جارٍ تحميل الإعدادات…</p>}>
+                <AISettings token={token} />
+              </Suspense>
+            )}
+            </>
           ) : (
             <>
               <div className="view-bar">
@@ -477,7 +537,9 @@ function App() {
                 </details>
               </div>
               <div className="mode-notice">
-                البيئة العامة · قضايا ومراجع افتراضية · الوضع المؤسسي غير مُفعّل
+                {data.uploaded_document
+                  ? "مستند مرفوع · مراجعة آلية بنموذج ذكاء اصطناعي · المراجع المنهجية المستخدمة تجريبية وغير معتمدة · نسخة عمل"
+                  : "البيئة العامة · قضايا ومراجع افتراضية · الوضع المؤسسي غير مُفعّل"}
               </div>
               {(view === "overview" || view === "mat") && (
                 <>
@@ -550,7 +612,7 @@ function App() {
                       </h2>
                     </div>
                     <span className="subtle-pill">
-                      بيانات تجريبية · لا توجد درجات ثقة مُختلقة
+                      {data.uploaded_document ? "مستند مرفوع · لا توجد درجات ثقة مُختلقة" : "بيانات تجريبية · لا توجد درجات ثقة مُختلقة"}
                     </span>
                   </div>
                   <section className="metrics-grid" aria-label="مؤشرات الحوكمة">

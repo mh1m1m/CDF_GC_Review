@@ -20,6 +20,7 @@ from ..agents.security import sanitize
 from ..calibration.analytics import analyze
 from ..calibration.service import CalibrationService
 from ..calibration.store import CalibrationError, AccessDenied, canonical, fingerprint
+from ..storage import table_exists
 from ..release.authorization_gate import authorize, PURPOSE_INSTITUTIONAL
 
 RENDER_SPEC=json.loads((Path(__file__).resolve().parents[2]/'shared/rendering-specification.json').read_text())
@@ -116,11 +117,17 @@ class IntelligenceService:
             observations = self.store.observations(case_id, user)
             events = self.store.events(case_id, user)
             snap = self._snapshot(case_id)
-            if snap and not snap.synthetic:
+            from ..documents.policy import is_uploaded_case
+            if snap and not snap.synthetic and not is_uploaded_case(case_id):
                 raise AccessDenied('INSTITUTIONAL_EXECUTION_NOT_ALLOWED_IN_SYNTHETIC_API')
-            span.set_attribute('cdf.synthetic', True)
+            uploaded = is_uploaded_case(case_id)
+            span.set_attribute('cdf.synthetic', not uploaded)
             span.set_attribute('cdf.observation_count', len(observations))
-            return self._project(case_id, observations, events, snap, user)
+            data = self._project(case_id, observations, events, snap, user, synthetic=not uploaded)
+            if uploaded:
+                data['uploaded_document'] = True
+                data['limitations'] = ['UPLOADED_DOCUMENT_WORKING_COPY'] + data['limitations'][1:]
+            return data
 
     def _project(self, case_id, observations, events, snap, user, *, synthetic=True):
         latest = {}
@@ -225,7 +232,7 @@ class IntelligenceService:
             heatmap.append({'category': category, 'pending': sum(i not in latest for i in ids),
                             'submitted': sum(i in latest for i in ids), 'lineage': ids})
         human_reviews={}
-        if self.store.db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cp_human'").fetchone():
+        if table_exists(self.store.db, 'cp_human'):
             for record in self.store.db.execute('SELECT * FROM cp_human WHERE case_id=? ORDER BY at,event_hash',(case_id,)):
                 human_reviews[record['observation_id']]={**json.loads(record['payload_json']),'version':record['event_hash'],'actor':record['actor'],'at':record['at']}
         live = sum(i['source'] == PV.SOURCE_PROVIDER_API and i['status'] == 'OK' for i in invocations)

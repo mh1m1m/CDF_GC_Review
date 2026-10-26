@@ -1,0 +1,147 @@
+name: Hosted demo (Postgres, serverless runtime, hosted build)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - claude/project-thread-gi42zn
+      - fix/v712-audit-p0
+  push:
+    branches:
+      - feature/hosted-vercel-supabase
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-suite:
+    # The whole public suite against PostgreSQL with the serverless (inline) job runner, as deployed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-local-password
+          POSTGRES_DB: cdf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      CDF_AI_PROVIDER: ""
+      CDF_DATABASE_URL: postgresql://postgres:ci-only-local-password@127.0.0.1:5432/cdf
+      CDF_JOB_RUNNER: inline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-execution.txt -r requirements-security.txt "psycopg[binary]==3.2.10"
+      - run: python -m pytest tests qa_public -q -p no:cacheprovider -rs
+
+  hosted-function-smoke:
+    # Installs only what Vercel installs (requirements.txt) and starts the function entry in hosted mode.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-local-password
+          POSTGRES_DB: cdf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Start api/index.py and api/mcp.py in hosted mode
+        env:
+          CDF_DATABASE_URL: postgresql://postgres:ci-only-local-password@127.0.0.1:5432/cdf
+          CDF_SUPABASE_URL: https://example-project.supabase.co
+          CDF_HOSTED_REVIEWERS: '[{"email":"ci@example.invalid","principal_id":"SYN-HOSTED-CI","roles":["CALIBRATION_REVIEWER"]}]'
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from starlette.testclient import TestClient
+          def load(name, path):
+              spec = importlib.util.spec_from_file_location(name, path); m = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(m); return m
+          api = TestClient(load("entry", "api/index.py").app)
+          assert api.get("/api/health").json()["status"] == "HOSTED_SYNTHETIC_DEMO"
+          assert api.get("/api/cases").status_code == 401
+          mcp = TestClient(load("mcp_entry", "api/mcp.py").app, base_url="https://ci.example.invalid")
+          assert mcp.get("/.well-known/oauth-protected-resource/mcp").status_code == 200
+          assert mcp.post("/mcp", content="{}").status_code == 401
+          print("HOSTED_FUNCTION_SMOKE: PASS")
+          PY
+
+  hosted-web-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+      - working-directory: apps/web
+        env:
+          VITE_SUPABASE_URL: https://example-project.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: npm run build && npm run test
+
+  review-worker-image:
+    # Builds the review worker image and runs one full review inside it with the explicit MOCK executor
+    # (no AI key in CI): PDF in, Word/PDF/Excel/dashboard out, LibreOffice included.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.worker -t cdf-review-worker:ci .
+      - name: One mock review inside the image
+        run: |
+          docker run --rm -e CDF_DOCUMENT_UPLOADS=PUBLIC -e CDF_REVIEW_EXECUTOR=mock -e CDF_SITE_IDENTITY=CDF \
+            -e CDF_CALIBRATION_DB=/tmp/ci/public-demo/worker.sqlite \
+            -v "$PWD/tests:/tests:ro" cdf-review-worker:ci python - <<'PY'
+          import sys, tempfile
+          from pathlib import Path
+          sys.path.insert(0, "/tests")
+          from document_fixtures import memo_docx                      # fictional memo, PDF built here by LibreOffice
+          from cdf_gco_crms.qa.lo_engine import to_pdf
+          work = Path(tempfile.mkdtemp())
+          pdf = to_pdf(memo_docx(work / "memo.docx"), work / "pdf", timeout=180)
+          assert pdf is not None, "LibreOffice export failed in the worker image"
+          from cdf_gco_crms.calibration.store import ReviewerContext
+          from cdf_gco_crms.documents.worker import build
+          from cdf_gco_crms.documents.review import process_next
+          app, library, queue = build()
+          user = ReviewerContext("SYN-HOSTED-CI", frozenset({"CALIBRATION_ADMIN", "CALIBRATION_REVIEWER"}), True)
+          document = library.upload(user.reviewer_id, "memo.pdf", pdf.read_bytes())
+          queue.queue(user, document)
+          review = process_next(app, library, queue, "ci")
+          assert review["status"] == "DONE", review
+          kinds = sorted(o["kind"] for o in review["detail"]["outputs"])
+          print(review["case_id"], kinds)
+          assert kinds.count("pdf") == 3, kinds        # commented Word as PDF, annotated original, dashboard PDF
+          print("REVIEW_WORKER_IMAGE: PASS")
+          PY
+      - name: Document tests inside the worker image (same LibreOffice and fonts as the worker)
+        run: |
+          set +e
+          docker run --rm -v "$PWD:/repo:ro" -w /repo -e PYTHONPATH=/repo -e HOME=/tmp cdf-review-worker:ci \
+            sh -c 'pip install --quiet --user pytest==9.1.1 && python -m pytest tests/test_document_ingest.py tests/test_document_review.py -q -p no:cacheprovider -rs' \
+            > worker-tests.log 2>&1
+          status=$?
+          cat worker-tests.log
+          if [ $status -ne 0 ]; then
+            # Surface the failure as an annotation (readable without the log archive).
+            summary=$(grep -E "^(FAILED|ERROR|E  )" worker-tests.log | head -40 | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Document tests in worker image::${summary}"
+          fi
+          exit $status

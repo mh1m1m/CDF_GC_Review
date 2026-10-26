@@ -12,7 +12,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
+import sqlite3  # noqa: F401  (exception classes; connections come from ..storage)
 from contextlib import contextmanager
 import uuid
 from typing import Any
@@ -121,8 +121,11 @@ class CalibrationStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists() and self.path.is_symlink():
             raise CalibrationError("SYMLINK_DB_DISALLOWED")
-        self.db = sqlite3.connect(str(self.path), check_same_thread=False)  # API serializes access at the service boundary; not for multi-worker deployments
-        self.db.row_factory = sqlite3.Row
+        from ..storage import connect, is_postgres
+        # SQLite by default; PostgreSQL when CDF_DATABASE_URL is set (hosted). The API serializes access at the
+        # service boundary; a hosted database serializes writers with an advisory lock (see ..storage).
+        self.db = connect(self.path)
+        self.hosted = is_postgres(self.db)
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript("""
@@ -173,7 +176,7 @@ class CalibrationStore:
                 head_hash TEXT NOT NULL
             );
         """)
-        if os.name == "posix":
+        if os.name == "posix" and not self.hosted:
             os.chmod(self.path, 0o600)
 
     def close(self):
@@ -242,7 +245,7 @@ class CalibrationStore:
         self.db.execute("INSERT INTO events(case_id,observation_id,event_type,payload_json,actor,created_at,previous_hash,event_hash) VALUES (?,?,?,?,?,?,?,?)",
                         (case_id, obs_id, kind, canonical(payload), actor, timestamp, previous, digest))
         self.db.execute("INSERT INTO chain_heads VALUES (?, 1, ?) ON CONFLICT(case_id) DO UPDATE SET "
-                        "event_count = event_count + 1, head_hash = excluded.head_hash", (case_id, digest))
+                        "event_count = chain_heads.event_count + 1, head_hash = excluded.head_hash", (case_id, digest))
         return digest
 
     # ------------------------------------------------------------ derived decision state
@@ -505,7 +508,8 @@ class CalibrationStore:
         if not p.get("synthetic") or p.get("status") != "PROVISIONAL":
             raise CalibrationError("SYNTHETIC_PROVISIONAL_ONLY")
         with self.transaction():
-            self.db.execute("INSERT OR REPLACE INTO active_profiles VALUES (?,?,?)", (case_id, version, now_utc()))
+            self.db.execute("INSERT INTO active_profiles VALUES (?,?,?) ON CONFLICT(case_id) DO UPDATE SET "
+                            "profile_version=excluded.profile_version, changed_at=excluded.changed_at", (case_id, version, now_utc()))
             self._append(case_id, None, "SYNTHETIC_PROFILE_ACTIVATED",
                          {"profile_version": version, "profile_sha256": record["profile_sha256"],
                           "institutional_approval": "NOT_AUTHORIZED"}, reviewer.reviewer_id)

@@ -1,8 +1,30 @@
 """Explicit executor selection; an unavailable live executor never becomes a mock."""
 
 import os
+import re
 import shutil
-from ..agents.providers.base import ProviderConfig, ProviderFailure, DEFAULT_MODEL
+from ..agents.providers.base import DATA_SYNTHETIC_ONLY, DEFAULT_MODEL, ProviderConfig, ProviderFailure
+
+_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
+
+
+def anthropic_credential_configured():
+    """True when the Anthropic SDK will find a credential.
+
+    A host may store the key under a name of the owner's choosing; ``CDF_ANTHROPIC_KEY_VAR`` names that variable.
+    Its value is copied to ``ANTHROPIC_API_KEY`` for this process only if it has the shape of an Anthropic API key,
+    so a mistyped name can never send another secret (a database URL, say) to the provider.
+    """
+    if os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"):
+        return True
+    name = (os.getenv("CDF_ANTHROPIC_KEY_VAR") or "").strip()
+    if not name or not _ENV_NAME.match(name):
+        return False
+    value = (os.getenv(name) or "").strip()
+    if not value.startswith("sk-ant-"):
+        return False
+    os.environ["ANTHROPIC_API_KEY"] = value
+    return True
 
 
 def select_executor(executor, *, timeout):
@@ -56,10 +78,24 @@ def select_executor(executor, *, timeout):
                 provider="openai", model=model, timeout_seconds=timeout, max_retries=0
             )
         )
+    if executor == "mistral":
+        from ..agents.providers.mistral_adapter import DEFAULT_MISTRAL_MODEL, MistralAdapter, mistral_credential
+
+        if not mistral_credential():
+            raise ProviderFailure("Mistral API credential unavailable", kind="CREDENTIAL_UNAVAILABLE")
+        return MistralAdapter(
+            ProviderConfig(
+                provider="mistral",
+                model=os.getenv("CDF_MISTRAL_MODEL") or DEFAULT_MISTRAL_MODEL,
+                timeout_seconds=timeout,
+                max_retries=int(os.getenv("CDF_AI_MAX_RETRIES", "0") or 0),
+                data_authorization=os.getenv("CDF_AI_DATA_AUTHORIZATION") or DATA_SYNTHETIC_ONLY,
+            )
+        )
     if executor == "anthropic":
         from ..agents.providers.anthropic_adapter import AnthropicAdapter
 
-        if not (os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")):
+        if not anthropic_credential_configured():
             raise ProviderFailure(
                 "Anthropic API credential unavailable", kind="CREDENTIAL_UNAVAILABLE"
             )
@@ -68,10 +104,19 @@ def select_executor(executor, *, timeout):
                 provider="anthropic",
                 model=os.getenv("CDF_AI_MODEL", DEFAULT_MODEL),
                 timeout_seconds=timeout,
-                max_retries=0,
+                max_retries=int(os.getenv("CDF_AI_MAX_RETRIES", "0") or 0),
+                # The data-handling guard (agents/security.py) admits non-synthetic content only under an explicit
+                # INSTITUTIONAL_AUTHORIZED:<reference> set by the deployment owner; unset stays SYNTHETIC_ONLY.
+                data_authorization=os.getenv("CDF_AI_DATA_AUTHORIZATION") or DATA_SYNTHETIC_ONLY,
             )
         )
     raise ProviderFailure("Unsupported executor", kind="UNSUPPORTED_EXECUTOR")
+
+
+def _mistral_configured():
+    from ..agents.providers.mistral_adapter import mistral_credential
+
+    return mistral_credential() is not None
 
 
 def readiness():
@@ -88,10 +133,12 @@ def readiness():
             "credential_configured": bool(os.getenv("OPENAI_API_KEY")),
             "policy_enabled": os.getenv("CDF_ENABLE_PROVIDER_API") == "1",
         },
+        "mistral": {
+            "credential_configured": _mistral_configured(),
+            "policy_enabled": os.getenv("CDF_ENABLE_PROVIDER_API") == "1",
+        },
         "anthropic": {
-            "credential_configured": bool(
-                os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")
-            ),
+            "credential_configured": anthropic_credential_configured(),
             "policy_enabled": os.getenv("CDF_ENABLE_PROVIDER_API") == "1",
         },
     }

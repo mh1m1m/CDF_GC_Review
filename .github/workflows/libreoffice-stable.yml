@@ -15,6 +15,7 @@ on:
       - codex/visual-intelligence
       - codex/stable-libreoffice
       - claude/project-thread-gi42zn
+      - fix/v712-audit-p0
   workflow_dispatch:
 permissions:
   contents: read

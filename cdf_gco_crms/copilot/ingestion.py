@@ -159,7 +159,7 @@ class IngestionService:
                 "scope": "SUPPLEMENTAL_SYNTHETIC_DOCUMENT_NOT_AUTOMATICALLY_REVIEWED",
             }
         rows = a.store.db.execute(
-            "SELECT * FROM cp_documents WHERE case_id=? AND (? IS NULL OR document_id=?) ORDER BY at",
+            "SELECT * FROM cp_documents WHERE case_id=? AND (CAST(? AS TEXT) IS NULL OR document_id=?) ORDER BY at",
             (r.case_id, r.document_id, r.document_id),
         ).fetchall()
         if action == "correct":

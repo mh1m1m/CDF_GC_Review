@@ -10,18 +10,20 @@ class OpenAIAdapter(ProviderAdapter):
     mode = MODE_LIVE
     endpoint = official_endpoint("openai")
 
-    def __init__(self, config=None, client=None):
+    def __init__(self, config=None, client=None, api_key=None):
         super().__init__(config)
         self._client = client
+        self._api_key = api_key or None                # a key saved in the AI settings; else the SDK reads the env
         self.client_injected = client is not None
 
     def complete(self, request):
         import openai
 
         try:
+            extra = {"api_key": self._api_key} if self._api_key else {}
             client = self._client or openai.OpenAI(
                 base_url=self.endpoint,  # pinned: OPENAI_BASE_URL never redirects a trusted adapter
-                timeout=self.config.timeout_seconds, max_retries=self.config.max_retries
+                timeout=self.config.timeout_seconds, max_retries=self.config.max_retries, **extra
             )
             self._client = client
             response = client.responses.create(

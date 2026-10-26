@@ -1,7 +1,11 @@
-"""Local MAT calibration API: synthetic development mode ONLY.
+"""MAT calibration API: synthetic data only, in one of two modes.
 
-Never expose this service beyond localhost. Its ephemeral bearer token is
-for developer exercise only, not organizational SSO or production authorization.
+* SYNTHETIC_LOCAL_DEV (default): loopback only, ephemeral developer bearer token.
+* HOSTED_SYNTHETIC_DEMO: served from a host (Vercel); sign-in through Supabase Auth, limited to the reviewers
+  listed in CDF_HOSTED_REVIEWERS (cdf_gco_crms.interfaces.hosted_auth); data in Postgres (CDF_DATABASE_URL).
+  The public-synthetic guards still apply: only SYN- cases, no institutional activation, no issuance.
+
+Neither mode is organizational SSO or production authorization.
 """
 from __future__ import annotations
 import hmac
@@ -19,10 +23,18 @@ from cdf_gco_crms.calibration.service import CalibrationService
 from cdf_gco_crms.calibration.analytics import analyze
 from cdf_gco_crms.calibration.store import CalibrationStore, ReviewerContext, CalibrationError, AccessDenied, StaleCase, StaleDecision
 
-if os.getenv("CDF_CALIBRATION_MODE") != "SYNTHETIC_LOCAL_DEV":
+MODE = os.getenv("CDF_CALIBRATION_MODE", "")
+if MODE not in ("SYNTHETIC_LOCAL_DEV", "HOSTED_SYNTHETIC_DEMO"):
     raise RuntimeError("CALIBRATION_API_NOT_AUTHORIZED: set CDF_CALIBRATION_MODE=SYNTHETIC_LOCAL_DEV for local synthetic data only")
+HOSTED = MODE == "HOSTED_SYNTHETIC_DEMO"
 TOKEN = os.getenv("CDF_CALIBRATION_DEV_TOKEN", "")
-if len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
+if HOSTED:
+    from cdf_gco_crms.interfaces import hosted_auth
+    if not os.getenv("CDF_DATABASE_URL") or not os.getenv("CDF_SUPABASE_URL"):
+        raise RuntimeError("HOSTED_MODE_REQUIRES_CDF_DATABASE_URL_AND_CDF_SUPABASE_URL")
+    VERIFIER = hosted_auth.SupabaseVerifier(os.environ["CDF_SUPABASE_URL"], hosted_auth.load_reviewers())
+    TOKEN = None          # no developer bearer is ever accepted by a hosted deployment
+elif len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
     raise RuntimeError("Set a random CDF_CALIBRATION_DEV_TOKEN of at least 32 characters")
 DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/public-demo/mat-calibration-dev.sqlite")).resolve()
 from cdf_gco_crms.institutional.contracts import activation_status
@@ -32,26 +44,44 @@ store = CalibrationStore(DB_PATH)
 bind_public_database(store)
 from cdf_gco_crms.execution.service import ApplicationService, Conflict
 from cdf_gco_crms.execution.contracts import Request as OperationRequest
-application = ApplicationService(store=store, token=TOKEN)
+application = ApplicationService(store=store, token=TOKEN if TOKEN else "")
+if HOSTED:
+    from cdf_gco_crms.interfaces.hosted_seed import seed_and_grant
+    seed_and_grant(DB_PATH, VERIFIER.reviewers)
 service = application.calibration
 intelligence = application.intelligence
 _DB_LOCK = application.lock
+from cdf_gco_crms.interfaces import hosted_documents
+# Uploaded Word/Excel files: only when the owner has declared uploads public (CDF_DOCUMENT_UPLOADS=PUBLIC).
+DOCUMENTS = hosted_documents.DocumentLibrary(store) if hosted_documents.uploads_enabled() else None
+from cdf_gco_crms.documents import review as document_review
+# Reviews of uploaded documents are queued here and run by the review worker (cdf_gco_crms.documents.worker).
+REVIEWS = document_review.ReviewQueue(store) if DOCUMENTS is not None else None
 app = FastAPI(title="MAT Calibration (SYNTHETIC LOCAL DEV ONLY)", version="0.1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
 
 @app.middleware("http")
 async def localhost_only(request: Request, call_next):
-    # Do NOT trust forwarded-for headers; reject non-loopback socket clients.
-    if not request.client or request.client.host not in ("127.0.0.1", "::1", "testclient"):
+    # Local mode: do NOT trust forwarded-for headers; reject non-loopback socket clients.
+    # Hosted mode: every data route needs a verified Supabase session instead (see principal()).
+    if not HOSTED and (not request.client or request.client.host not in ("127.0.0.1", "::1", "testclient")):
         return JSONResponse({"detail": "LOOPBACK_ONLY"}, status_code=403)
-    return await call_next(request)
+    response = await call_next(request)
+    if HOSTED:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def principal(authorization):
     if not authorization or not authorization.startswith('Bearer '):
-        raise HTTPException(401,'DEV_TOKEN_REQUIRED')
-    try:return application.authenticate(authorization[7:])
+        raise HTTPException(401,'SIGN_IN_REQUIRED' if HOSTED else 'DEV_TOKEN_REQUIRED')
+    try:
+        if HOSTED:
+            with _DB_LOCK:
+                return hosted_auth.authenticate(application, VERIFIER, authorization[7:])
+        return application.authenticate(authorization[7:])
     except AccessDenied as exc:raise HTTPException(403,str(exc)) from exc
 
 
@@ -116,7 +146,12 @@ def operating_mode():
 
 @app.get("/api/health")
 def health():
-    return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED"}
+    uploads = "PUBLIC" if DOCUMENTS is not None else "OFF"
+    if HOSTED:
+        return {"status": "HOSTED_SYNTHETIC_DEMO", "institutional_auth": "NOT_CONFIGURED",
+                "sign_in": "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_CASES_ONLY",
+                "document_uploads": uploads}
+    return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED", "document_uploads": uploads}
 
 
 @app.get("/api/cases")
@@ -264,6 +299,199 @@ def artifact_bytes(artifact_id: str,authorization: str | None=Header(default=Non
         'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'})
 
 
+def _documents(authorization):
+    if DOCUMENTS is None:
+        raise HTTPException(404, "DOCUMENT_UPLOADS_DISABLED")
+    reviewer = identity(authorization)
+    try:
+        reviewer.require("CALIBRATION_REVIEWER")
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    return reviewer.reviewer_id
+
+
+@app.get("/api/documents")
+def documents_list(authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return call(DOCUMENTS.list, owner)
+
+
+@app.post("/api/documents", status_code=201)
+async def documents_upload(request: Request, filename: str = Query(..., min_length=1, max_length=255),
+                           authorization: str | None = Header(default=None)):
+    from starlette.concurrency import run_in_threadpool
+
+    owner = await run_in_threadpool(_documents, authorization)
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > hosted_documents.MAX_BYTES:
+        raise HTTPException(413, "FILE_TOO_LARGE_MAX_4_MB")
+    body = bytearray()
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > hosted_documents.MAX_BYTES:
+            raise HTTPException(413, "FILE_TOO_LARGE_MAX_4_MB")
+    return await run_in_threadpool(call, DOCUMENTS.upload, owner, filename, bytes(body))
+
+
+@app.get("/api/documents/{document_id}")
+def documents_get(document_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return call(DOCUMENTS.get, owner, document_id)
+
+
+@app.get("/api/documents/{document_id}/content")
+def documents_content(document_id: str, authorization: str | None = Header(default=None)):
+    from urllib.parse import quote
+    from fastapi.responses import Response
+
+    owner = _documents(authorization)
+    meta, content = call(DOCUMENTS.content, owner, document_id)
+    ascii_name = "document." + meta["kind"]
+    return Response(content, media_type=hosted_documents.MEDIA[meta["kind"]], headers={
+        "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(meta['filename'])}",
+        "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
+
+
+@app.delete("/api/documents/{document_id}", status_code=204)
+def documents_delete(document_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    call(DOCUMENTS.delete, owner, document_id)
+
+
+@app.post("/api/documents/{document_id}/review", status_code=202)
+def documents_review(document_id: str, department: str | None = Query(default=None, max_length=120),
+                     authorization: str | None = Header(default=None)):
+    """Queue an AI review of an uploaded Word, PDF or Excel document (run by the review worker)."""
+    owner = _documents(authorization)
+    reviewer = identity(authorization)
+    document = call(DOCUMENTS.get, owner, document_id)
+    review = call(REVIEWS.queue, reviewer, document, department=department)
+    if os.getenv("CDF_REVIEW_RUNNER") == "inline" and not HOSTED:
+        # Local development and tests only: run the queued review in this process.
+        call(document_review.process_next, application, DOCUMENTS, REVIEWS, "inline")
+        review = call(REVIEWS.get, owner, review["review_id"])
+    return {**review, "worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER}
+
+
+# "website": the site runs a review inside the request that asks for it (up to the host's time limit) whenever no
+# review worker is online; "worker": only the review worker runs reviews.
+REVIEW_RUNNER = "website" if os.getenv("CDF_REVIEW_RUNNER") == "website" else "worker"
+
+
+@app.post("/api/document-reviews/{review_id}/run")
+def documents_review_run(review_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    if REVIEW_RUNNER != "website":
+        raise HTTPException(409, "REVIEW_RUNS_ON_THE_REVIEW_WORKER")
+    if call(REVIEWS.worker_seen):
+        return {**call(REVIEWS.get, owner, review_id), "worker_online": True, "runner": REVIEW_RUNNER}
+    try:
+        review = document_review.run_on_website(application, DOCUMENTS, REVIEWS, owner, review_id)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    return {**review, "worker_online": False, "runner": REVIEW_RUNNER}
+
+
+@app.get("/api/document-reviews")
+def documents_reviews(authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return {"worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER,
+            "latest": call(REVIEWS.latest_by_document, owner)}
+
+
+@app.get("/api/document-reviews/{review_id}")
+def documents_review_status(review_id: str, authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    return {**call(REVIEWS.get, owner, review_id), "worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER}
+
+
+# -- AI settings: which service reviews documents, its model and key (admins only; keys are write-only) ----------
+from cdf_gco_crms.interfaces.ai_settings import AISettings
+AI_SETTINGS = AISettings(store)
+
+
+class AIChoice(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    provider: str = Field(min_length=2, max_length=20)
+    model: str | None = Field(default=None, max_length=100)
+
+
+class AIModelName(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    model: str = Field(min_length=1, max_length=100)
+
+
+class AIKey(BaseModel):
+    # hide_input_in_errors: a rejected request never echoes the key back
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    key: str = Field(min_length=1, max_length=600)
+
+
+@app.get("/api/ai/settings")
+def ai_settings(authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.status, identity(authorization))
+
+
+@app.put("/api/ai/active")
+def ai_choose(body: AIChoice, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.choose, identity(authorization), body.provider, body.model)
+
+
+@app.put("/api/ai/providers/{provider}/model")
+def ai_model(provider: str, body: AIModelName, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.set_model, identity(authorization), provider, body.model)
+
+
+@app.put("/api/ai/providers/{provider}/key")
+def ai_key_save(provider: str, body: AIKey, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.save_key, identity(authorization), provider, body.key)
+
+
+@app.delete("/api/ai/providers/{provider}/key")
+def ai_key_clear(provider: str, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.clear_key, identity(authorization), provider)
+
+
+@app.post("/api/ai/providers/{provider}/models")
+def ai_find_models(provider: str, authorization: str | None = Header(default=None)):
+    """Which models does this key allow, and which of them answer? Runs outside the app lock (up to ~2.5 min)."""
+    reviewer = identity(authorization)
+    try:
+        return AI_SETTINGS.find_models(reviewer, provider)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/ai/providers/{provider}/test")
+def ai_test(provider: str, authorization: str | None = Header(default=None)):
+    """One tiny request with a fixed sample text. Runs outside the app lock: the service may take a while."""
+    reviewer = identity(authorization)
+    try:
+        return AI_SETTINGS.test(reviewer, provider)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/documents/{document_id}/actions/{action}")
+def documents_action(document_id: str, action: str, other: str | None = Query(default=None, max_length=40),
+                     authorization: str | None = Header(default=None)):
+    owner = _documents(authorization)
+    first, second = call(DOCUMENTS.prepare, owner, document_id, action, other)
+    try:
+        result, output = hosted_documents.run_action(action, first, second)   # engine work runs outside the lock
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("document action %s failed", action)
+        raise HTTPException(422, "DOCUMENT_ACTION_FAILED: " + type(exc).__name__) from exc
+    return call(DOCUMENTS.record, owner, document_id, action, result, output)
+
+
 # Phase II shares the same authenticated application, case grants and database.
 from cdf_gco_crms.copilot.service import CopilotService
 from cdf_gco_crms.copilot.contracts import Input as CopilotInput, Operation as CopilotOperation
@@ -276,6 +504,9 @@ from fastapi.exception_handlers import request_validation_exception_handler
 async def private_validation_errors(request,exc):
     if request.url.path.startswith('/api/copilot/'):
         return JSONResponse({'detail':'COPILOT_INPUT_VALIDATION_FAILED','fields':[list(error['loc']) for error in exc.errors()]},status_code=422)
+    if request.url.path.startswith('/api/ai/'):
+        # AI settings bodies can carry an API key: name the fields, never echo the input.
+        return JSONResponse({'detail':'AI_SETTINGS_INPUT_INVALID','fields':[list(error['loc']) for error in exc.errors()]},status_code=422)
     return await request_validation_exception_handler(request,exc)
 
 
