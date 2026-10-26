@@ -359,22 +359,6 @@ function App() {
             <span>GOVERNANCE INTELLIGENCE</span>
             <small>منظومة المراجعة والامتثال</small>
           </div>
-          {token && (
-            <a
-              className="masthead-settings"
-              href="#ai-settings"
-              onClick={(e) => {
-                e.preventDefault();
-                setData(null);
-                window.setTimeout(
-                  () => document.getElementById("ai-settings")?.scrollIntoView({ behavior: "smooth" }),
-                  60,
-                );
-              }}
-            >
-              <Settings size={16} /> الإعدادات
-            </a>
-          )}
           {!institutional && (
             <span className="environment-pill">
               <span />
@@ -426,6 +410,18 @@ function App() {
             >
               الاتصال وعرض القضايا <ArrowUpLeft size={16} />
             </button>
+            {!data && cases.length > 0 && (
+              <a
+                className="button ghost settings-shortcut"
+                href="#ai-settings"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("ai-settings")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <Settings size={16} /> الإعدادات
+              </a>
+            )}
             {data && (
               <div className="case-breadcrumb">
                 <FileCheck2 size={16} />
@@ -494,7 +490,7 @@ function App() {
                 />
               </Suspense>
             )}
-            {token && (
+            {token && cases.length > 0 && (
               <Suspense fallback={<p className="loading-state">جارٍ تحميل الإعدادات…</p>}>
                 <AISettings token={token} />
               </Suspense>

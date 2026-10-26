@@ -149,7 +149,7 @@ export default function AISettingsPanel({ token }: { token: string }) {
           const test = tests[p.id];
           return (
             <article key={p.id} className={"ai-provider" + (p.active ? " ai-provider-active" : "")}>
-              <header>
+              <div className="ai-provider-head">
                 <h3>{p.label}</h3>
                 {p.active ? (
                   <span className="ai-badge">
@@ -174,7 +174,7 @@ export default function AISettingsPanel({ token }: { token: string }) {
                     استخدامها في المراجعة
                   </button>
                 )}
-              </header>
+              </div>
               {p.note === "PROCESSED_IN_CHINA" && (
                 <p className="ai-note">تعالج DeepSeek الطلبات على خوادم في الصين.</p>
               )}

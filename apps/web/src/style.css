@@ -1777,9 +1777,7 @@ th {
 @media (max-width: 640px) { .document-children { margin-inline-start: 8px; padding-inline-start: 8px; } }
 
 /* AI settings */
-.masthead-settings { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 13px; font-weight: 600;
-  text-decoration: none; padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; }
-.masthead-settings:hover, .masthead-settings:focus-visible { background: rgba(255, 255, 255, 0.12); }
+.settings-shortcut { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .ai-settings { padding: 28px 30px; max-width: 1100px; margin: 0 auto 30px; }
 .ai-settings h2 { font-size: 24px; margin: 6px 0 4px; }
 .ai-settings .eyebrow { display: inline-flex; align-items: center; gap: 6px; }
@@ -1787,7 +1785,7 @@ th {
 .ai-provider { border: 1px solid var(--line, #e3e6ea); border-radius: 14px; padding: 16px; display: grid; gap: 10px;
   background: rgba(255, 255, 255, 0.6); }
 .ai-provider-active { border-color: #2f7d5b; box-shadow: 0 0 0 2px rgba(47, 125, 91, 0.15); }
-.ai-provider header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ai-provider-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .ai-provider h3 { font-size: 17px; margin: 0; }
 .ai-badge { font-size: 12px; font-weight: 600; color: #1f5e43; background: #e5f3ec; border-radius: 999px; padding: 4px 10px; }
 .ai-field { display: grid; gap: 6px; font-size: 12px; font-weight: 600; }
