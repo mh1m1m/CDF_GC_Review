@@ -187,7 +187,8 @@ def test_failed_provider_is_recorded(api, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
     document = upload(client, "memo.pdf", memo_pdf())
     done = review(client, document["document_id"])
-    assert done["status"] == "FAILED" and done["error"] == "ProviderFailure" and not done["case_id"]
+    assert done["status"] == "FAILED" and not done["case_id"]
+    assert done["error"].startswith("ProviderFailure: CREDENTIAL_UNAVAILABLE")
 
 
 def test_provider_carries_data_authorization(monkeypatch):

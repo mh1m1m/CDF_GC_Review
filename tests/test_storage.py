@@ -61,3 +61,49 @@ def test_postgres_semantics_match_sqlite(tmp_path):
     db.rollback()
     assert storage.table_exists(db, "k") and not storage.table_exists(db, "missing") and storage.integrity_ok(db)
     db.close()
+
+
+@pytest.mark.skipif(not os.getenv("CDF_DATABASE_URL"), reason="needs CDF_DATABASE_URL (PostgreSQL)")
+def test_a_transaction_belongs_to_the_thread_that_opened_it(tmp_path):
+    """The website runner writes from a long request while the page polls from another thread on the same
+    connection. A second thread must wait for the first one's transaction, never run inside it (the live failure
+    was "SAVEPOINT can only be used in transaction blocks" once the first thread committed)."""
+    import threading
+    import time
+
+    from cdf_gco_crms.calibration.store import CalibrationStore
+
+    store = CalibrationStore(tmp_path / "threads.sqlite")
+    store.db.executescript("CREATE TABLE IF NOT EXISTS tx_probe (id INTEGER PRIMARY KEY, who TEXT NOT NULL);")
+    entered, release, errors, order = threading.Event(), threading.Event(), [], []
+
+    def long_writer():
+        try:
+            with store.transaction():
+                store.db.execute("INSERT INTO tx_probe (who) VALUES (?)", ("runner",))
+                entered.set()
+                release.wait(5)
+                order.append("runner-commit")
+        except Exception as exc:          # pragma: no cover - the failure being guarded
+            errors.append(exc)
+
+    def poller():
+        try:
+            entered.wait(5)
+            assert not store.db.in_transaction, "another thread's transaction is not this thread's"
+            with store.transaction():
+                order.append("poller-in")
+                store.db.execute("INSERT INTO tx_probe (who) VALUES (?)", ("poller",))
+            assert store.db.execute("SELECT COUNT(*) AS n FROM tx_probe").fetchone()["n"] == 2
+        except Exception as exc:          # pragma: no cover
+            errors.append(exc)
+
+    first, second = threading.Thread(target=long_writer), threading.Thread(target=poller)
+    first.start(); second.start()
+    entered.wait(5); time.sleep(0.2)
+    assert order == [], "the poller waited for the runner's transaction"
+    release.set()
+    first.join(10); second.join(10)
+    assert not errors, errors
+    assert order == ["runner-commit", "poller-in"]
+    assert not store.db.in_transaction

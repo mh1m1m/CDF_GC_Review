@@ -96,9 +96,19 @@ def test_key_under_an_owner_chosen_name(monkeypatch):
     monkeypatch.setenv("OTHER_SECRET", "postgresql://user:pw@host/db")
     monkeypatch.setenv("CDF_MISTRAL_KEY_VAR", "OTHER_SECRET")
     assert M.mistral_credential() is None                     # not the shape of a Mistral key: never sent
+    monkeypatch.setenv("OTHER_SECRET", "sk-ant-" + "x" * 30)
+    assert M.mistral_credential() is None                     # another provider's key is never sent to Mistral
     monkeypatch.setenv("Owner_Mistral", "A" * 32)
     monkeypatch.setenv("CDF_MISTRAL_KEY_VAR", "Owner_Mistral")
     assert M.mistral_credential() == "A" * 32
+    # as pasted into a settings form: surrounding spaces, quotes, a "Bearer " prefix, a trailing newline
+    for pasted in ("  " + "B" * 32 + "\n", '"' + "B" * 32 + '"', "Bearer " + "B" * 32, "'" + "B" * 32 + "'"):
+        monkeypatch.setenv("MISTRAL_API_KEY", pasted)
+        assert M.mistral_credential() == "B" * 32
+    monkeypatch.setenv("MISTRAL_API_KEY", "Ab1-_.xyz" * 4)       # newer key formats with punctuation
+    assert M.mistral_credential() == "Ab1-_.xyz" * 4
+    monkeypatch.setenv("MISTRAL_API_KEY", "two words " * 4)
+    assert M.mistral_credential() is None
 
 
 def test_provenance_and_executor_selection(monkeypatch):

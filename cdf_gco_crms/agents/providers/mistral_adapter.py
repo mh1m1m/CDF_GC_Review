@@ -26,7 +26,10 @@ DEFAULT_MISTRAL_MODEL = "mistral-large-latest"
 MAX_RATE_LIMIT_WAITS = 4
 MAX_RATE_LIMIT_WAIT = 20.0
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
-_KEY_SHAPE = re.compile(r"^[A-Za-z0-9]{24,128}$")
+# A key is one token of printable ASCII. Pasting often adds quotes, spaces or a "Bearer " prefix: those are removed.
+_KEY_SHAPE = re.compile(r"^[!-~]{16,256}$")
+# Under an owner-chosen variable name, values that are plainly another kind of secret are never sent.
+_OTHER_SECRET_MARKS = ("://", "@", "sk-ant-", "sb_", "eyJ")
 _REQUEST_ID_HEADERS = ("x-request-id", "mistral-correlation-id", "x-kong-request-id")
 _REASONS = (
     ("CREDIT_BALANCE_TOO_LOW", ("credit", "insufficient")),
@@ -38,13 +41,25 @@ _REASONS = (
 )
 
 
+def _clean(value: str) -> str:
+    value = (value or "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+        value = value[1:-1].strip()
+    if value.lower().startswith("bearer "):
+        value = value[7:].strip()
+    return value
+
+
 def mistral_credential() -> str | None:
     """The Mistral API key from the environment, or None. Never logged or returned anywhere else."""
-    value = (os.getenv("MISTRAL_API_KEY") or "").strip()
+    value = _clean(os.getenv("MISTRAL_API_KEY") or "")
     if not value:
         name = (os.getenv("CDF_MISTRAL_KEY_VAR") or "").strip()
-        if name and _ENV_NAME.match(name):
-            value = (os.getenv(name) or "").strip()
+        if not name or not _ENV_NAME.match(name):
+            return None
+        value = _clean(os.getenv(name) or "")
+        if any(mark in value for mark in _OTHER_SECRET_MARKS):
+            return None
     return value if _KEY_SHAPE.match(value) else None
 
 

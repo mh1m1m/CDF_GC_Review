@@ -532,6 +532,13 @@ def _run_claimed(application, library, queue: ReviewQueue, row, *, deadline: flo
         queue.finish(row["review_id"], "DONE", detail, case_id=detail.get("case_id"))
     except Exception as exc:                                     # recorded for the reviewer, then the next job
         LOG.exception("review %s failed", row["review_id"])
-        code = str(exc) if isinstance(exc, (CalibrationError, AccessDenied)) else type(exc).__name__
+        from ..agents.providers.base import ProviderFailure
+
+        if isinstance(exc, (CalibrationError, AccessDenied)):
+            code = str(exc)
+        elif isinstance(exc, ProviderFailure):              # adapter messages carry fixed reason codes, no API text
+            code = f"ProviderFailure: {exc.kind}: {exc}"
+        else:
+            code = type(exc).__name__
         queue.finish(row["review_id"], "FAILED", {"review_id": row["review_id"]}, error=code[:500])
     return queue.get(row["owner_id"], row["review_id"])

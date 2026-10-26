@@ -7,6 +7,8 @@ connection that offers the small part of the ``sqlite3`` API the engine uses, wi
 * a DML statement outside a transaction opens one, and ``commit()`` ends it (the ``sqlite3`` module's default);
 * ``BEGIN IMMEDIATE`` takes a per-schema advisory lock, so writers are serialised as in SQLite;
 * a failed statement inside a transaction rolls back to its own savepoint and leaves the transaction usable;
+* one connection is shared by the threads of a process, but a transaction belongs to the thread that opened it:
+  any other thread waits until it ends, instead of running inside it (``in_transaction`` is per thread);
 * integrity failures raise ``sqlite3.IntegrityError`` and other failures ``sqlite3.OperationalError``;
 * DDL is translated (``AUTOINCREMENT``, ``REAL``, ``BLOB``, triggers) and run under a lock, so concurrent cold
   starts cannot race on ``CREATE ... IF NOT EXISTS``.
@@ -232,6 +234,10 @@ class PgConnection:
         # prepare_threshold=None: safe behind a connection pooler.
         self._conn = psycopg.connect(url, autocommit=True, prepare_threshold=None)
         self._tx = False
+        self._tx_owner: int | None = None
+        # Held by the thread that opened the current transaction until it commits or rolls back; every other
+        # thread takes it before using the connection, so it waits instead of joining someone else's transaction.
+        self._tx_lock = threading.RLock()
         self._triggers: dict[str, str] = {}
         self._mutex = threading.RLock()
         self.row_factory = None          # accepted for compatibility; rows always support name and index access
@@ -248,18 +254,33 @@ class PgConnection:
         return cur
 
     def _begin(self, *, lock=True):
-        self._raw("BEGIN")
+        self._tx_lock.acquire()                    # released by _end(); callers already hold it once
+        try:
+            self._raw("BEGIN")
+        except BaseException:
+            self._tx_lock.release()
+            raise
         self._tx = True
+        self._tx_owner = threading.get_ident()
         if lock:
             self._raw("SELECT pg_advisory_xact_lock(%s)", (self._lock_key,))
 
+    def _end(self, statement: str):
+        self._tx = False
+        self._tx_owner = None
+        try:
+            self._raw(statement)
+        finally:
+            self._tx_lock.release()
+
     @property
     def in_transaction(self) -> bool:
-        return self._tx
+        """True only for the thread whose transaction is open."""
+        return self._tx and self._tx_owner == threading.get_ident()
 
     # -- sqlite3 API
     def execute(self, sql, params=()):
-        with self._mutex:
+        with self._tx_lock, self._mutex:
             stripped = sql.strip().rstrip(";").strip()
             upper = stripped.upper()
             if upper.startswith("PRAGMA"):
@@ -311,7 +332,7 @@ class PgConnection:
             self.execute(sql, params)
 
     def executescript(self, script):
-        with self._mutex:
+        with self._tx_lock, self._mutex:
             if self._tx:
                 self.commit()
             statements = _ddl(script, self._triggers)
@@ -326,19 +347,17 @@ class PgConnection:
                 raise _sqlite_error(exc) from exc
 
     def commit(self):
-        with self._mutex:
+        with self._tx_lock, self._mutex:
             if self._tx:
-                self._tx = False
                 try:
-                    self._raw("COMMIT")
+                    self._end("COMMIT")
                 except self._psycopg.Error as exc:
                     raise _sqlite_error(exc) from exc
 
     def rollback(self):
-        with self._mutex:
+        with self._tx_lock, self._mutex:
             if self._tx:
-                self._tx = False
-                self._raw("ROLLBACK")
+                self._end("ROLLBACK")
 
     def close(self):
         with self._mutex:
