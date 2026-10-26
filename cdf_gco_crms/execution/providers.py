@@ -78,6 +78,20 @@ def select_executor(executor, *, timeout):
                 provider="openai", model=model, timeout_seconds=timeout, max_retries=0
             )
         )
+    if executor == "mistral":
+        from ..agents.providers.mistral_adapter import DEFAULT_MISTRAL_MODEL, MistralAdapter, mistral_credential
+
+        if not mistral_credential():
+            raise ProviderFailure("Mistral API credential unavailable", kind="CREDENTIAL_UNAVAILABLE")
+        return MistralAdapter(
+            ProviderConfig(
+                provider="mistral",
+                model=os.getenv("CDF_MISTRAL_MODEL") or DEFAULT_MISTRAL_MODEL,
+                timeout_seconds=timeout,
+                max_retries=int(os.getenv("CDF_AI_MAX_RETRIES", "0") or 0),
+                data_authorization=os.getenv("CDF_AI_DATA_AUTHORIZATION") or DATA_SYNTHETIC_ONLY,
+            )
+        )
     if executor == "anthropic":
         from ..agents.providers.anthropic_adapter import AnthropicAdapter
 
@@ -99,6 +113,12 @@ def select_executor(executor, *, timeout):
     raise ProviderFailure("Unsupported executor", kind="UNSUPPORTED_EXECUTOR")
 
 
+def _mistral_configured():
+    from ..agents.providers.mistral_adapter import mistral_credential
+
+    return mistral_credential() is not None
+
+
 def readiness():
     return {
         "codex-cli": {
@@ -111,6 +131,10 @@ def readiness():
         },
         "openai": {
             "credential_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "policy_enabled": os.getenv("CDF_ENABLE_PROVIDER_API") == "1",
+        },
+        "mistral": {
+            "credential_configured": _mistral_configured(),
             "policy_enabled": os.getenv("CDF_ENABLE_PROVIDER_API") == "1",
         },
         "anthropic": {

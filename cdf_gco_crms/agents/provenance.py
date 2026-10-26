@@ -44,6 +44,8 @@ TRUSTED_LIVE_SOURCES = (SOURCE_PROVIDER_API,)
 LIVE_PROVIDERS = {
     "anthropic": {"endpoint": "https://api.anthropic.com", "invocation_prefix": "msg_"},
     "openai": {"endpoint": "https://api.openai.com/v1", "invocation_prefix": "resp_"},
+    # Mistral completion ids carry no fixed prefix: any non-empty id the server returned is accepted.
+    "mistral": {"endpoint": "https://api.mistral.ai/v1", "invocation_prefix": ""},
 }
 
 
@@ -55,8 +57,9 @@ def trusted_live_adapter_types() -> tuple[type, ...]:
     """The adapter classes whose responses are provider-originated. Exact class match only: a subclass that
     overrides ``complete`` is not the registered adapter."""
     from .providers.anthropic_adapter import AnthropicAdapter
+    from .providers.mistral_adapter import MistralAdapter
     from .providers.openai_adapter import OpenAIAdapter
-    return (AnthropicAdapter,OpenAIAdapter)
+    return (AnthropicAdapter, OpenAIAdapter, MistralAdapter)
 
 
 def classify_adapter(adapter) -> str:

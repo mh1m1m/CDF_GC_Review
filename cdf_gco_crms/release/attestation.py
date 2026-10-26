@@ -38,7 +38,7 @@ DEFAULT_VALID_HOURS = 72
 CHALLENGE_ROLES = ("BLACK_TEAM", "RED_ADVOCATE", "ADJUDICATOR")
 FINAL_ROLE = "FINAL_REVIEWER"
 KNOWN_LIVE_PROVIDERS = tuple(PV.LIVE_PROVIDERS)                       # same list provenance trusts
-LIVE_INVOCATION_PREFIXES = tuple(p["invocation_prefix"] for p in PV.LIVE_PROVIDERS.values())
+LIVE_INVOCATION_PREFIXES = tuple(p["invocation_prefix"] for p in PV.LIVE_PROVIDERS.values() if p["invocation_prefix"])
 EMPTY_RESPONSE_HASH = hashlib.sha256(b"").hexdigest()
 
 # receipt / independence reasons
@@ -136,7 +136,7 @@ def receipt_problems(record: dict | None, *, role: str, response_hash: str | Non
         out.append(R_RECEIPT_PROVIDER)
     inv = str(record.get("Invocation_ID") or "")
     prefix = PV.LIVE_PROVIDERS.get(provider, {}).get("invocation_prefix")
-    if not inv or not prefix or not inv.startswith(prefix):
+    if not inv or prefix is None or not inv.startswith(prefix):
         out.append(R_RECEIPT_INVOCATION)
     endpoint = record.get("Provider_Endpoint")
     if endpoint is not None and provider in PV.LIVE_PROVIDERS and endpoint != PV.official_endpoint(provider):

@@ -77,6 +77,9 @@ checks there. One worker handles one review at a time; run two for two parallel 
 | `CDF_AI_DATA_AUTHORIZATION` | `INSTITUTIONAL_AUTHORIZED:<reference>`, your recorded permission for uploaded documents to go to Claude (see below) |
 | `CDF_SITE_IDENTITY` | `CDF`: the exported tracker and dashboard carry the CDF wordmark |
 | `CDF_AI_MODEL` | Optional. The engine's default model is used when unset |
+| `CDF_REVIEW_EXECUTOR` | Optional: `anthropic` (default) or `mistral`, the AI service that reviews documents |
+| `MISTRAL_API_KEY` | With `CDF_REVIEW_EXECUTOR=mistral`: your Mistral API key (console.mistral.ai). Stored under another name? Put that name in `CDF_MISTRAL_KEY_VAR` |
+| `CDF_MISTRAL_MODEL` | Optional, default `mistral-large-latest` |
 | `CDF_AI_TIMEOUT_SECONDS` | Optional, default `180` |
 | `CDF_AI_EFFORT` | Optional: `low`, `medium`, `high`, `xhigh` or `max`. Unset uses the model's default |
 | `CDF_AI_MIN_MAX_TOKENS` | Optional, default `16000`. Current models think before answering, and thinking counts against this budget |
@@ -91,6 +94,11 @@ alter role cdf_app with password '<new strong password>';
 
 Then put the URL above, with that password, in both Vercel (`CDF_DATABASE_URL`, then redeploy) and the worker.
 This also completes the pending password rotation.
+
+**Mistral.** With `CDF_REVIEW_EXECUTOR=mistral` every agent runs on Mistral's chat completions with the role
+schema as a strict JSON response format. On Mistral's free plan, requests may be used to train Mistral's models
+unless the training toggle is turned off in the Mistral console (Admin → Privacy); the free plan also has low
+rate limits, so the adapter waits briefly when told to slow down.
 
 **Data authorisation.** The engine refuses to send any non-sample document to a model provider unless
 `CDF_AI_DATA_AUTHORIZATION` names an authorisation. Uploaded content keeps its true label (`INSTITUTIONAL_CONTENT`)
