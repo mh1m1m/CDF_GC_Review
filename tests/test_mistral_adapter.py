@@ -146,3 +146,14 @@ def test_provenance_and_executor_selection(monkeypatch):
     with pytest.raises(ProviderFailure) as error:
         select_executor("mistral", timeout=5)
     assert error.value.kind == "CREDENTIAL_UNAVAILABLE"
+
+
+def test_quickstart_errors_401_402_429(monkeypatch):
+    """Mistral's quickstart lists 401 (key wrong or missing), 402 (no payment method) and 429 (rate limit)."""
+    monkeypatch.setattr(M.time, "sleep", lambda s: None)
+    for status, kind in ((401, "AUTHENTICATION"), (402, "BILLING"), (429, "RATE_LIMIT")):
+        def transport(body, status=status):
+            return status, b'{"message": "x"}', {}
+        with pytest.raises(ProviderFailure) as error:
+            M.MistralAdapter(transport=transport).complete(_request())
+        assert error.value.kind == kind
