@@ -1800,3 +1800,9 @@ th {
 .ai-test-ok { color: #1f5e43; }
 .ai-test-failed { color: #8e3e29; }
 @media (max-width: 640px) { .ai-settings { padding: 20px 16px; } .ai-row { flex-wrap: wrap; } }
+.ai-found { border-top: 1px dashed var(--line, #e3e6ea); padding-top: 8px; font-size: 12px; }
+.ai-found-head { margin: 0 0 6px; color: var(--muted); }
+.ai-found ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ai-found li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ai-found li small { color: var(--muted); }
+.ai-found li .button { padding: 4px 10px; font-size: 12px; }

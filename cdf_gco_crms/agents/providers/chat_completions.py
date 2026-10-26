@@ -131,6 +131,44 @@ class ChatCompletionsAdapter(ProviderAdapter):
                 raise ProviderFailure("request timed out", retryable=True, kind="TIMEOUT") from exc
             raise ProviderFailure("connection error", retryable=True, kind="CONNECTION") from exc
 
+    def list_models(self) -> list[dict]:
+        """The models this key may use, from ``GET {endpoint}/models``: [{id, chat, deprecated}] where ``chat`` is
+        the service's own completion_chat flag when it reports one (Mistral), else None."""
+        if self._transport is not None:
+            status, raw, headers = self._transport({"__list_models__": True})
+        else:
+            key = self.credential()
+            if not key:
+                raise ProviderFailure(f"no {self.name} credential", kind="AUTHENTICATION")
+            request = urllib.request.Request(  # nosec B310
+                self.endpoint + "/models", method="GET",
+                headers={"Authorization": f"Bearer {key}", "Accept": "application/json"})
+            try:
+                with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:  # nosec B310
+                    status, raw, headers = response.status, response.read(), dict(response.headers.items())
+            except urllib.error.HTTPError as exc:
+                status, raw, headers = exc.code, exc.read() or b"", dict(exc.headers.items()) if exc.headers else {}
+            except (TimeoutError, urllib.error.URLError) as exc:
+                raise ProviderFailure("connection error", retryable=True, kind="CONNECTION") from exc
+        if status in (401, 403):
+            raise ProviderFailure(f"authentication failed {reason(status, raw, headers)}",
+                                  kind="AUTHENTICATION" if status == 401 else "PERMISSION")
+        if status != 200:
+            raise ProviderFailure(f"API error {reason(status, raw, headers)}", kind="API_STATUS")
+        try:
+            data = json.loads(raw.decode("utf-8")).get("data") or []
+        except (ValueError, AttributeError) as exc:
+            raise ProviderFailure("unreadable model list", kind="INCOMPLETE") from exc
+        out = []
+        for item in data:
+            if not isinstance(item, dict) or not item.get("id"):
+                continue
+            caps = item.get("capabilities") if isinstance(item.get("capabilities"), dict) else None
+            out.append({"id": str(item["id"])[:100],
+                        "chat": None if caps is None else bool(caps.get("completion_chat")),
+                        "deprecated": bool(item.get("deprecation"))})
+        return out
+
     def _body(self, request: AgentRequest) -> dict:
         system = request.system
         if self.schema_mode == "json_schema":

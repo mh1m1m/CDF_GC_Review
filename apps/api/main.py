@@ -452,6 +452,18 @@ def ai_key_clear(provider: str, authorization: str | None = Header(default=None)
     return call(AI_SETTINGS.clear_key, identity(authorization), provider)
 
 
+@app.post("/api/ai/providers/{provider}/models")
+def ai_find_models(provider: str, authorization: str | None = Header(default=None)):
+    """Which models does this key allow, and which of them answer? Runs outside the app lock (up to ~2.5 min)."""
+    reviewer = identity(authorization)
+    try:
+        return AI_SETTINGS.find_models(reviewer, provider)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @app.post("/api/ai/providers/{provider}/test")
 def ai_test(provider: str, authorization: str | None = Header(default=None)):
     """One tiny request with a fixed sample text. Runs outside the app lock: the service may take a while."""

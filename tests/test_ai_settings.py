@@ -140,3 +140,57 @@ def test_api_round_trip_never_returns_the_key(tmp_path, monkeypatch):
     finally:
         module.store.close()
         sys.modules.pop("apps.api.main", None)
+
+
+def test_find_models_lists_chat_models_and_tries_each(settings, monkeypatch):
+    """A Mistral key on a plan without Large: the list comes from GET /models, non-chat models (OCR,
+    embeddings) and dated duplicates are skipped, and each remaining model is tried with the fixed sample."""
+    from cdf_gco_crms.agents.providers import chat_completions as C
+    import cdf_gco_crms.interfaces.ai_settings as module
+
+    monkeypatch.setattr(module.time, "sleep", lambda s: None)
+    listing = {"data": [
+        {"id": "mistral-large-latest", "capabilities": {"completion_chat": True}},
+        {"id": "mistral-large-2411", "capabilities": {"completion_chat": True}},
+        {"id": "mistral-small-latest", "capabilities": {"completion_chat": True}},
+        {"id": "mistral-ocr-latest", "capabilities": {"completion_chat": False, "ocr": True}},
+        {"id": "mistral-embed", "capabilities": {"completion_chat": False}},
+        {"id": "open-mistral-7b", "capabilities": {"completion_chat": True}, "deprecation": "2025-03-30"},
+    ]}
+
+    def models(self):
+        return [
+            {"id": m["id"], "chat": m["capabilities"].get("completion_chat"), "deprecated": bool(m.get("deprecation"))}
+            for m in listing["data"]]
+
+    def post(self, body):
+        if body["model"] == "mistral-large-latest":
+            return 403, b'{"message": "upgrade your plan"}', {}
+        return 200, json.dumps({"id": "c1", "model": body["model"], "usage": {},
+                                "choices": [{"message": {"content": '{"ok": true}'},
+                                             "finish_reason": "stop"}]}).encode(), {}
+
+    monkeypatch.setattr(C.ChatCompletionsAdapter, "list_models", models)
+    monkeypatch.setattr(C.ChatCompletionsAdapter, "_post", post)
+    settings.save_key(ADMIN, "mistral", KEY)
+    found = settings.find_models(ADMIN, "mistral")
+    tried = {r["model"]: r for r in found["results"]}
+    assert set(tried) == {"mistral-large-latest", "mistral-small-latest"} and found["listed"] == 6
+    assert not tried["mistral-large-latest"]["ok"] and "[BILLING]" in tried["mistral-large-latest"]["error"]
+    assert tried["mistral-small-latest"]["ok"]
+    with pytest.raises(AccessDenied):
+        settings.find_models(REVIEWER, "mistral")
+
+
+def test_list_models_reads_the_api_format():
+    from cdf_gco_crms.agents.providers.mistral_adapter import MistralAdapter
+
+    def transport(body):
+        assert body == {"__list_models__": True}
+        return 200, json.dumps({"object": "list", "data": [
+            {"id": "mistral-small-latest", "capabilities": {"completion_chat": True}},
+            {"id": "mistral-ocr-latest", "capabilities": {"completion_chat": False}}]}).encode(), {}
+
+    assert MistralAdapter(transport=transport).list_models() == [
+        {"id": "mistral-small-latest", "chat": True, "deprecated": False},
+        {"id": "mistral-ocr-latest", "chat": False, "deprecated": False}]

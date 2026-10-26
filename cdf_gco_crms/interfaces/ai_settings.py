@@ -264,6 +264,69 @@ class AISettings:
         key, _ = self.key(provider)
         return build_adapter(provider, self.model(provider), key, timeout=timeout)
 
+    _NOT_CHAT = ("embed", "ocr", "moderation", "transcri", "voxtral", "tts", "image", "audio", "whisper", "guard",
+                 "realtime", "search")
+    _PREFERRED = ("large", "medium", "small", "magistral", "ministral", "nemo", "mixtral", "pixtral", "codestral",
+                  "devstral", "chat", "reasoner", "grok", "gpt", "claude")
+
+    def _candidates(self, provider: str, adapter) -> tuple[list[str], int]:
+        if hasattr(adapter, "list_models"):
+            listed = adapter.list_models()
+            ids = [m["id"] for m in listed if m["chat"] is not False and not m["deprecated"]
+                   and not any(word in m["id"].lower() for word in self._NOT_CHAT)]
+        else:                                     # Claude / ChatGPT: the suggestions shipped with the site
+            listed = PROVIDERS[provider]["models"]
+            ids = list(listed)
+        latest = [i for i in ids if i.endswith("-latest")]
+        ids = latest or ids                       # Mistral lists dated versions and their "-latest" aliases
+        rank = {word: n for n, word in enumerate(self._PREFERRED)}
+
+        def order(model_id):
+            hits = [rank[w] for w in self._PREFERRED if w in model_id.lower()]
+            return (min(hits) if hits else len(rank), model_id)
+
+        return sorted(dict.fromkeys(ids), key=order), len(listed)
+
+    def find_models(self, reviewer, provider: str, *, limit: int = 8, budget_seconds: float = 150.0) -> dict:
+        """Ask the service which models this key may use, then try each chat model with the same fixed sample
+        as the connection test (strict JSON output included), until ``limit`` models or the time budget."""
+        reviewer.require(ADMIN)
+        provider = self._provider(provider)
+        key, _ = self.key(provider)
+        started = time.monotonic()
+        try:
+            candidates, listed = self._candidates(provider, build_adapter(provider, self.model(provider), key,
+                                                                          timeout=30))
+        except ProviderFailure as exc:
+            return {"provider": provider, "listed": 0, "results": [], "error": f"{exc.kind}: {exc}"}
+        results = []
+        for model in candidates[:limit]:
+            if time.monotonic() - started > budget_seconds:
+                break
+            if results:
+                time.sleep(1.2)                   # free plans allow about one request per second
+            results.append({"model": model, **self._probe(provider, model, key)})
+        with self.store.transaction():
+            self._log(reviewer.reviewer_id, "FIND_MODELS", provider,
+                      {"listed": listed, "tried": [(r["model"], r["ok"]) for r in results]})
+        return {"provider": provider, "listed": listed, "results": results, "error": None}
+
+    def _probe(self, provider: str, model: str, key: str | None) -> dict:
+        started = time.monotonic()
+        try:
+            result = build_adapter(provider, model, key, timeout=40).complete(SimpleNamespace(
+                role="CONNECTION_TEST", model=None, max_tokens=256,
+                system="You check that an API connection works. Reply with JSON only.",
+                user_text='Reply with {"ok": true}.',
+                schema={"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]}))
+            ok = json.loads(result.text or "{}").get("ok") is True
+            error = None if ok else "UNEXPECTED_REPLY"
+        except ProviderFailure as exc:
+            ok, error = False, f"{exc.kind}: {exc}"
+        except ValueError:
+            ok, error = False, "UNEXPECTED_REPLY"
+        return {"ok": ok, "error": error, "latency_ms": int((time.monotonic() - started) * 1000)}
+
     def test(self, reviewer, provider: str) -> dict:
         """One tiny request to ``provider`` with a fixed sample text (no documents): does the key work?"""
         reviewer.require(ADMIN)

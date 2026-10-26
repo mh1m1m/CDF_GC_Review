@@ -2,7 +2,7 @@
 // A key typed here goes to the server once and is never shown again: the page only learns where a key comes from
 // (saved here, the server's environment, or none) and its last four characters.
 import { useEffect, useState } from "react";
-import { CheckCircle2, KeyRound, PlugZap, Settings, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, KeyRound, PlugZap, Search, Settings, Trash2, XCircle } from "lucide-react";
 
 type KeyState = { source: "saved" | "environment" | "none"; hint: string | null; saved_at: string | null };
 type Provider = {
@@ -25,6 +25,11 @@ type State = {
   providers: Provider[];
 };
 type TestResult = { ok: boolean; model: string | null; error: string | null; latency_ms: number };
+type Found = {
+  listed: number;
+  error: string | null;
+  results: Array<{ model: string; ok: boolean; error: string | null; latency_ms: number }>;
+};
 
 const ERRORS: Record<string, string> = {
   CALIBRATION_ADMIN: "إعدادات الذكاء الاصطناعي متاحة لمسؤول المنظومة فقط.",
@@ -41,6 +46,7 @@ const TEST_ERRORS: Record<string, string> = {
   AUTHENTICATION: "رفضت الخدمة المفتاح. تحقق من نسخه كاملاً.",
   PERMISSION: "المفتاح لا يملك صلاحية هذا النموذج.",
   NOT_FOUND: "اسم النموذج غير متاح لهذا الحساب.",
+  "[MODEL_REJECTED]": "رفضت الخدمة اسم النموذج: إما غير متاح لهذا الحساب أو ليس نموذج محادثة (مثل نماذج OCR). استخدم «البحث عن نموذج يعمل».",
   RATE_LIMIT: "تجاوزت حد الطلبات مؤقتاً؛ أعد المحاولة بعد قليل.",
   CREDIT_BALANCE_TOO_LOW: "رصيد الحساب لا يكفي.",
   BILLING: "رفضت الخدمة الطلب لسبب يتعلق بالفوترة أو الخطة.",
@@ -64,6 +70,7 @@ export default function AISettingsPanel({ token }: { token: string }) {
     [keys, setKeys] = useState<Record<string, string>>({}),
     [models, setModels] = useState<Record<string, string>>({}),
     [tests, setTests] = useState<Record<string, TestResult>>({}),
+    [found, setFound] = useState<Record<string, Found>>({}),
     [notice, setNotice] = useState("");
 
   async function request(path: string, init: RequestInit = {}) {
@@ -270,6 +277,19 @@ export default function AISettingsPanel({ token }: { token: string }) {
                 >
                   <PlugZap size={15} /> {busy === "test-" + p.id ? "جارٍ الاختبار…" : "اختبار الاتصال"}
                 </button>
+                <button
+                  className="button ghost"
+                  disabled={Boolean(busy) || p.key.source === "none"}
+                  onClick={() =>
+                    void act("find-" + p.id, async () => {
+                      const result: Found = await request(`/api/ai/providers/${p.id}/models`, { method: "POST" });
+                      setFound((f) => ({ ...f, [p.id]: result }));
+                    })
+                  }
+                >
+                  <Search size={15} />{" "}
+                  {busy === "find-" + p.id ? "جارٍ تجربة النماذج… (حتى دقيقتين)" : "البحث عن نموذج يعمل"}
+                </button>
                 {p.key.source === "saved" && (
                   <button
                     className="button ghost"
@@ -293,6 +313,48 @@ export default function AISettingsPanel({ token }: { token: string }) {
                     ? `يعمل · ${test.model ?? ""} · ${(test.latency_ms / 1000).toFixed(1)} ث`
                     : explain(test.error ?? "", TEST_ERRORS)}
                 </p>
+              )}
+              {found[p.id] && (
+                <div className="ai-found" role="status">
+                  {found[p.id].error ? (
+                    <p className="ai-test ai-test-failed">{explain(found[p.id].error ?? "", TEST_ERRORS)}</p>
+                  ) : (
+                    <>
+                      <p className="ai-found-head">
+                        النماذج المتاحة لهذا المفتاح: {found[p.id].listed} · جُرِّب منها {found[p.id].results.length}
+                      </p>
+                      <ul>
+                        {found[p.id].results.map((r) => (
+                          <li key={r.model} className={r.ok ? "ai-test-ok" : "ai-test-failed"}>
+                            {r.ok ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                            <bdi dir="ltr">{r.model}</bdi>
+                            {r.ok ? (
+                              <button
+                                className="button ghost"
+                                disabled={Boolean(busy)}
+                                onClick={() =>
+                                  void act(
+                                    "use-" + p.id,
+                                    () =>
+                                      request("/api/ai/active", {
+                                        method: "PUT",
+                                        body: JSON.stringify({ provider: p.id, model: r.model }),
+                                      }),
+                                    `أصبحت ${p.label} (${r.model}) الخدمة المستخدمة في المراجعة.`,
+                                  )
+                                }
+                              >
+                                استخدام هذا النموذج
+                              </button>
+                            ) : (
+                              <small>{explain(r.error ?? "", TEST_ERRORS)}</small>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
               )}
             </article>
           );
