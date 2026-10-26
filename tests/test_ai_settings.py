@@ -104,3 +104,39 @@ def test_connection_test_uses_a_fixed_sample(settings, monkeypatch):
     monkeypatch.setattr(C.ChatCompletionsAdapter, "_post", unauthorised)
     outcome = settings.test(ADMIN, "deepseek")
     assert not outcome["ok"] and outcome["error"].startswith("AUTHENTICATION")
+
+
+def test_api_round_trip_never_returns_the_key(tmp_path, monkeypatch):
+    import importlib
+    import sys
+
+    from fastapi.testclient import TestClient
+
+    token = "t" * 40
+    monkeypatch.setenv("CDF_CALIBRATION_MODE", "SYNTHETIC_LOCAL_DEV")
+    monkeypatch.setenv("CDF_CALIBRATION_DEV_TOKEN", token)
+    monkeypatch.setenv("CDF_CALIBRATION_DB", str(tmp_path / "public-demo" / "ai.sqlite"))
+    monkeypatch.setenv("CDF_ENABLE_PROVIDER_API", "1")
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    S.MemoryKeys._keys.clear()
+    sys.modules.pop("apps.api.main", None)
+    module = importlib.import_module("apps.api.main")
+    auth = {"Authorization": "Bearer " + token}
+    try:
+        with TestClient(module.app) as client:
+            assert client.get("/api/ai/settings").status_code == 401
+            state = client.get("/api/ai/settings", headers=auth).json()
+            assert {p["id"] for p in state["providers"]} == {"anthropic", "openai", "mistral", "deepseek", "xai"}
+            saved = client.put("/api/ai/providers/mistral/key", headers=auth, json={"key": KEY})
+            assert saved.status_code == 200 and KEY not in saved.text
+            bad = client.put("/api/ai/providers/mistral/key", headers=auth, json={"key": KEY, "extra": KEY})
+            assert bad.status_code == 422 and KEY not in bad.text          # validation errors never echo the key
+            chosen = client.put("/api/ai/active", headers=auth, json={"provider": "mistral",
+                                                                      "model": "mistral-large-latest"}).json()
+            assert chosen["active"] == "mistral" and KEY not in json.dumps(chosen)
+            assert client.put("/api/ai/providers/nope/key", headers=auth, json={"key": KEY}).status_code == 422
+            assert client.delete("/api/ai/providers/mistral/key", headers=auth).json()["providers"][2]["key"][
+                "source"] == "none"
+    finally:
+        module.store.close()
+        sys.modules.pop("apps.api.main", None)

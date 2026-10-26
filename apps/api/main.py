@@ -492,6 +492,9 @@ from fastapi.exception_handlers import request_validation_exception_handler
 async def private_validation_errors(request,exc):
     if request.url.path.startswith('/api/copilot/'):
         return JSONResponse({'detail':'COPILOT_INPUT_VALIDATION_FAILED','fields':[list(error['loc']) for error in exc.errors()]},status_code=422)
+    if request.url.path.startswith('/api/ai/'):
+        # AI settings bodies can carry an API key: name the fields, never echo the input.
+        return JSONResponse({'detail':'AI_SETTINGS_INPUT_INVALID','fields':[list(error['loc']) for error in exc.errors()]},status_code=422)
     return await request_validation_exception_handler(request,exc)
 
 

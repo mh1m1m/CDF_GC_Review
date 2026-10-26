@@ -14,6 +14,7 @@ import {
   LockKeyhole,
   RefreshCw,
   ScanLine,
+  Settings,
   ShieldCheck,
   Sparkles,
   Workflow,
@@ -35,6 +36,7 @@ const VisualLibrary = lazy(() => import("./components/VisualLibrary"));
 const GovernanceCopilot = lazy(() => import("./components/GovernanceCopilot"));
 const Calibration = lazy(() => import("./CalibrationApp"));
 const Documents = lazy(() => import("./components/DocumentsPanel"));
+const AISettings = lazy(() => import("./components/AISettingsPanel"));
 type Case = { case_id: string; stats: Record<string, number | boolean> };
 type References = {
   synthetic: boolean;
@@ -357,6 +359,22 @@ function App() {
             <span>GOVERNANCE INTELLIGENCE</span>
             <small>منظومة المراجعة والامتثال</small>
           </div>
+          {token && (
+            <a
+              className="masthead-settings"
+              href="#ai-settings"
+              onClick={(e) => {
+                e.preventDefault();
+                setData(null);
+                window.setTimeout(
+                  () => document.getElementById("ai-settings")?.scrollIntoView({ behavior: "smooth" }),
+                  60,
+                );
+              }}
+            >
+              <Settings size={16} /> الإعدادات
+            </a>
+          )}
           {!institutional && (
             <span className="environment-pill">
               <span />
@@ -474,6 +492,11 @@ function App() {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 />
+              </Suspense>
+            )}
+            {token && (
+              <Suspense fallback={<p className="loading-state">جارٍ تحميل الإعدادات…</p>}>
+                <AISettings token={token} />
               </Suspense>
             )}
             </>
