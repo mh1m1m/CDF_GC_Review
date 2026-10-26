@@ -311,7 +311,9 @@ def document_mock_script():
     return script
 
 
-def _executor():
+def _executor(store=None):
+    """The AI service for a review: the one chosen on the AI settings page (its model and saved key), else
+    ``CDF_REVIEW_EXECUTOR`` with keys from the environment. ``mock`` is the labelled test executor."""
     from ..execution.providers import select_executor
 
     name = os.getenv("CDF_REVIEW_EXECUTOR", "anthropic")
@@ -320,6 +322,12 @@ def _executor():
         from ..agents.providers.mock_adapter import MockAdapter
 
         return name, MockAdapter(script=document_mock_script())
+    if store is not None:
+        from ..interfaces.ai_settings import AISettings
+
+        settings = AISettings(store)
+        provider = settings.active()[0] or name
+        return provider, settings.adapter(provider, timeout=timeout)
     return name, select_executor(name, timeout=timeout)
 
 
@@ -390,7 +398,7 @@ def run_review(application, library, queue: ReviewQueue, row, *, deadline: float
             to_docx(source, stem, review_docx)
         step("READING", source=source.summary())
 
-        executor, provider = _executor()
+        executor, provider = _executor(application.store)
         trace = TraceWriter()
         runner = AgentRunner(provider, trace) if provider is not None else None
         if runner is None:

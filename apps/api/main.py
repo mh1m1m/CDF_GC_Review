@@ -405,6 +405,65 @@ def documents_review_status(review_id: str, authorization: str | None = Header(d
     return {**call(REVIEWS.get, owner, review_id), "worker_online": call(REVIEWS.worker_seen), "runner": REVIEW_RUNNER}
 
 
+# -- AI settings: which service reviews documents, its model and key (admins only; keys are write-only) ----------
+from cdf_gco_crms.interfaces.ai_settings import AISettings
+AI_SETTINGS = AISettings(store)
+
+
+class AIChoice(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    provider: str = Field(min_length=2, max_length=20)
+    model: str | None = Field(default=None, max_length=100)
+
+
+class AIModelName(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    model: str = Field(min_length=1, max_length=100)
+
+
+class AIKey(BaseModel):
+    # hide_input_in_errors: a rejected request never echoes the key back
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    key: str = Field(min_length=1, max_length=600)
+
+
+@app.get("/api/ai/settings")
+def ai_settings(authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.status, identity(authorization))
+
+
+@app.put("/api/ai/active")
+def ai_choose(body: AIChoice, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.choose, identity(authorization), body.provider, body.model)
+
+
+@app.put("/api/ai/providers/{provider}/model")
+def ai_model(provider: str, body: AIModelName, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.set_model, identity(authorization), provider, body.model)
+
+
+@app.put("/api/ai/providers/{provider}/key")
+def ai_key_save(provider: str, body: AIKey, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.save_key, identity(authorization), provider, body.key)
+
+
+@app.delete("/api/ai/providers/{provider}/key")
+def ai_key_clear(provider: str, authorization: str | None = Header(default=None)):
+    return call(AI_SETTINGS.clear_key, identity(authorization), provider)
+
+
+@app.post("/api/ai/providers/{provider}/test")
+def ai_test(provider: str, authorization: str | None = Header(default=None)):
+    """One tiny request with a fixed sample text. Runs outside the app lock: the service may take a while."""
+    reviewer = identity(authorization)
+    try:
+        return AI_SETTINGS.test(reviewer, provider)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except CalibrationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @app.post("/api/documents/{document_id}/actions/{action}")
 def documents_action(document_id: str, action: str, other: str | None = Query(default=None, max_length=40),
                      authorization: str | None = Header(default=None)):

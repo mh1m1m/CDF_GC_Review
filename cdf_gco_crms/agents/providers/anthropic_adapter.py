@@ -96,9 +96,10 @@ class AnthropicAdapter(ProviderAdapter):
     mode = MODE_LIVE
     endpoint = official_endpoint("anthropic")
 
-    def __init__(self, config: ProviderConfig | None = None, client=None):
+    def __init__(self, config: ProviderConfig | None = None, client=None, api_key: str | None = None):
         super().__init__(config)
         self._client = client
+        self._api_key = api_key or None                # a key saved in the AI settings; else the SDK reads the env
         self.client_injected = client is not None     # provenance: an injected client is never a trusted provider path
 
     def _get_client(self):
@@ -108,8 +109,9 @@ class AnthropicAdapter(ProviderAdapter):
             except ImportError as exc:                  # the SDK is an optional dependency of the live runtime
                 raise ProviderFailure("anthropic SDK not installed (pip install anthropic)", kind="SDK_MISSING") from exc
             # base_url pinned: ANTHROPIC_BASE_URL never redirects a trusted adapter
+            extra = {"api_key": self._api_key} if self._api_key else {}
             self._client = anthropic.Anthropic(base_url=self.endpoint, timeout=self.config.timeout_seconds,
-                                               max_retries=self.config.max_retries)
+                                               max_retries=self.config.max_retries, **extra)
         return self._client
 
     def complete(self, request: AgentRequest) -> ProviderResult:

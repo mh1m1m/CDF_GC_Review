@@ -76,16 +76,35 @@ def test_rejection_keeps_reason_not_text():
     assert error.value.kind == "AUTHENTICATION"
 
 
-def test_cut_off_reply_is_a_failure():
+@pytest.mark.parametrize("finish,kind", [("length", "INCOMPLETE"), ("model_length", "INCOMPLETE"),
+                                         ("error", "API_STATUS")])
+def test_cut_off_or_failed_reply_is_a_failure(finish, kind):
+    """Mistral's finish reasons (API reference): stop, length, model_length, error, tool_calls."""
     def transport(body):
         status, raw, headers = _ok(body)
         data = json.loads(raw)
-        data["choices"][0]["finish_reason"] = "length"
+        data["choices"][0]["finish_reason"] = finish
         return status, json.dumps(data).encode(), headers
 
     with pytest.raises(ProviderFailure) as error:
         M.MistralAdapter(transport=transport).complete(_request())
-    assert error.value.kind == "INCOMPLETE"
+    assert error.value.kind == kind
+
+
+def test_wire_format_matches_the_api_reference():
+    """POST {endpoint}/chat/completions, Bearer auth; response_format.json_schema carries name, schema, strict
+    (the SDK's ``schema_definition`` is sent as ``schema``); content may arrive as text chunks or null."""
+    assert M.MistralAdapter.endpoint == "https://api.mistral.ai/v1"
+    body = M.MistralAdapter(transport=lambda b: _ok(b))._body(_request())
+    assert set(body["response_format"]["json_schema"]) == {"name", "schema", "strict"}
+
+    def chunks(b):
+        status, raw, headers = _ok(b)
+        data = json.loads(raw)
+        data["choices"][0]["message"]["content"] = [{"type": "text", "text": json.dumps(REPLY)}]
+        return status, json.dumps(data).encode(), headers
+
+    assert json.loads(M.MistralAdapter(transport=chunks).complete(_request()).text) == REPLY
 
 
 def test_key_under_an_owner_chosen_name(monkeypatch):
