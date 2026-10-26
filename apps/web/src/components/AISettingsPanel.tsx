@@ -33,7 +33,11 @@ const ERRORS: Record<string, string> = {
   UNKNOWN_AI_PROVIDER: "خدمة غير معروفة.",
   SIGN_IN_REQUIRED: "سجّل الدخول أولاً.",
 };
+// Checked in order: the service's own reason ([CODE]) comes before the HTTP category.
 const TEST_ERRORS: Record<string, string> = {
+  "[CREDIT_BALANCE_TOO_LOW]": "رصيد الحساب لدى الخدمة لا يكفي.",
+  "[BILLING]":
+    "المفتاح صحيح لكن الحساب لا يملك خطة مفعّلة. في Mistral: افتح console.mistral.ai ← Billing/Subscription وفعّل الخطة المجانية (Experiment) أو خطة مدفوعة، ثم أعد الاختبار.",
   AUTHENTICATION: "رفضت الخدمة المفتاح. تحقق من نسخه كاملاً.",
   PERMISSION: "المفتاح لا يملك صلاحية هذا النموذج.",
   NOT_FOUND: "اسم النموذج غير متاح لهذا الحساب.",
