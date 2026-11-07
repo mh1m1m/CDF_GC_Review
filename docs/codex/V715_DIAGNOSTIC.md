@@ -180,7 +180,7 @@ All marks VERIFIED from `docs/codex/OPEN_ISSUES.md` on `main` and on PR #15/#16.
 
 ## 7. Decisions for the owner
 
-1. **Hosted uploads of real documents.** The live site accepts uploads and sends them to an AI provider. v7.15 00A.4
+1. **DECIDED 2026-11-07: keep uploads; 00A.4 to be amended.** The owner chose to keep document uploads on the hosted site and to amend 00A.4 so the web application may process uploaded documents. Until the amendment is issued, the site runs ahead of the protocol text. Original question: **Hosted uploads of real documents.** The live site accepts uploads and sends them to an AI provider. v7.15 00A.4
    keeps real Fund documents in a chat assistant.
    *Recommendation:* turn uploads off on the hosted site (`CDF_DOCUMENT_UPLOADS` unset, redeploy) and remove the stored
    uploads after you confirm what they are. *Consequence:* the site goes back to synthetic cases only; document review
@@ -208,7 +208,7 @@ Steps marked **owner go-ahead** touch production, the database or live settings.
 |---|---|---|---|---|
 | 0 | `claude/ci-branch-lists` | `.github/workflows/*.yml`: add `main` and `claude/**` to every `pull_request.branches`; AGENTS.md install line → `requirements-execution.txt -r requirements-security.txt -r requirements-calibration.txt`; bump `pypdf` 6.21.2 → 6.21.4 in `requirements-execution*.txt` (7 CVEs, pip-audit red on `main` since 2026-11-07) | all five workflows run on the PR; `visual-security` green | plan approval |
 | 1 | PR #15 retargeted to `main` | as is | its CI + full suite | owner says merge |
-| 2 | Hosted settings (no code) | Vercel: unset `CDF_DOCUMENT_UPLOADS` and `VITE_SITE_IDENTITY`, enable protection; Supabase: handle stored uploads per decision 1; enable leaked-password protection | `/api/health` shows uploads off; site needs sign-in | **owner go-ahead** |
+| 2 | Hosted settings (no code) | Uploads stay on (decision 1). Vercel: per decisions 2–3, enable protection and unset `VITE_SITE_IDENTITY`; record the upload authorisation in the repo docs, not only in a Vercel variable; Supabase: enable leaked-password protection | site needs sign-in; authorisation reference matches the amended 00A.4 | **owner go-ahead** |
 | 3 | PR #16 retargeted to `main` | add `supabase/migrations/` with the two existing migrations, RLS enabled (deny-all) on schema `cdf`; `docs/deploy/HOSTED_DEMO.md` env names | `hosted-demo.yml`, Postgres suite, Supabase advisors clean | owner says merge; RLS change is **owner go-ahead** |
 | 4 | `claude/engine-v715` | version constants 7.15 / 7.15.0 / `.../7.15`; port the 21 class (a) files + `dash_layout.py`; migration that removes a v7.14 helper sheet; change the 9 helper-sheet tests to the calculation block; gates G-DASH-21–24, G-UX-21/22 | full suite; new tests for TWO_SHEETS_ONLY, HELPER_RETIRED, migration of a v7.14 workbook | plan approval |
 | 5 | `claude/comments-v715` | new `cdf_gco_crms/comments/` (composer + checks from `cdfkit.py`): 07.1, 07.2 ceilings, 07.4A openers and no-question rule, conditional form, G-SUB-12, P14, 08.2A, 08.2B; `assurance/challenge.py` drops F6 conversion for new comments and `WORD_BUDGET` follows 07.2 | one negative test per rule; 00.2 carve-out test (historical F6 comment stays valid) | plan approval; R2/R3 after decision 8 |
