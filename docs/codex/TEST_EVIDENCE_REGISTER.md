@@ -136,3 +136,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-07 v7.15 diagnostic (local, Python 3.13, `main` @ `0beff45`)
 
 `python -m pytest tests qa_public -q -p no:cacheprovider -rs` after installing `requirements-execution.txt`, `requirements-security.txt`, `requirements-calibration.txt` and `hypothesis`: **363 passed, 11 skipped** (same expected skips), 10 subtests. With only `requirements-lock.txt` + `requirements-calibration.txt` (AGENTS.md line): 4 collection errors (`httpx`, `hypothesis` missing; `mcp` 2.x). Kit 1.1.6 selftest: NOT_RUN (running the uploaded kit is blocked here). PR #15/#16 suites and UI build: NOT_RUN.
+
+## 2026-11-07 pypdf 6.21.2 → 6.21.4
+
+`pip_audit -r requirements-execution.txt --vulnerability-service pypi`: 7 CVEs in pypdf 6.21.2 before, **no known vulnerabilities** after. `pytest tests qa_public`: **363 passed, 11 skipped** (expected skips) with pypdf 6.21.4.

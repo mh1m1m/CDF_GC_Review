@@ -206,7 +206,7 @@ Steps marked **owner go-ahead** touch production, the database or live settings.
 
 | # | Branch / PR | Files | Proof | Approval |
 |---|---|---|---|---|
-| 0 | `claude/ci-branch-lists` | `.github/workflows/*.yml`: add `main` and `claude/**` to every `pull_request.branches`; AGENTS.md install line → `requirements-execution.txt -r requirements-security.txt -r requirements-calibration.txt`; bump `pypdf` 6.21.2 → 6.21.4 in `requirements-execution*.txt` (7 CVEs, pip-audit red on `main` since 2026-11-07) | all five workflows run on the PR; `visual-security` green | plan approval |
+| 0 | `claude/ci-branch-lists` | `.github/workflows/*.yml`: add `main` and `claude/**` to every `pull_request.branches`; AGENTS.md install line → `requirements-execution.txt -r requirements-security.txt -r requirements-calibration.txt`; `pypdf` 6.21.2 → 6.21.4 already done in PR #17 (7 CVEs, pip-audit red on `main` since 2026-11-07) | all five workflows run on the PR; `visual-security` green | plan approval |
 | 1 | PR #15 retargeted to `main` | as is | its CI + full suite | owner says merge |
 | 2 | Hosted settings (no code) | Uploads stay on (decision 1). Vercel: per decisions 2–3, enable protection and unset `VITE_SITE_IDENTITY`; record the upload authorisation in the repo docs, not only in a Vercel variable; Supabase: enable leaked-password protection | site needs sign-in; authorisation reference matches the amended 00A.4 | **owner go-ahead** |
 | 3 | PR #16 retargeted to `main` | add `supabase/migrations/` with the two existing migrations, RLS enabled (deny-all) on schema `cdf`; `docs/deploy/HOSTED_DEMO.md` env names | `hosted-demo.yml`, Postgres suite, Supabase advisors clean | owner says merge; RLS change is **owner go-ahead** |
