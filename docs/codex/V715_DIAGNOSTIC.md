@@ -216,3 +216,27 @@ Steps marked **owner go-ahead** touch production, the database or live settings.
 | 7 | `claude/kit-build` | `tools/build_chat_kit.py` builds `cdf-chat-kit-<version>.zip` from `main` (engine + thin `cdfkit.py` + `kit_stages.py` + `kit_selftest.py`; brand files only per C5); CI job runs the selftest from repo code | CI artifact; byte-compare with kit 1.1.6 for unchanged files | plan approval |
 | 8 | Vercel production from `main` | Vercel production branch → `main`; previews per PR | preview of `main` READY | **owner go-ahead** (promotion) |
 | 9 | `claude/docs-v715` | README, `REPOSITORY-STRUCTURE.md`, AGENTS logs; record 00.8 regression NOT_VERIFIED until the reference-case package arrives | public guard PASS | plan approval |
+
+## 9. Gaps against the drafted 00A.4(2) conditions (v7.16 draft, pending approval)
+
+Decision 1 led to a draft amendment that allows hosted document review only while six conditions hold, checked by a
+new gate G-ENG-4 (a missing record is FAIL). Existing uploads must meet them or be deleted before any further hosted
+review (00A.4(5)). Checked against PR #16 @ `8875617` and the live settings:
+
+| Condition | Today | Gap | Mark |
+|---|---|---|---|
+| (a) INSTITUTIONAL_AUTHORIZED reference on the deployment, decision in Annex B | `CDF_AI_DATA_AUTHORIZATION` is set in Vercel; uploads are refused without `CDF_DOCUMENT_UPLOADS=PUBLIC` (`documents/policy.py`) | No Annex B row for the 2026-10-25 decision; the reference lives only in a Vercel variable; uploads are gated on `CDF_DOCUMENT_UPLOADS`, not on the reference | VERIFIED |
+| (b) Upload, view and review need a listed reviewer signed in | Supabase sign-in limited to `CDF_HOSTED_REVIEWERS` (`interfaces/hosted_auth.py:8-56`); a file is visible only to its uploader (`docs/deploy/HOSTED_DEMO.md`) | No test proves every document and review endpoint refuses an unsigned or unlisted caller; the site shell is public | INFERRED (met) / NOT_VERIFIED (endpoint coverage) |
+| (c) Only providers the owner confirmed exclude content from training | All five providers selectable (`interfaces/ai_settings.py:33-44`); production runs Mistral | No allow-list and no refusal of unconfirmed providers; Mistral's plan terms on training not recorded | VERIFIED (gap) / NOT_VERIFIED (Mistral terms) |
+| (d) Each upload records role, time, SHA-256, declared classification, executor, model | `uploaded_documents` has `owner_id`, `sha256`, `created_at`; `document_reviews` has `roles_json`, `worker`, `detail_json` | No declared-classification field; role and model are not on the upload record; model recorded only if inside `detail_json` | VERIFIED (columns) / NOT_VERIFIED (model in `detail_json`) |
+| (e) Kept only in the deployment's database, not public, deleted after retention | Schema `cdf` not exposed through the Data API; only `postgres` and `cdf_app` have USAGE | No retention period or deletion job; RLS off on all 32 tables | VERIFIED |
+| (f) Outputs are working copies until issued, executor PROVIDER_API | Outputs are `INTERNAL_DRAFT__` working copies (`interfaces/hosted_documents.py:20, 296-377`) | Executor not labelled `PROVIDER_API` on outputs | VERIFIED |
+| 00A.4(5) existing uploads | Uploaded files and reviews are stored (count reported privately) | Must be brought under (a)–(f) or deleted before further hosted review | VERIFIED |
+
+Plan additions (after v7.16 is approved; until then the conditions are a draft):
+
+| # | Branch / PR | Files | Proof | Approval |
+|---|---|---|---|---|
+| 2a | `claude/hosted-00a4` on top of PR #16 | upload gate on the authorisation reference (a); endpoint auth tests (b); provider allow-list `CDF_TRAINING_EXCLUDED_PROVIDERS`, refuse others (c); `declared_classification`, `uploader_role`, `executor`, `model` columns (d); retention setting and a scheduled purge (e); `PROVIDER_API` executor label on outputs (f); G-ENG-4 gate over all six | one negative test per condition; G-ENG-4 FAIL on a missing record | plan approval |
+| 2b | Live settings | Vercel: allow-list value, retention value; Supabase: apply the column migration; hold further hosted review until G-ENG-4 passes | `/api/health` reports G-ENG-4 PASS | **owner go-ahead** |
+| 2c | Existing uploads | bring each stored upload under (a)–(f) (declare classification, record model) or delete it | G-ENG-4 PASS on every stored upload | **owner go-ahead** (deletion is irreversible) |
