@@ -40,7 +40,7 @@ Baseline: PR 7, 00c4f5b. Python/FastAPI, SQLite, React 18 and Vite are retained.
 | lxml | 6.1.3 → retain | INSTALL retained OOXML | BSD-3-Clause | Reject external entities/untrusted archives; no remote references |
 | PyMuPDF | 2.0 → retain | INSTALL retained private PDF extraction | AGPL-3.0/commercial | Existing dependency; deployment/license assessment remains necessary; no private pages in public artifacts |
 | Pillow | 12.3.0 → 13.0.0 | INSTALL security update after advisory scan | HPND | Regression-test existing renderers and draft gauge artwork |
-| pypdf | 6.17.0 → 6.21.2 | INSTALL security update after advisory scan | BSD-3-Clause | PDF parsing regression checks; existing pins had reported vulnerabilities |
+| pypdf | 6.17.0 → 6.21.2 → 6.21.4 | INSTALL security update after advisory scan | BSD-3-Clause | PDF parsing regression checks; existing pins had reported vulnerabilities |
 | openpyxl | 3.1.5 → retain | INSTALL retained native Excel | MIT | Native charts/formulas, source-linked data; formula injection escaped as text |
 | XlsxWriter | absent → not selected | REJECT duplicate exporter | BSD-2-Clause | openpyxl already creates native charts and formulas |
 | pytest | 9.1.1 → retain | INSTALL retained regression runner | MIT | Core + new intelligence/export/security cases |
