@@ -118,3 +118,7 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-07 v7.15 diagnostic (read-only)
+
+Branch `claude/v715-diagnostic` from `main` @ `0beff45`. Read-only check of the repo, kit 1.1.6, the Supabase project and the Vercel project against protocol v7.15; findings and the finalization plan in `docs/codex/V715_DIAGNOSTIC.md`. Nothing changed in Supabase, Vercel or `main`. Main finding: open draft PRs #15 and #16 were not part of #14, and #16 (`feature/hosted-vercel-supabase`) is live in Vercel production with Supabase. Kit 1.1.6 is PR #16 plus the v7.15 dashboard and comment checks; the engine on `main` has nothing the kit lacks.
