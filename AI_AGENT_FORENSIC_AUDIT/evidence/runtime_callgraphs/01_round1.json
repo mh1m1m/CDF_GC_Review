@@ -1,0 +1,1464 @@
+{
+ "label": "01_round1",
+ "argv": [
+  "round1",
+  "round1.json",
+  "work"
+ ],
+ "return_code": "BuildResult",
+ "error": null,
+ "seconds": 1.26,
+ "socket_attempts": [],
+ "key_call_order": [
+  "cdf_gco_crms.rounds.round_expansion:build_round1",
+  "cdf_gco_crms.excel.workbook_builder:build_workbook"
+ ],
+ "edge_count": 3941,
+ "edges": [
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 456
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_merge",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 342
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 226
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:rng",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 170
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:_note_runs",
+   "callee": "cdf_gco_crms.excel.workbook_builder:<lambda>",
+   "n": 138
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_box",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 114
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_page_surface",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 90
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_merge",
+   "n": 89
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "n": 86
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.helper_writer:rng",
+   "n": 86
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "n": 85
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "n": 77
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_merge",
+   "n": 77
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "callee": "cdf_gco_crms.excel.formula_registry:put",
+   "n": 77
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:L",
+   "n": 74
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "n": 73
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_rule_below",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 72
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:cell",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 67
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "n": 65
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "callee": "cdf_gco_crms.excel.helper_writer:cell",
+   "n": 56
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:q",
+   "n": 53
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "n": 47
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:matrix",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:_code",
+   "n": 40
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "n": 34
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:_note_runs",
+   "callee": "cdf_gco_crms.excel.workbook_builder:<genexpr>",
+   "n": 34
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.workbook_builder:<lambda>",
+   "n": 34
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:rng",
+   "n": 31
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "callee": "cdf_gco_crms.excel.helper_writer:rng",
+   "n": 29
+  },
+  {
+   "caller": "cdf_gco_crms.config.workbook_settings:file_stem",
+   "callee": "cdf_gco_crms.config.workbook_settings:<genexpr>",
+   "n": 28
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_lines",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:<genexpr>",
+   "n": 28
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:meta",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:put",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:put",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:put",
+   "callee": "cdf_gco_crms.excel.formula_registry:put",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:TR",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:TR",
+   "callee": "cdf_gco_crms.excel.helper_writer:rng",
+   "n": 24
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_note",
+   "callee": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "n": 22
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_trend",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:<genexpr>",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.formula_registry:put",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:oput",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:oput",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:oput",
+   "callee": "cdf_gco_crms.excel.formula_registry:put",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_box",
+   "n": 21
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 20
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_note",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:<genexpr>",
+   "n": 20
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:matrix",
+   "n": 20
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:round_label",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 17
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_lines",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:oval",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:tput",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:tput",
+   "callee": "cdf_gco_crms.excel.helper_writer:c",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:tput",
+   "callee": "cdf_gco_crms.excel.formula_registry:put",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:mset",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:val",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:M",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:M",
+   "callee": "cdf_gco_crms.excel.helper_writer:meta",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_box",
+   "callee": "cdf_gco_crms.excel.styles:border",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_style_chart",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_txpr",
+   "n": 12
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_brand_mark",
+   "n": 11
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:text",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_note",
+   "n": 10
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:table",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:cell",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:detail",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:detail",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:detail",
+   "callee": "cdf_gco_crms.observations.text_derivation:cut",
+   "n": 9
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.rounds.round_parser:col",
+   "n": 8
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:name",
+   "n": 8
+  },
+  {
+   "caller": "cdf_gco_crms.excel.styles:border",
+   "callee": "cdf_gco_crms.excel.styles:side",
+   "n": 7
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:_note",
+   "n": 7
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "callee": "cdf_gco_crms.excel.styles:fill",
+   "n": 7
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:entry",
+   "n": 7
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.config.round_schema:round_label",
+   "n": 7
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:current_round",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.guidance.guidance_dictionary:input_message",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:_where",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:add_validations",
+   "callee": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "callee": "cdf_gco_crms.excel.styles:align",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:tv",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_cell_value",
+   "callee": "cdf_gco_crms.model.entities:is_formula_like",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_estimate_lines",
+   "callee": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.styles:fill",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_merge",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_txpr",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:Selectors",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:gc",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:Selectors",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:L",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:fixed_note",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain_text",
+   "callee": "cdf_gco_crms.model.entities:text",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:input_message",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_rule_below",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_rich_title",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_style_chart",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:timeline",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:ordered",
+   "callee": "cdf_gco_crms.model.entities:<lambda>",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:<lambda>",
+   "callee": "cdf_gco_crms.model.entities:reader_int",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.config.round_schema:header_text",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:header_text",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:_header_value",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:header_note",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.guidance.guidance_dictionary:header_note",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.guidance.guidance_dictionary:header_note",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:_where",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_fixed",
+   "callee": "cdf_gco_crms.excel.register_writer:_cell_value",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_block",
+   "callee": "cdf_gco_crms.excel.register_writer:_cell_value",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_row_height",
+   "callee": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.config.round_schema:round_label",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.config.round_schema:round_label",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_marker",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.helper_writer:meta",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:qv",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_status_rules",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_section",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_section",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_text",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_section",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_rule_below",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_section",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_marker",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "callee": "cdf_gco_crms.config.round_schema:round_label",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<module>",
+   "callee": "cdf_gco_crms.excel.helper_writer:sheet_ref",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.model.entities:__post_init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.styles:fill",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.styles:border",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_fixed",
+   "callee": "cdf_gco_crms.excel.styles:align",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:to_cell_value",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_row_height",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:<genexpr>",
+   "callee": "cdf_gco_crms.excel.register_writer:_estimate_lines",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:add_validations",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:input_message",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.observations.text_derivation:summary",
+   "callee": "cdf_gco_crms.observations.text_derivation:_strip_labels",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.observations.text_derivation:summary",
+   "callee": "cdf_gco_crms.observations.text_derivation:cut",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.lifecycle:priority",
+   "callee": "cdf_gco_crms.model.lifecycle:reopened_state",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.lifecycle:reopened_state",
+   "callee": "cdf_gco_crms.model.lifecycle:ever_closed_before",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.lifecycle:ever_closed_before",
+   "callee": "cdf_gco_crms.model.lifecycle:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.lifecycle:priority",
+   "callee": "cdf_gco_crms.model.lifecycle:stalled",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:view",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:_include",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:<lambda>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.model.entities:round",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_col_px",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_px_to_cm",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_pt_to_cm",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.helper_writer:cell",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:_code",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:completeness",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "callee": "cdf_gco_crms.excel.workbook_builder:_set_cached",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "callee": "cdf_gco_crms.excel.workbook_builder:_note_runs",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "callee": "cdf_gco_crms.excel.workbook_builder:_note_vml",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "main:main",
+   "n": 1
+  },
+  {
+   "caller": "main:main",
+   "callee": "main:cmd_round1",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.__init__:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.workbook_builder:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.analytics.__init__:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.observations.__init__:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.observations.text_derivation:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:LongRow",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:ObsA",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:TrendRow",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:Analytics",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:<module>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:View",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.guidance.__init__:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.guidance.guidance_dictionary:<module>",
+   "callee": "cdf_gco_crms.guidance.guidance_dictionary:GuidanceEntry",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.styles:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.styles:<module>",
+   "callee": "cdf_gco_crms.excel.styles:border",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.formula_registry:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:<module>",
+   "callee": "cdf_gco_crms.excel.formula_registry:Entry",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:<module>",
+   "callee": "cdf_gco_crms.excel.formula_registry:Registry",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.helper_writer:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<module>",
+   "callee": "cdf_gco_crms.excel.helper_writer:Table",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<module>",
+   "callee": "cdf_gco_crms.excel.helper_writer:HelperBook",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:<module>",
+   "callee": "cdf_gco_crms.excel.helper_writer:HelperRefs",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<module>",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:Selectors",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<module>",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:DashInfo",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.excel.register_writer:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:<module>",
+   "callee": "cdf_gco_crms.excel.workbook_builder:BuildResult",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_round1",
+   "callee": "main:_new",
+   "n": 1
+  },
+  {
+   "caller": "main:_new",
+   "callee": "main:_text",
+   "n": 1
+  },
+  {
+   "caller": "main:_text",
+   "callee": "cdf_gco_crms.model.entities:plain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain",
+   "callee": "cdf_gco_crms.model.entities:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:__init__",
+   "callee": "cdf_gco_crms.model.entities:_normalise_runs",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_round1",
+   "callee": "cdf_gco_crms.rounds.round_expansion:build_round1",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_expansion:build_round1",
+   "callee": "cdf_gco_crms.rounds.round_expansion:reader_no",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_expansion:build_round1",
+   "callee": "cdf_gco_crms.rounds.round_expansion:_as_gtext",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_round1",
+   "callee": "cdf_gco_crms.config.workbook_settings:file_stem",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.config.workbook_settings:file_stem",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_round1",
+   "callee": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.model.entities:current_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.config.round_schema:data_sheet_name",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:planned_layout",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.model.entities:ordered",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.styles:align",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:_write_fixed",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_fixed",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_cell_value",
+   "callee": "cdf_gco_crms.model.entities:to_cell_value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:to_cell_value",
+   "callee": "cdf_gco_crms.model.entities:text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:to_cell_value",
+   "callee": "cdf_gco_crms.model.entities:text_cell_value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:text_cell_value",
+   "callee": "cdf_gco_crms.model.entities:is_formula_like",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:_write_block",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_block",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:_write_block",
+   "callee": "cdf_gco_crms.excel.styles:fill",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:_row_height",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.model.entities:value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:value",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:add_validations",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:add_validations",
+   "callee": "cdf_gco_crms.excel.register_writer:_ranges",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.excel.register_writer:add_placeholder_formats",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.register_writer:write_data_sheet",
+   "callee": "cdf_gco_crms.rounds.round_parser:discover",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.model.entities:ordered",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.model.entities:current_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.model.entities:ordered",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.observations.text_derivation:summary",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.observations.text_derivation:display_title",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.observations.text_derivation:display_title",
+   "callee": "cdf_gco_crms.observations.text_derivation:summary",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.model.lifecycle:change_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.model.lifecycle:priority",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.model.lifecycle:reason",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.lifecycle:reason",
+   "callee": "cdf_gco_crms.model.lifecycle:priority",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.observations.text_derivation:required_action",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:_fill_long",
+   "callee": "cdf_gco_crms.observations.text_derivation:current_location",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:__init__",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:_trend",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "callee": "cdf_gco_crms.excel.workbook_builder:default_view",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:default_view",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:default_reader_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:default_reader_label",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:view",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:default_reader_label",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:default_view",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:view",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "callee": "cdf_gco_crms.excel.formula_registry:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "callee": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:sheet_ref",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:table",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.observations.text_derivation:cut",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.helper_writer:write_helper",
+   "callee": "cdf_gco_crms.excel.helper_writer:_link",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:assemble",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.helper_writer:sheet_ref",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.model.entities:round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_add_logo",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.styles:align",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_formula",
+   "callee": "cdf_gco_crms.excel.styles:align",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_rule_below",
+   "callee": "cdf_gco_crms.excel.styles:border",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_card",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_card",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_fill_range",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_card",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_box",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_status_rules",
+   "callee": "cdf_gco_crms.excel.styles:font",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.styles:border",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.rounds.round_parser:col",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:write_dashboard",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:_page_surface",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:_page_surface",
+   "callee": "cdf_gco_crms.excel.styles:fill",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.excel.workbook_builder:set_properties",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:set_properties",
+   "callee": "cdf_gco_crms.model.entities:current_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:set_properties",
+   "callee": "cdf_gco_crms.config.workbook_settings:workbook_title",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.config.workbook_settings:workbook_title",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.excel.formula_registry:expected",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:next_exp",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:next_exp",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:completeness",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:historical_band",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:narrative1",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:narrative1",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:label",
+   "callee": "cdf_gco_crms.config.round_schema:round_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:narrative2",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:<lambda>",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:readiness",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.analytics.dashboard_analytics:readiness",
+   "callee": "cdf_gco_crms.model.lifecycle:readiness",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:qn_exp",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:lbl_exp",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:lbl_exp",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.formula_registry:expected",
+   "callee": "cdf_gco_crms.excel.dashboard_writer:lab_e",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.dashboard_writer:lab_e",
+   "callee": "cdf_gco_crms.analytics.dashboard_analytics:reader_label",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:build_workbook",
+   "callee": "cdf_gco_crms.excel.workbook_builder:save_atomic",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:save_atomic",
+   "callee": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "callee": "cdf_gco_crms.excel.workbook_builder:_sheet_paths",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.excel.workbook_builder:postprocess",
+   "callee": "cdf_gco_crms.excel.workbook_builder:_fix_core",
+   "n": 1
+  }
+ ],
+ "touches_challenge_engine": false,
+ "touches_objection_engine": false,
+ "touches_excel_builder": true,
+ "touches_word_builder": false,
+ "stdout_tail": "/home/user/cdf-gco-crms/v7.12/AI_AGENT_FORENSIC_AUDIT/evidence/runtime_callgraphs/work/مذكرة تفاهم تجريبية للتدقيق - مرئيات إدارة الحوكمة والامتثال المؤسسي - الجولة الأولى.xlsx\n"
+}

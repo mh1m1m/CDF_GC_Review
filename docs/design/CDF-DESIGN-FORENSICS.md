@@ -1,0 +1,13 @@
+# CDF visual reference assessment
+
+Five supplied Drive files were authenticated, downloaded and inspected locally: two source PDFs (28-page authority matrix and 92-page organization/mandate document), an 8-page Identity Applications PDF and two horizontal bilingual logo images. The logo images and the identity document's first page were visually inspected. Raw PDF copies and extraction workspaces remain ignored locally; their existence is not a production data integration claim.
+
+The user explicitly declared source copies and extraction candidates public during this implementation. Public-safe publication therefore includes the unmodified two logo images, source manifest and candidate authority/unit data. This authorization is recorded as USER_DECLARED_PUBLIC, not independently established copyright licensing or institutional approval. No personal methodology corpus, calibration case or credential was published.
+
+The supplied images support horizontal Arabic/English artwork on light and dark backgrounds. Source proportions/pixels are preserved; CSS does not redraw, recolor or distort the logo. `shared/logo-registry.json` records exact dimensions/aspect ratios and integrity hashes. Clear space and minimum sizes remain NOT_VERIFIED rather than invented. Other variants shown or named in the PDF were not extracted as approved standalone assets.
+
+The repository already contains historical tokens attributed to a separate 87-page guide, which was not provided in this reference folder. Existing public palette values are reused as design foundations; this cycle does not newly certify them against that absent guide. Current supplied identity artwork is consistent with dark wordmarks and pale identity surfaces, but newly proposed digital glass, gradients, rings, semantic colors, shadows, layout and icon treatments are CREATIVE_EXTENSION_PENDING_INSTITUTIONAL_APPROVAL.
+
+`shared/visual-tokens.json` is the common semantic palette for browser and draft export renderers. The web's frosted surfaces and Lucide-based glass icon containers surround the original mark. Brand artwork is not morphed into decorative icons. Typography uses available Arabic/Latin runtime fallbacks; no commercial font binary is committed. The style is an engineered proposal, not a declaration of official digital-brand compliance.
+
+Actual screenshots, mobile overflow tests, reduced-motion behavior, WCAG automated checks and export consistency tests are acceptance evidence for the implementation. They do not establish visual-design endorsement or all WCAG success criteria through automated testing alone.

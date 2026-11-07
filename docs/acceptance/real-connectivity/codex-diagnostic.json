@@ -1,0 +1,143 @@
+{
+  "probe_id": "codex-diagnostic-f8cddd534bb0",
+  "old_job_replayed": false,
+  "scope": "NEW_EXPLICIT_SYNTHETIC_SINGLE_STAGE",
+  "records": [
+    {
+      "action": [
+        "case",
+        "create"
+      ],
+      "exit_status": 0,
+      "duration_ms": 638,
+      "response": {
+        "ok": true,
+        "operation": "cdf_create_case",
+        "data": {
+          "case_id": "SYN-REAL-CONNECTIVITY-001",
+          "source_hash": "b25ea157540a1bfaef7ed30571aa639580be79b94244851ed01a3b930ad47bbb",
+          "source_imported": true,
+          "phase": "INTAKE",
+          "synthetic": true,
+          "idempotency_key": "codex-diagnostic-f8cddd534bb0-create"
+        },
+        "error": null
+      }
+    },
+    {
+      "action": [
+        "executor",
+        "probe"
+      ],
+      "exit_status": 4,
+      "duration_ms": 40924,
+      "response": {
+        "ok": true,
+        "operation": "cdf_get_job_result",
+        "data": {
+          "job": {
+            "job_id": "JOB-f4ec4f4f81b24d269ee68f4a5e5f0177",
+            "case_id": "SYN-REAL-CONNECTIVITY-001",
+            "kind": "probe",
+            "executor": "codex-cli",
+            "status": "FAILED",
+            "created_at": "2026-10-24T13:39:03.436430+00:00",
+            "started_at": "2026-10-24T13:39:03.922005+00:00",
+            "finished_at": "2026-10-24T13:39:43.617605+00:00",
+            "run_id": null,
+            "error_code": "INFERENCE_PROBE_FAILED",
+            "error_stage": "DRAFTING",
+            "attempts": 1
+          },
+          "result": {},
+          "agent_attempts": [
+            {
+              "execution_id": "EXEC-7fd07b02946d4f5cb7a55e5b698d2819",
+              "role": "DRAFTING",
+              "source": "SUPERVISED_CLI",
+              "status": "PROVIDER_FAILURE",
+              "started_at": "2026-10-24T13:39:04.588765+00:00",
+              "finished_at": "2026-10-24T13:39:43.616273+00:00",
+              "receipt": {
+                "Agent_ID": "AGENT-DRAFTING",
+                "Agent_Role": "DRAFTING",
+                "Application_Job_ID": "JOB-f4ec4f4f81b24d269ee68f4a5e5f0177",
+                "CLI_Originated": [],
+                "Context_ID": "CTX-f19f61890a776c29865d742a",
+                "Error": "CLI_TIMEOUT: Supervised CLI timed out; no automatic replay",
+                "Evidence_References": [],
+                "Execution_ID": "EXEC-7fd07b02946d4f5cb7a55e5b698d2819",
+                "Execution_Source": "FAILED",
+                "Execution_Status": "PROVIDER_FAILURE",
+                "Invocation_ID": "",
+                "Latency_ms": 39023,
+                "Locally_Generated": [
+                  "Execution_ID",
+                  "Context_ID",
+                  "Prompt_Hash",
+                  "Response_Hash",
+                  "Timestamp",
+                  "Latency_ms"
+                ],
+                "Mode": "LIVE",
+                "Model": "CLI_CONFIGURED_MODEL_NOT_INDEPENDENTLY_ATTESTED",
+                "Prompt_Hash": "f19f61890a776c29865d742ad5bffe527acdf5b730f463e935ac9ed378a0cea3",
+                "Provider": "codex-cli",
+                "Provider_Originated": [
+                  "Invocation_ID",
+                  "Provider_Request_ID",
+                  "Model",
+                  "Token_Usage"
+                ],
+                "Provider_Request_ID": null,
+                "Response_Hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "Review_State_Fingerprint": null,
+                "Run_ID": "",
+                "Schema_Errors": [],
+                "System_Hash": "67749429ec754d02192c69549b1aab56c5dd24e711295f299364afcf342f4973",
+                "Timestamp": "2026-10-24T13:39:43+00:00",
+                "Token_Usage": {
+                  "cache_read_input_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                "attempts": 1,
+                "executor_diagnostic": {
+                  "completion_observed": false,
+                  "elapsed_ms": 39018,
+                  "error_categories": [
+                    "CONNECTION",
+                    "HTTP_403",
+                    "RECONNECT"
+                  ],
+                  "event_counts": {
+                    "error": 6,
+                    "item.completed": 1,
+                    "thread.started": 1,
+                    "turn.started": 1
+                  },
+                  "executor": "codex-cli",
+                  "exit_code": 0,
+                  "inference_verified": false,
+                  "phase": "TIMEOUT_OUTCOME_UNKNOWN",
+                  "schema": "CDF-CLI-DIAGNOSTIC-1",
+                  "stderr_bytes": 4940,
+                  "stderr_sha256": "005eacbe5a4592836d9b095bec48eb0ac7955d1ba13c138bba78d8f94bdf8da3",
+                  "stdout_bytes": 1201,
+                  "stdout_sha256": "08870e99a03e8e990d1f81841caedf6cfb901492cfc239853f9a0df9bcca04c2"
+                },
+                "line_hash": "8ec11d711a9abbd40dda4ce5d26972c488a37dd5d8a7a601aa2f0ef93aa662e9",
+                "prev_hash": "GENESIS",
+                "schema": "CDF-AGENT-TRACE-v7.12.2"
+              }
+            }
+          ]
+        },
+        "error": null
+      }
+    }
+  ],
+  "authentication": "NORMAL_CLI_LOGIN_NO_CREDENTIAL_EXTRACTION",
+  "remote_client_registration": "NOT_TESTED",
+  "institutional_activation": "DISABLED"
+}

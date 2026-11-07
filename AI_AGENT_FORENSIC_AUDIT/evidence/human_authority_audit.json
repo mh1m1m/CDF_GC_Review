@@ -1,0 +1,345 @@
+{
+ "schema": "CDF-AUDIT-HUMAN-AUTHORITY-1",
+ "attempts": [
+  {
+   "attempt": "human_decision=True (boolean)",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "item": "True",
+      "reason": "NOT_A_HUMAN_DECISION_RECORD"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "dict pretending to be a decision",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "item": "{'approved': True, 'reviewer': 'x'}",
+      "reason": "NOT_A_HUMAN_DECISION_RECORD"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "fabricated reviewer name, unsigned",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "reason": "Institution-managed public-key trust store is mandatory"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "invalid signature",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "reason": "Decision signature is invalid"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "valid signature but key id absent from trust store",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "reason": "Institution-managed public-key trust store is mandatory"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "reuse of a valid approval for another observation",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-009",
+      "reason": "Decision signature is invalid"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "record modified after signing (decision field changed)",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "reason": "Decision signature is invalid"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "verification_status NOT_VERIFIED with a valid signature",
+   "raised": null,
+   "result": {
+    "applied": [],
+    "rejected": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "reason": "Reviewer approval evidence is not verified"
+     }
+    ],
+    "remaining_blockers": [
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-771DA915B85F62A8",
+      "kind": "RESERVED_DECISION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     },
+     {
+      "internal_id": "GCO-AUD-R1-002",
+      "challenge_id": "ADV-D5C00B3D16D70B04",
+      "kind": "UNCLEAR_ACTION",
+      "disposition": "ESCALATED_TO_GCO_REVIEWER",
+      "open_question": "قرار مراجع GCO الموثق على المسألة المحجوزة"
+     }
+    ]
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "expired or revoked authorization (timestamp 2020-01-01, otherwise valid)",
+   "raised": null,
+   "result": {
+    "applied": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "decision": "ESCALATED_TO_GCO_REVIEWER",
+      "reviewer": "م. مراجع تجريبي",
+      "timestamp": "2020-01-01",
+      "reference": "DEC-AUD-1",
+      "applied": true
+     }
+    ],
+    "rejected": [],
+    "remaining_blockers": []
+   },
+   "rejected": false,
+   "PASS": false
+  },
+  {
+   "attempt": "Observation constructed with title_status=APPROVED and no evidence",
+   "raised": "ValueError: GCO-AUD-R1-001: an approved title needs reviewer, date and decision reference (19A.9 human decision proof)",
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "finalize_titles APPROVE with empty reviewer/date/ref",
+   "raised": null,
+   "result": {
+    "rejected": [
+     "GCO-AUD-R2-002: decision without reviewer, ISO date or decision reference (19A.9)"
+    ],
+    "applied": []
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "finalize_titles APPROVE with non-ISO date",
+   "raised": null,
+   "result": {
+    "rejected": [
+     "GCO-AUD-R2-002: decision without reviewer, ISO date or decision reference (19A.9)"
+    ],
+    "applied": []
+   },
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "engine decides WITHDRAWAL-type outcome on an issued observation without a human record",
+   "raised": "PermissionError: Article 17.7 prevents AI self-reversal",
+   "rejected": true,
+   "PASS": true
+  },
+  {
+   "attempt": "CONTROL: valid signed record in trust store (expected to be applied)",
+   "raised": null,
+   "result": {
+    "applied": [
+     {
+      "decision_id": "D-AUD-1",
+      "observation_id": "GCO-AUD-R1-002",
+      "decision": "ESCALATED_TO_GCO_REVIEWER",
+      "reviewer": "م. مراجع تجريبي",
+      "timestamp": "2026-10-23",
+      "reference": "DEC-AUD-1",
+      "applied": true
+     }
+    ],
+    "rejected": [],
+    "remaining_blockers": []
+   },
+   "rejected": false,
+   "PASS": true
+  }
+ ],
+ "passed": 13,
+ "total": 14,
+ "institutional_human_authorization": "NOT_VERIFIED",
+ "control_gaps": [
+  "No expiry, revocation list or validity window exists for a HumanDecision: a stale but validly signed record is accepted (attempt 9).",
+  "The trust store is a caller-supplied dict of raw Ed25519 public keys; no institution-managed key store, key ceremony or CA is connected. INSTITUTIONAL_HUMAN_AUTHORIZATION = NOT_VERIFIED.",
+  "Signing keys used in every test and demo are ephemeral SYNTHETIC keys generated in-process; no CDF key material exists in the package."
+ ]
+}

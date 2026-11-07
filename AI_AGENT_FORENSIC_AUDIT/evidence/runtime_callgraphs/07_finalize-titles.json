@@ -1,0 +1,202 @@
+{
+ "label": "07_finalize-titles",
+ "argv": [
+  "finalize-titles",
+  "مذكرة تفاهم تجريبية للتدقيق - مرئيات إدارة الحوكمة والامتثال المؤسسي - الجولة الأولى.xlsx",
+  "titles.json",
+  "out_titles",
+  "--issue"
+ ],
+ "return_code": 3,
+ "error": null,
+ "seconds": 0.35,
+ "socket_attempts": [],
+ "key_call_order": [
+  "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+  "cdf_gco_crms.ingestion.safe_open:require_safe",
+  "cdf_gco_crms.rounds.round_expansion:finalize_titles"
+ ],
+ "edge_count": 338,
+ "edges": [
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<genexpr>",
+   "n": 264
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:column",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:complete",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<lambda>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:rounds",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.model.entities:__post_init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:pick",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "main:main",
+   "n": 1
+  },
+  {
+   "caller": "main:main",
+   "callee": "main:cmd_finalize_titles",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_finalize_titles",
+   "callee": "main:_load_state",
+   "n": 1
+  },
+  {
+   "caller": "main:_load_state",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:ok",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:discover",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:from_cell_value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:from_cell_value",
+   "callee": "cdf_gco_crms.model.entities:plain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain",
+   "callee": "cdf_gco_crms.model.entities:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:__init__",
+   "callee": "cdf_gco_crms.model.entities:_normalise_runs",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_finalize_titles",
+   "callee": "cdf_gco_crms.rounds.round_expansion:finalize_titles",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_expansion:finalize_titles",
+   "callee": "cdf_gco_crms.model.entities:by_id",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_expansion:finalize_titles",
+   "callee": "cdf_gco_crms.model.entities:complete",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_expansion:finalize_titles",
+   "callee": "cdf_gco_crms.model.entities:__post_init__",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_finalize_titles",
+   "callee": "main:_emit",
+   "n": 1
+  }
+ ],
+ "touches_challenge_engine": false,
+ "touches_objection_engine": false,
+ "touches_excel_builder": false,
+ "touches_word_builder": false,
+ "stdout_tail": "{\n  \"status\": \"REFUSED\",\n  \"refused\": [\n    \"GCO-AUD-R1-001: nothing to approve (no proposed title and no wording)\"\n  ],\n  \"detail\": \"no output written; use --allow-partial to apply the accepted decisions\"\n}\n"
+}

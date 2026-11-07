@@ -1,0 +1,13 @@
+NO                           Does the production orchestrator (main.py) invoke Black Team when a workbook is built or issued?
+YES, as separate operator commands Is there any production entry point that invokes the challenge?
+NO                           Is that invocation a real model call?
+YES (in-process object)      Does Red Advocate receive the actual Black Team output?
+YES (in-process objects)     Does the adjudicator receive both arguments?
+PARTIAL                      Does the adjudicator evaluate evidence independently?
+NO (automatically)           Can a valid objection change the final observation?
+NO                           Does the change reach the official observation register?
+YES for the human-entered observation Does the final observation reach Word comments and Excel?
+PARTIAL                      Are approved titles synchronized?
+NO                           Does the workflow block issuance when required evidence is missing?
+NO                           Independent Final Red-Team Reviewer (Art. 20) invoked anywhere?
+ALLDONE

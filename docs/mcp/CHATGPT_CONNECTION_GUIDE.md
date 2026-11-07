@@ -1,0 +1,9 @@
+# ChatGPT MCP connection
+
+Status in this workspace: **BLOCKED_EXTERNAL**. An independent official Python MCP client has protocol coverage; this does not prove a ChatGPT connector was registered or invoked. No approved externally reachable HTTPS endpoint, production OAuth issuer/client registration, or ChatGPT connector-management capability is configured here.
+
+For local verification, provision a scoped synthetic development session and start `python -m cdf_gco_crms.interfaces.mcp_server --transport streamable-http --port 8766`. An independent SDK client can initialize and discover/call tools at `http://127.0.0.1:8766/mcp`. The server intentionally rejects non-loopback peers. This endpoint is not a deployable public connector; do not tunnel it or disable loopback/private-mode restrictions to obtain a test result.
+
+An authorized deployment owner must separately provide an approved synthetic-only HTTPS deployment, supported MCP/OAuth resource-server integration with trusted identity and scope mapping, allowlisted clients, secret handling and operational review. The present development bearer verifier does not advertise a fake OAuth issuer and is not a substitute for that work. Validate current supported ChatGPT custom-app/MCP setup documentation for the owner's account/workspace before registration; connection UI and authentication options vary.
+
+After approved setup, record actual tool discovery, `cdf_get_case_status` for SYN-COOPERATION-001, an authorized review with a unique idempotency key, persisted job/run ID and report metadata. Reconcile backend events to the authenticated client identity and same source hash. Store sanitized connection evidence separately. Until these actions occur, retain CHATGPT_CONNECTION=BLOCKED_EXTERNAL. GitHub authentication does not authorize this backend.

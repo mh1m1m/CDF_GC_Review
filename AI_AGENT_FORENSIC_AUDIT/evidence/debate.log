@@ -1,0 +1,16 @@
+PASS          ONE_CYCLE_RESOLUTION (REG-01 breach wording → REVISE) | {'UNSUPPORTED_BREACH_CLAIM': 2}
+PASS          MULTIPLE_OBJECTIONS: distinct Challenge_IDs with their own cycle counters | {'DUPLICATE_REMEDY': ('ADV-C13CA6A0BBA26F30', 2), 'VERBOSE': ('ADV-0CECF6352038AF67', 2)}
+PASS          SIX_CYCLE_UNRESOLVED → ADJUDICATOR_ESCALATION (CYC-01) | {'CONTESTED_OWNERSHIP': (6, 'ESCALATED_TO_GCO_REVIEWER')}
+PASS          SEVENTH_CYCLE_REJECTED | 6
+FAIL          SEMANTIC_DUPLICATE: whitespace/punctuation paraphrase with same refs refused | canon() normalisation only; a true paraphrase with different words is NOT detected (see limitation)
+FAIL          SEMANTIC_DUPLICATE: genuine paraphrase (different words, same meaning) refused | expected limitation: canonical-text equality only
+PASS          NEW_EVIDENCE_INTRODUCED changes the outcome (REG-01 vs REG-02) | {'REG-01': ['UNSUPPORTED_BREACH_CLAIM'], 'REG-02': []}
+PASS          EVIDENCE_WITHDRAWN restores the objection | ['UNSUPPORTED_BREACH_CLAIM']
+PASS          cited clause corrected (absent → present) changes the outcome | {'absent': ['CLAUSE_NOT_FOUND'], 'present': []}
+PASS          observation narrowed (JUR-01 technical → JUR-02 governance) changes the outcome | {'JUR-01': [], 'JUR-02': ['CONTESTED_OWNERSHIP']}
+NOT_VERIFIED  recipient changes (procurement → human capital) changes the outcome | {'procurement': [], 'human_capital': []}
+NOT_VERIFIED  institutional mandate reclassified (PROPOSED → APPROVED) changes the outcome | NOT_VERIFIED: the reference index is read-only in this audit; no approved mandate exists to load
+PASS          PARTIAL_AGREEMENT (advocate REVISE = concedes wording, keeps the request) | ['REVISE']
+NOT_VERIFIED  TWO_CYCLE_RESOLUTION | NOT_VERIFIED: no synthetic case produced a resolution exactly at the second exchange; the loop supports it (_argue)
+PASS          debate history preserved (hash chain verified on every record) | 
+{'PASS': 10, 'FAIL': 2, 'NOT_VERIFIED': 3}

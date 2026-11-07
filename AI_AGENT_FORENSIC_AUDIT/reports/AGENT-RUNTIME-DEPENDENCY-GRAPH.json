@@ -1,0 +1,165 @@
+{
+ "schema": "CDF-AUDIT-RUNTIME-DEPENDENCY-GRAPH-1",
+ "entry_point": "main.py main(argv)",
+ "commands": [
+  {
+   "label": "01_round1",
+   "return_code": "BuildResult",
+   "error": null,
+   "seconds": 1.26,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.rounds.round_expansion:build_round1",
+    "cdf_gco_crms.excel.workbook_builder:build_workbook"
+   ],
+   "touches_challenge_engine": false,
+   "touches_objection_engine": false,
+   "touches_excel_builder": true,
+   "touches_word_builder": false
+  },
+  {
+   "label": "02_build-excel",
+   "return_code": 0,
+   "error": null,
+   "seconds": 1.89,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.excel.workbook_builder:build_workbook"
+   ],
+   "touches_challenge_engine": false,
+   "touches_objection_engine": false,
+   "touches_excel_builder": true,
+   "touches_word_builder": false
+  },
+  {
+   "label": "03_build-word",
+   "return_code": 0,
+   "error": null,
+   "seconds": 0.53,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.word.document_comments:comment_document"
+   ],
+   "touches_challenge_engine": false,
+   "touches_objection_engine": false,
+   "touches_excel_builder": false,
+   "touches_word_builder": true
+  },
+  {
+   "label": "04_review",
+   "return_code": 0,
+   "error": null,
+   "seconds": 20.37,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.assurance.personas:from_index",
+    "cdf_gco_crms.assurance.challenge:run_challenge",
+    "cdf_gco_crms.assurance.challenge:black_team",
+    "cdf_gco_crms.assurance.evidence:bind_clause",
+    "cdf_gco_crms.assurance.challenge:_argue",
+    "cdf_gco_crms.assurance.challenge:red_advocate",
+    "cdf_gco_crms.assurance.challenge:adjudicate",
+    "cdf_gco_crms.assurance.objection_engine:decide"
+   ],
+   "touches_challenge_engine": true,
+   "touches_objection_engine": true,
+   "touches_excel_builder": false,
+   "touches_word_builder": false
+  },
+  {
+   "label": "05_challenge",
+   "return_code": 0,
+   "error": null,
+   "seconds": 16.97,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.assurance.personas:from_index",
+    "cdf_gco_crms.assurance.challenge:run_challenge",
+    "cdf_gco_crms.assurance.challenge:black_team",
+    "cdf_gco_crms.assurance.evidence:bind_clause",
+    "cdf_gco_crms.assurance.challenge:_argue",
+    "cdf_gco_crms.assurance.challenge:red_advocate",
+    "cdf_gco_crms.assurance.challenge:adjudicate",
+    "cdf_gco_crms.assurance.objection_engine:decide",
+    "cdf_gco_crms.assurance.challenge:confidentiality_scan"
+   ],
+   "touches_challenge_engine": true,
+   "touches_objection_engine": true,
+   "touches_excel_builder": false,
+   "touches_word_builder": false
+  },
+  {
+   "label": "06_adjudicate",
+   "return_code": 0,
+   "error": null,
+   "seconds": 19.04,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.assurance.personas:from_index",
+    "cdf_gco_crms.assurance.challenge:run_challenge",
+    "cdf_gco_crms.assurance.challenge:black_team",
+    "cdf_gco_crms.assurance.evidence:bind_clause",
+    "cdf_gco_crms.assurance.challenge:_argue",
+    "cdf_gco_crms.assurance.challenge:red_advocate",
+    "cdf_gco_crms.assurance.challenge:adjudicate",
+    "cdf_gco_crms.assurance.objection_engine:decide",
+    "cdf_gco_crms.assurance.challenge:apply_human_decisions",
+    "cdf_gco_crms.assurance.objection_engine:validate"
+   ],
+   "touches_challenge_engine": true,
+   "touches_objection_engine": true,
+   "touches_excel_builder": false,
+   "touches_word_builder": false
+  },
+  {
+   "label": "07_finalize-titles",
+   "return_code": 3,
+   "error": null,
+   "seconds": 0.35,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.rounds.round_expansion:finalize_titles"
+   ],
+   "touches_challenge_engine": false,
+   "touches_objection_engine": false,
+   "touches_excel_builder": false,
+   "touches_word_builder": false
+  },
+  {
+   "label": "08_finalize-titles-with-wording",
+   "return_code": 0,
+   "error": null,
+   "seconds": 1.44,
+   "socket_attempts": [],
+   "key_call_order": [
+    "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+    "cdf_gco_crms.ingestion.safe_open:require_safe",
+    "cdf_gco_crms.rounds.round_expansion:finalize_titles",
+    "cdf_gco_crms.rounds.round_expansion:mark_titles_issued",
+    "cdf_gco_crms.excel.workbook_builder:build_workbook"
+   ],
+   "touches_challenge_engine": false,
+   "touches_objection_engine": false,
+   "touches_excel_builder": true,
+   "touches_word_builder": false
+  }
+ ],
+ "findings": [
+  "round1 does not carry the 'title' field of its JSON into NewObservation (07_finalize-titles refused: 'nothing to approve'); the proposal must be supplied again in the decision file (08).",
+  "Every production build command (round1, build-excel, build-word, finalize-titles) completes WITHOUT any call into assurance.challenge: the challenge is not on the issuance path; it runs only when the operator invokes review/challenge/adjudicate separately.",
+  "No command attempted an outbound socket connection: there is no provider call anywhere in the traced runtime.",
+  "review/challenge/adjudicate call black_team → red_advocate → adjudicate inside one process on shared objects (no separate execution identity)."
+ ]
+}

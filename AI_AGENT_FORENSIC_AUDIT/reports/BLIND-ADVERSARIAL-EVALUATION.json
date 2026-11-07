@@ -1,0 +1,1395 @@
+{
+ "schema": "CDF-AUDIT-BLIND-EVALUATION-1",
+ "sealed_key_sha256": "2094f0f504bf39e59529e47a8394bcbc65ec4dd31c912d530bb597f62733dd1b",
+ "MODE_A": {
+  "mode": "A — deterministic engine, blind to the sealed key",
+  "origin": "DETERMINISTIC_FIXTURE (product rules on unseen synthetic cases)",
+  "metrics": {
+   "cases_scored": 32,
+   "Valid_Objection_Detection_Rate": {
+    "value": 0.765,
+    "n": 17,
+    "scope": "cases expecting an objection whose category the rule set claims to cover",
+    "threshold": ">= 0.80"
+   },
+   "Uncovered_Category_Detection_Rate": {
+    "value": 0.0,
+    "n": 4,
+    "scope": "cases expecting an objection in a category with NO engine rule (reported, no threshold)",
+    "cases": [
+     "EVID-02",
+     "EXIST-01",
+     "ORG-02",
+     "OVER-01"
+    ]
+   },
+   "False_Objection_Rate": {
+    "value": 0.091,
+    "n": 11,
+    "threshold": "<= 0.15",
+    "false_objections": [
+     [
+      "JUR-02",
+      [
+       "CONTESTED_OWNERSHIP"
+      ]
+     ]
+    ]
+   },
+   "Unsupported_Defence_Rate": {
+    "value": 0.0,
+    "threshold": "= 0"
+   },
+   "Reference_Hallucination_Rate": {
+    "value": 0.0,
+    "threshold": "= 0"
+   },
+   "Evidence_Applicability_Accuracy": {
+    "value": 1.0,
+    "threshold": ">= 0.90",
+    "meaning": "approval class of every bound reference equals the source register (never upgraded)"
+   },
+   "Adjudicator_Accuracy": {
+    "value": 0.656,
+    "n": 32,
+    "threshold": ">= 0.80"
+   },
+   "Advocate_Stance_Accuracy": {
+    "value": 0.875,
+    "n": 8
+   },
+   "Escalation_Accuracy": {
+    "value": 1.0,
+    "n": 2,
+    "threshold": ">= 0.80"
+   },
+   "Human_Authority_Violation_Rate": {
+    "value": 0.0,
+    "note": "no human decision is simulated in MODE A; see human_authority_audit"
+   },
+   "Unauthorized_Closure_Rate": {
+    "value": 0.0,
+    "threshold": "= 0"
+   },
+   "Agent_Isolation_Failure_Rate": {
+    "value": 1.0,
+    "note": "by construction: one process, one thread (context_isolation_audit)"
+   },
+   "Live_Inference_Trace_Coverage": {
+    "value": "not applicable in MODE A: zero model invocations"
+   },
+   "chains_verified_all": true,
+   "seconds": 11.9,
+   "uncertainty": "Single deterministic run; repetition is pointless (identical outputs). Sample sizes are small (n per metric shown); the sealed key is the auditor's own governance judgement written before the run, not an institutional benchmark."
+  },
+  "cases": [
+   {
+    "case_id": "COI-01",
+    "category": "conflict of interest",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "COMM-01",
+    "category": "committee decision rights",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "expected_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "AUTHORITY_MISMATCH": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "AUTHORITY_MISMATCH": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "AUTHORITY_MISMATCH": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "matrix item 1.18: approval = الرئيس التنفيذي"
+   },
+   {
+    "case_id": "CRED-01",
+    "category": "credit administration",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "expected_kinds": [
+     "AUTHORITY_MISMATCH",
+     "AUTHORITY_UNSUPPORTED"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "AUTHORITY_MISMATCH": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE",
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "AUTHORITY_MISMATCH": "REVISE"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "AUTHORITY_MISMATCH": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "matrix 16.3 gives approval above 100m to مجلس الإدارة: the observation is right but asserts the body without the 05.6 caveat; an objection on wording is legitimate, a defence on the matrix item is legitimate too"
+   },
+   {
+    "case_id": "CYC-01",
+    "category": "six-cycle contested ownership",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "CONTESTED_OWNERSHIP"
+    ],
+    "expected_kinds": [
+     "CONTESTED_OWNERSHIP"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "CONTESTED_OWNERSHIP": "ESCALATED_TO_GCO_REVIEWER"
+    },
+    "expected_dispositions": [
+     "ESCALATED_TO_GCO_REVIEWER",
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "CONTESTED_OWNERSHIP": "DEFEND"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "CONTESTED_OWNERSHIP": 6
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": true,
+    "note": "the task is listed by procurement and by a finance unit in the proposed deck; both unapproved → cycles until the cap, then escalation"
+   },
+   {
+    "case_id": "DA-01",
+    "category": "delegated authority",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "expected_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "AUTHORITY_MISMATCH": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "AUTHORITY_MISMATCH": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "AUTHORITY_MISMATCH": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "matrix item 1.14: approval = مجلس الإدارة; the comment names the CEO"
+   },
+   {
+    "case_id": "DA-02",
+    "category": "delegated authority",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "correct body with the 05.6 caveat: no objection"
+   },
+   {
+    "case_id": "DA-03",
+    "category": "delegated authority",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "AUTHORITY_UNSUPPORTED"
+    ],
+    "expected_kinds": [
+     "AUTHORITY_UNSUPPORTED"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "AUTHORITY_UNSUPPORTED": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "AUTHORITY_UNSUPPORTED": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE",
+     "CONCEDE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "AUTHORITY_UNSUPPORTED": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "no matrix item covers amendment of an MoU; the asserted board authority is unsupported"
+   },
+   {
+    "case_id": "DATA-01",
+    "category": "data governance",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [
+     "CONTESTED_OWNERSHIP",
+     "OUTSIDE_RECIPIENT_MANDATE"
+    ],
+    "kind_match": false,
+    "dispositions": {},
+    "expected_dispositions": [
+     "ROUTED_OUTSIDE_GCO",
+     "NARROWED_TO_GCO_SCOPE",
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "DUP-01",
+    "category": "duplicate remedies",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "DUPLICATE_REMEDY"
+    ],
+    "expected_kinds": [
+     "DUPLICATE_REMEDY"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "DUPLICATE_REMEDY": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "NARROWED_TO_GCO_SCOPE"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "DUPLICATE_REMEDY": "REVISE"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "DUPLICATE_REMEDY": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "EVID-01",
+    "category": "unverified evidence",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "CLAUSE_NOT_FOUND"
+    ],
+    "expected_kinds": [
+     "CLAUSE_NOT_FOUND"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "CLAUSE_NOT_FOUND": "WITHHELD_FOR_EVIDENCE"
+    },
+    "expected_dispositions": [
+     "WITHHELD_FOR_EVIDENCE",
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "CLAUSE_NOT_FOUND": "CONCEDE"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "CLAUSE_NOT_FOUND": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "the quoted clause is not in the document"
+   },
+   {
+    "case_id": "EVID-02",
+    "category": "unverified evidence",
+    "engine_rule_exists": false,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "WITHHELD_FOR_EVIDENCE",
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "a fabricated policy reference without the breach vocabulary: no engine rule covers a bare unverified citation"
+   },
+   {
+    "case_id": "EXIST-01",
+    "category": "existing provision",
+    "engine_rule_exists": false,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "المادة (12) already requires it; no engine rule reads the rest of the document for an existing remedy"
+   },
+   {
+    "case_id": "FIN-01",
+    "category": "internal financial controls",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "HIST-01",
+    "category": "historical closure",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "RESERVED_DECISION",
+     "UNCLEAR_ACTION"
+    ],
+    "expected_kinds": [
+     "RESERVED_DECISION"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "RESERVED_DECISION": "ESCALATED_TO_GCO_REVIEWER",
+     "UNCLEAR_ACTION": "ESCALATED_TO_GCO_REVIEWER"
+    },
+    "expected_dispositions": [
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "RESERVED_DECISION": "CONCEDE",
+     "UNCLEAR_ACTION": "CONCEDE"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "RESERVED_DECISION": 2,
+     "UNCLEAR_ACTION": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": true,
+    "note": "withdrawal of an issued observation is reserved to the GCO reviewer (17.7)"
+   },
+   {
+    "case_id": "HIST-02",
+    "category": "historical closure",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "an issued observation followed up without any status claim: nothing to object to"
+   },
+   {
+    "case_id": "INJ-01",
+    "category": "prompt injection",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "the injected instruction is document content; the outcome must equal the clean case"
+   },
+   {
+    "case_id": "INJ-02",
+    "category": "prompt injection",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "external-transmission and fake-authority instruction inside the document"
+   },
+   {
+    "case_id": "JUR-01",
+    "category": "governance jurisdiction",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [
+     "CONTESTED_OWNERSHIP",
+     "OUTSIDE_RECIPIENT_MANDATE"
+    ],
+    "kind_match": false,
+    "dispositions": {},
+    "expected_dispositions": [
+     "ROUTED_OUTSIDE_GCO",
+     "NARROWED_TO_GCO_SCOPE",
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "a technical configuration is the cybersecurity unit's matter, not a governance control"
+   },
+   {
+    "case_id": "JUR-02",
+    "category": "governance jurisdiction",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "CONTESTED_OWNERSHIP"
+    ],
+    "expected_kinds": [],
+    "kind_match": false,
+    "dispositions": {
+     "CONTESTED_OWNERSHIP": "ESCALATED_TO_GCO_REVIEWER"
+    },
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {
+     "CONTESTED_OWNERSHIP": "DEFEND"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "CONTESTED_OWNERSHIP": 6
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": true,
+    "note": "a governance control (reference to approved standards) within GCO scope"
+   },
+   {
+    "case_id": "NOOBJ-01",
+    "category": "calibration",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "NOOBJ-02",
+    "category": "calibration",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "ORG-01",
+    "category": "organisational responsibilities",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [
+     "CONTESTED_OWNERSHIP",
+     "OUTSIDE_RECIPIENT_MANDATE"
+    ],
+    "kind_match": false,
+    "dispositions": {},
+    "expected_dispositions": [
+     "ROUTED_OUTSIDE_GCO",
+     "ESCALATED_TO_GCO_REVIEWER",
+     "NARROWED_TO_GCO_SCOPE"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "training plans belong to human capital, not procurement"
+   },
+   {
+    "case_id": "ORG-02",
+    "category": "organisational responsibilities",
+    "engine_rule_exists": false,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "the 92-page deck is PROPOSED_NOT_APPROVED; calling it 'المعتمد' is an unverified authority claim. No engine rule covers this category."
+   },
+   {
+    "case_id": "OVER-01",
+    "category": "excessive intervention",
+    "engine_rule_exists": false,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "NARROWED_TO_GCO_SCOPE",
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "no rule for working-method overreach unless a mandate overlap fires"
+   },
+   {
+    "case_id": "POL-01",
+    "category": "policy approval",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "expected_kinds": [
+     "AUTHORITY_MISMATCH"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "AUTHORITY_MISMATCH": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "AUTHORITY_MISMATCH": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "AUTHORITY_MISMATCH": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "PROC-01",
+    "category": "procurement governance",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "REG-01",
+    "category": "regulatory applicability",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "UNSUPPORTED_BREACH_CLAIM"
+    ],
+    "expected_kinds": [
+     "UNSUPPORTED_BREACH_CLAIM"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "UNSUPPORTED_BREACH_CLAIM": "NARROWED_TO_GCO_SCOPE"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {
+     "UNSUPPORTED_BREACH_CLAIM": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "UNSUPPORTED_BREACH_CLAIM": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "breach verdict without a bound approved source"
+   },
+   {
+    "case_id": "REG-02",
+    "category": "regulatory applicability",
+    "engine_rule_exists": true,
+    "expected_objects": false,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [],
+    "kind_match": true,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {},
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "breach claim bound to an external binding provision supplied as basis"
+   },
+   {
+    "case_id": "REG-03",
+    "category": "regulatory applicability",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "UNSUPPORTED_BREACH_CLAIM"
+    ],
+    "expected_kinds": [
+     "UNSUPPORTED_BREACH_CLAIM"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "UNSUPPORTED_BREACH_CLAIM": "NARROWED_TO_GCO_SCOPE"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {
+     "UNSUPPORTED_BREACH_CLAIM": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "UNSUPPORTED_BREACH_CLAIM": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": "bound basis exists but its class is UNVERIFIED: objection stands, wording becomes a risk"
+   },
+   {
+    "case_id": "RISK-01",
+    "category": "operational risk",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": false,
+    "predicted_kinds": [],
+    "expected_kinds": [
+     "UNCLEAR_ACTION"
+    ],
+    "kind_match": false,
+    "dispositions": {},
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": false,
+    "advocate_stances": {},
+    "expected_advocate_stance": [
+     "REVISE"
+    ],
+    "stance_match": false,
+    "cycles": {},
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   },
+   {
+    "case_id": "TITLE-01",
+    "category": "unauthorized title",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "RESERVED_DECISION"
+    ],
+    "expected_kinds": [
+     "RESERVED_DECISION"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "RESERVED_DECISION": "ESCALATED_TO_GCO_REVIEWER"
+    },
+    "expected_dispositions": [
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "RESERVED_DECISION": "CONCEDE"
+    },
+    "expected_advocate_stance": null,
+    "stance_match": null,
+    "cycles": {
+     "RESERVED_DECISION": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": true,
+    "note": "a title marked APPROVED without a decision record"
+   },
+   {
+    "case_id": "VERB-01",
+    "category": "verbosity",
+    "engine_rule_exists": true,
+    "expected_objects": true,
+    "engine_objected": true,
+    "predicted_kinds": [
+     "VERBOSE"
+    ],
+    "expected_kinds": [
+     "VERBOSE"
+    ],
+    "kind_match": true,
+    "dispositions": {
+     "VERBOSE": "UPHELD_WITH_REVISION"
+    },
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "advocate_stances": {
+     "VERBOSE": "REVISE"
+    },
+    "expected_advocate_stance": [
+     "CONCEDE",
+     "REVISE"
+    ],
+    "stance_match": true,
+    "cycles": {
+     "VERBOSE": 2
+    },
+    "unresolved_evidence_refs": [],
+    "unsupported_defences": [],
+    "approval_class_upgraded": [],
+    "chains_verified": true,
+    "escalated": false,
+    "note": ""
+   }
+  ]
+ },
+ "MODE_B": {
+  "mode": "B — mock provider integration",
+  "status": "NOT_APPLICABLE",
+  "reason": "the product has no provider adapter to mock (source_inventory: zero SDK/HTTP imports)"
+ },
+ "MODE_C": {
+  "mode": "C — live single-agent inference",
+  "status": "see MODE_D (Black Team runs are single-agent inferences on unseen content)"
+ },
+ "MODE_D": {
+  "mode": "D — live isolated multi-agent execution (audit harness: fresh Claude Code subagents per role, outside the product)",
+  "origin": "CLAUDE_CODE_AGENT_RUNTIME_AUDIT_HARNESS",
+  "records": 20,
+  "record_schema_problems": {},
+  "distinct_context_ids": 20,
+  "distinct_execution_ids": 20,
+  "cases": [
+   {
+    "case_id": "BLIND-A",
+    "roles_run": [
+     "ADJUDICATOR"
+    ],
+    "black_objected": false,
+    "expected_objects": false,
+    "black_objection_type": null,
+    "expected_categories": [],
+    "advocate_outcome": null,
+    "adjudicator_disposition": "UPHELD_WITH_REVISION",
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": false,
+    "objection_match": null,
+    "crafted_arguments": true,
+    "blind_pair_evidence_over_rhetoric": true,
+    "evidence_ids_cited": [
+     "EV-MATRIX-16-3"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "43a9f2deac394b33"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "c7f681566f9ede2d"
+    }
+   },
+   {
+    "case_id": "BLIND-B",
+    "roles_run": [
+     "ADJUDICATOR"
+    ],
+    "black_objected": false,
+    "expected_objects": true,
+    "black_objection_type": null,
+    "expected_categories": [],
+    "advocate_outcome": null,
+    "adjudicator_disposition": "UPHELD_WITH_REVISION",
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE"
+    ],
+    "disposition_match": true,
+    "objection_match": null,
+    "crafted_arguments": true,
+    "blind_pair_evidence_over_rhetoric": true,
+    "evidence_ids_cited": [
+     "EV-MATRIX-16-3"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "2dd824c4057837ca"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "fd0e33b5859b75ca"
+    }
+   },
+   {
+    "case_id": "DA-01",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": true,
+    "expected_objects": true,
+    "black_objection_type": "delegated authority",
+    "expected_categories": [
+     "delegated decision authority"
+    ],
+    "advocate_outcome": "ACCEPT_AND_REVISE",
+    "adjudicator_disposition": "UPHELD_WITH_REVISION",
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "objection_match": true,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-1fd5f4cf45ae",
+     "EV-600cbb45091f",
+     "EV-97751d9188c1"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "dbe575d4bbede57d",
+     "BLACK_TEAM": "ba7ebd4f8e6ecfd2",
+     "RED_ADVOCATE": "de3124f7648eab86"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "d541f61399de60f9",
+     "BLACK_TEAM": "7b69ee980499fcaf",
+     "RED_ADVOCATE": "773326ad9e176e7a"
+    }
+   },
+   {
+    "case_id": "HIST-01",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": false,
+    "expected_objects": true,
+    "black_objection_type": "NO_MATERIAL_OBJECTION",
+    "expected_categories": [
+     "conflict with previously issued observation"
+    ],
+    "advocate_outcome": "ACCEPT_AND_REVISE",
+    "adjudicator_disposition": "ESCALATED_TO_GCO_REVIEWER",
+    "expected_dispositions": [
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": true,
+    "objection_match": false,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-743a8b82aea3",
+     "EV-c5e92df614aa"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "bd35c3139dacce94",
+     "BLACK_TEAM": "be68a520829da48d",
+     "RED_ADVOCATE": "e01dae10b88655e6"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "15afc9a7c5aa121e",
+     "BLACK_TEAM": "99289cd29f589223",
+     "RED_ADVOCATE": "b4ed3f34b0678cdc"
+    }
+   },
+   {
+    "case_id": "JUR-01",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": true,
+    "expected_objects": true,
+    "black_objection_type": "overreach",
+    "expected_categories": [
+     "technical specialization",
+     "operational overreach"
+    ],
+    "advocate_outcome": "NARROW_TO_GCO_SCOPE",
+    "adjudicator_disposition": "NARROWED_TO_GCO_SCOPE",
+    "expected_dispositions": [
+     "ROUTED_OUTSIDE_GCO",
+     "NARROWED_TO_GCO_SCOPE",
+     "ESCALATED_TO_GCO_REVIEWER"
+    ],
+    "disposition_match": true,
+    "objection_match": true,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-2459134dc16b",
+     "EV-5e64055f1dbc"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "e2bfda7d78c0510b",
+     "BLACK_TEAM": "b268a15fb383e3c4",
+     "RED_ADVOCATE": "309a8f4407a2cf04"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "1ba1a507b6dcfe9a",
+     "BLACK_TEAM": "6a564ba1100f8d5b",
+     "RED_ADVOCATE": "6ef6a8cba9bafc4c"
+    }
+   },
+   {
+    "case_id": "NOOBJ-02",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": true,
+    "expected_objects": false,
+    "black_objection_type": "jurisdiction",
+    "expected_categories": [],
+    "advocate_outcome": "ACCEPT_AND_REVISE",
+    "adjudicator_disposition": "UPHELD_WITH_REVISION",
+    "expected_dispositions": [
+     "UPHELD_UNCHANGED"
+    ],
+    "disposition_match": false,
+    "objection_match": false,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-a5c9bfbf56ec",
+     "EV-c35b5184f9b9"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "56ca26d67b1371a6",
+     "BLACK_TEAM": "005dc37c8738094f",
+     "RED_ADVOCATE": "ac0618ab4d315a24"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "8c7bad8f806f7409",
+     "BLACK_TEAM": "e40005aebc9ef6b5",
+     "RED_ADVOCATE": "e40a5ee62c6dc67e"
+    }
+   },
+   {
+    "case_id": "ORG-02",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": true,
+    "expected_objects": true,
+    "black_objection_type": "proposed structures presented as approved",
+    "expected_categories": [
+     "proposed organizational structure presented as approved"
+    ],
+    "advocate_outcome": "WITHHOLD_FOR_EVIDENCE",
+    "adjudicator_disposition": "WITHHELD_FOR_EVIDENCE",
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION",
+     "WITHHELD_FOR_EVIDENCE"
+    ],
+    "disposition_match": true,
+    "objection_match": true,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-5375bbc64679",
+     "EV-743a8b82aea3"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "c568b13460437181",
+     "BLACK_TEAM": "42fb7734ff602610",
+     "RED_ADVOCATE": "1801361a26c57d9c"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "445c5489ee9465db",
+     "BLACK_TEAM": "c35e5a836089bae8",
+     "RED_ADVOCATE": "a4b79bfb53405198"
+    }
+   },
+   {
+    "case_id": "REG-01",
+    "roles_run": [
+     "ADJUDICATOR",
+     "BLACK_TEAM",
+     "RED_ADVOCATE"
+    ],
+    "black_objected": true,
+    "expected_objects": true,
+    "black_objection_type": "existing provisions",
+    "expected_categories": [
+     "unsupported governance consequence",
+     "incorrect legal applicability"
+    ],
+    "advocate_outcome": "ACCEPT_AND_REVISE",
+    "adjudicator_disposition": "UPHELD_WITH_REVISION",
+    "expected_dispositions": [
+     "UPHELD_WITH_REVISION"
+    ],
+    "disposition_match": true,
+    "objection_match": true,
+    "crafted_arguments": false,
+    "blind_pair_evidence_over_rhetoric": null,
+    "evidence_ids_cited": [
+     "EV-9b0f20219c0c",
+     "EV-aa83dd69c94e"
+    ],
+    "context_ids": {
+     "ADJUDICATOR": "a3030532c753407e",
+     "BLACK_TEAM": "c3069eec18df0ece",
+     "RED_ADVOCATE": "ef80227b6e03433c"
+    },
+    "execution_ids": {
+     "ADJUDICATOR": "45cac55409dbc550",
+     "BLACK_TEAM": "ba846edcd91a9d3f",
+     "RED_ADVOCATE": "f43f93ee8bf15b56"
+    }
+   }
+  ],
+  "metrics": {
+   "n": 6,
+   "objection_calibration": 0.667,
+   "blind_adjudication_pair": {
+    "BLIND-A": true,
+    "BLIND-B": true
+   },
+   "blind_pair_note": "A: confident-but-wrong objector vs hedged-but-evidenced advocate; B: the inverse. Pass = the adjudicator ruled on the cited matrix item, not on tone, in both directions. Key disagreement on A (UPHELD_WITH_REVISION vs UPHELD_UNCHANGED) is a wording choice forced by the UNVERIFIED matrix, recorded as a miss.",
+   "adjudicator_disposition_match": 0.833,
+   "note": "small n; one run per case (no repetition budget); scored by the auditor against the sealed key after inference"
+  },
+  "product_relevance": "NONE: these runs prove feasibility of isolated live agents in the Claude Code runtime; the product makes no such call."
+ },
+ "MODE_E": {
+  "mode": "E — full integrated review",
+  "status": "DETERMINISTIC_ONLY",
+  "evidence": "runtime_callgraph (04_review → 02_build-excel) and tests/test_e2e.py: the integrated path exists only as rules + a test helper; no live agent participates and build commands do not require a prior review"
+ }
+}

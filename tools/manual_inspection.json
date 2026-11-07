@@ -1,0 +1,14 @@
+{
+  "G-DASH-09": {
+    "status": "MANUAL_PASS",
+    "evidence": "Inspected 23 Oct 2026 (v7.12 design): screenshots/after_dashboard_round5_p-1..3.png and after_dashboard_round2_selected_p-1.png (LibreOffice 24.2 render; Calibri substituted by Carlito, Arabic glyphs by DejaVu Sans). Right-to-left order kept; Warm Gray identity band with the black logo at the reading edge; Arabic labels legible at the page-21 scale (title 24, sections 16, card values 32); every status colour of the brand library carries its written value (table, queue, timeline, transition matrix); no clipped heading or card value."
+  },
+  "G-DASH-18": {
+    "status": "MANUAL_PASS",
+    "evidence": "Inspected 23 Oct 2026: page 1 of the round-5 render holds the identity band, the document block, the demonstration band, navigation, the four selectors, the six capped cards, the closure level with the status distribution and the whole action list; no horizontal overflow beyond column N; first screen within 470 pt."
+  },
+  "G-UX-14": {
+    "status": "MANUAL_PASS",
+    "evidence": "Inspected 23 Oct 2026: no overlap between charts and cells on pages 1-3 (round 5) and page 1 (round 2 selected); charts filled with the brand status colours and outlined in ink; empty detail panel of a not-raised observation (#40 at round 2) shows the not-raised text with blank fields and no error; page surface F3F3F4 visible behind the white cards; logo inside the identity band. Known render limit: a LibreOffice re-save moves drawing anchors of right-to-left sheets, so renders are made from the engine's file, not from a LibreOffice-saved copy."
+  }
+}

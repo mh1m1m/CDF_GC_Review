@@ -1,0 +1,50 @@
+name: Remote MCP security and honest connectivity status
+on:
+  pull_request:
+    branches: [codex/phase-ii-copilot, codex/real-mcp-connectivity]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  remote-security-local-issuer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked runtime and security tools
+        run: python -m pip install -r requirements-execution.txt -r requirements-security.txt
+      - name: Local OAuth crypto actual TLS and independent SDK negative tests
+        run: |
+          mkdir -p build/connectivity-security
+          python -m pytest tests/test_remote_mcp.py tests/test_remote_tls.py tests/test_cli_receipts.py tests/test_receipt_audit.py tests/test_connectivity_status.py -q --junitxml=build/connectivity-security/tests.xml
+      - name: Static security scan
+        run: python -m bandit -r cdf_gco_crms/interfaces cdf_gco_crms/agents/providers/cli_adapter.py cdf_gco_crms/agents/providers/cli_receipts.py cdf_gco_crms/execution/receipt_audit.py cdf_gco_crms/acceptance/connectivity.py -f json -o build/connectivity-security/bandit.json
+      - name: Compose admission validation without deployment
+        env:
+          CDF_REMOTE_BIND_IP: 127.0.0.1
+          CDF_PUBLIC_SOURCE_DIR: /tmp/cdf-validation-source
+          CDF_REMOTE_CONFIG_DIR: /tmp/cdf-validation-config
+          CDF_REMOTE_TLS_DIR: /tmp/cdf-validation-tls
+          CDF_REMOTE_STATE_DIR: /tmp/cdf-validation-state
+        run: docker compose -f deploy/remote-mcp/compose.yaml config -q
+      - name: Assert blocked accounts are not reported as passed
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys
+          p = subprocess.run([sys.executable, '-m', 'cdf_gco_crms.acceptance.connectivity', '--output', 'build/connectivity-security/status.json', '--require-complete-milestone'])
+          if p.returncode != 3:
+              raise SystemExit('Unconfigured external milestone must remain blocked')
+          report = json.load(open('build/connectivity-security/status.json'))
+          if report['milestone'] != 'BLOCKED_EXTERNAL':
+              raise SystemExit('No external completion evidence was supplied')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: remote-security-local-issuer-evidence
+          path: build/connectivity-security/

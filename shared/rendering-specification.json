@@ -1,0 +1,21 @@
+{
+  "schema": "CDF-RENDERING-v1",
+  "primary_language": "ar",
+  "direction": "rtl",
+  "brand_tokens": "visual-tokens.json",
+  "unknown_display": "غير مقاس",
+  "release_rule": "MANDATORY_GATE_FAILURE_CANNOT_BE_OFFSET",
+  "word_graphics": "STATIC_ARTWORK_WITH_EDITABLE_TEXT_TABLES_AND_NATIVE_PROVENANCE_COMMENTS",
+  "excel_graphics": "NATIVE_CHARTS_FORMULAS_TABLES_AND_X14_EVENT_SPARKLINE",
+  "source_index_rule": "REFERENCE_CATALOG_IS_NOT_CASE_EVIDENCE_UNLESS_BOUND",
+  "metric_definitions": {
+    "evidence_coverage": "ملاحظات ذات مرجع معتمد حالي أو ملزم وقابل للتطبيق، مقسومة على كل ملاحظات القضية.",
+    "objections_resolved": "اعتراضات ذات حسم مسجل من المحكم، مقسومة على كل الاعتراضات المسجلة.",
+    "repeat_objections": "محاولات تكرار للفريق الأسود رفضها المحرك، مقسومة على جميع محاولاته المسجلة.",
+    "mat_reversal": "إعادة تقييم غيّر فيها MAT موقفه، مقسومة على عمليات إعادة التقييم المسجلة.",
+    "authorization_readiness": "فشل فحص التصريح المسجل يساوي صفر من فحص واحد؛ لا يُعرض النجاح كتفويض حالي.",
+    "material_open": "ملاحظات مادية تنتظر تسوية بشرية، مقسومة على الملاحظات المصنفة مادية.",
+    "human_alignment": "غير مقاس حتى تتوفر تسميات بشرية مستقلة متحققة مرتبطة بتنبؤات النموذج.",
+    "calibration": "ملاحظات ذات قرار معايرة مقدم، مقسومة على كل ملاحظات القضية، دون تكرار الملاحظة."
+  }
+}

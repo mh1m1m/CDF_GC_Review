@@ -1,0 +1,597 @@
+{
+ "label": "03_build-word",
+ "argv": [
+  "build-word",
+  "مذكرة تفاهم تجريبية للتدقيق - مرئيات إدارة الحوكمة والامتثال المؤسسي - الجولة الأولى.xlsx",
+  "out.docx",
+  "--source",
+  "case.docx"
+ ],
+ "return_code": 0,
+ "error": null,
+ "seconds": 0.53,
+ "socket_attempts": [],
+ "key_call_order": [
+  "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+  "cdf_gco_crms.ingestion.safe_open:require_safe",
+  "cdf_gco_crms.word.document_comments:comment_document"
+ ],
+ "edge_count": 707,
+ "edges": [
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<genexpr>",
+   "n": 264
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 75
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_rpr",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 39
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 23
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:_belongs",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:_run_text",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:normalise",
+   "n": 15
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:column",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_comment_paragraph",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 14
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:package_structure_problems",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 13
+  },
+  {
+   "caller": "cdf_gco_crms.word.word_sync:extract_comments",
+   "callee": "cdf_gco_crms.word.word_sync:<genexpr>",
+   "n": 8
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_register_part",
+   "callee": "cdf_gco_crms.word.document_comments:_serialise",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:package_structure_problems",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 6
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_comment_element",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 5
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:locate",
+   "callee": "cdf_gco_crms.word.document_comments:_find_parts",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:anchor_bounds",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_comment_element",
+   "callee": "cdf_gco_crms.word.document_comments:_comment_paragraph",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_comment_paragraph",
+   "callee": "cdf_gco_crms.word.document_comments:_text_run",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_text_run",
+   "callee": "cdf_gco_crms.word.document_comments:_rpr",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_serialise",
+   "n": 4
+  },
+  {
+   "caller": "cdf_gco_crms.rounds.round_parser:discover",
+   "callee": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:parse_round_header",
+   "callee": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.config.round_schema:ordinal_to_round",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_register_part",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_reference_run",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 3
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "callee": "cdf_gco_crms.ingestion.safe_open:<lambda>",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:rounds",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.model.entities:__post_init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:pick",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:current_round",
+   "callee": "cdf_gco_crms.model.entities:<genexpr>",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.word.document_comments:atomic_output",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:__init__",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_ignorable",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:anchor_bounds",
+   "callee": "cdf_gco_crms.word.document_comments:_top_child",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:_marker",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_marker",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 2
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_hashes",
+   "n": 2
+  },
+  {
+   "caller": "<external>",
+   "callee": "main:main",
+   "n": 1
+  },
+  {
+   "caller": "main:main",
+   "callee": "main:cmd_build_word",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_build_word",
+   "callee": "main:_load_state",
+   "n": 1
+  },
+  {
+   "caller": "main:_load_state",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:inspect_package",
+   "callee": "cdf_gco_crms.ingestion.safe_open:sha256_file",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.safe_open:require_safe",
+   "callee": "cdf_gco_crms.ingestion.safe_open:ok",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:find_data_sheet",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.rounds.round_parser:discover",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:read_helper",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.model.entities:from_cell_value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:from_cell_value",
+   "callee": "cdf_gco_crms.model.entities:plain",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:plain",
+   "callee": "cdf_gco_crms.model.entities:__init__",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:__init__",
+   "callee": "cdf_gco_crms.model.entities:_normalise_runs",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.ingestion.workbook_reader:parse_workbook",
+   "callee": "cdf_gco_crms.ingestion.workbook_reader:_doc_from",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.word.__init__:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.word.document_comments:<module>",
+   "n": 1
+  },
+  {
+   "caller": "<external>",
+   "callee": "cdf_gco_crms.word.word_sync:<module>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.word_sync:<module>",
+   "callee": "cdf_gco_crms.word.word_sync:WordComment",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.word_sync:<module>",
+   "callee": "cdf_gco_crms.word.word_sync:SyncReport",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:Atom",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:Para",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:Match",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:RangeInfo",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:DocText",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:CommentReport",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:TrackedChange",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:ParagraphChange",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:AlteredComment",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:AnchorIssue",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:OwnerComment",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:ReturnDiff",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:ClosedTextFinding",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<module>",
+   "callee": "cdf_gco_crms.word.document_comments:_ParaIds",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_build_word",
+   "callee": "cdf_gco_crms.word.document_comments:comment_document",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.model.entities:current_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:atomic_output",
+   "callee": "cdf_gco_crms.word.document_comments:rejected_path",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:__init__",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_new_comments_root",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_new_comments_root",
+   "callee": "cdf_gco_crms.word.document_comments:w",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.word_sync:extract_comments",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_used_para_ids",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:rows_for_round",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:rows_for_round",
+   "callee": "cdf_gco_crms.model.entities:ordered",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:ordered",
+   "callee": "cdf_gco_crms.model.entities:<lambda>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:<lambda>",
+   "callee": "cdf_gco_crms.model.entities:reader_int",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:root_comment_paragraphs",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:root_comment_paragraphs",
+   "callee": "cdf_gco_crms.word.document_comments:_gtext_paragraphs",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:place_new",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:locate",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:locate",
+   "callee": "cdf_gco_crms.word.document_comments:_quote_parts",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_quote_parts",
+   "callee": "cdf_gco_crms.config.round_schema:nfc",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:anchor_bounds",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "callee": "cdf_gco_crms.word.document_comments:end",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:_reference_run",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:new",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:place_new",
+   "callee": "cdf_gco_crms.word.document_comments:_comment_element",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.model.entities:value",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.model.entities:value",
+   "callee": "cdf_gco_crms.model.entities:plain_text",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:ensure_ex",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_write_zip",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:package_structure_problems",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:comment_document",
+   "callee": "cdf_gco_crms.word.document_comments:_verify_written",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_verify_written",
+   "callee": "cdf_gco_crms.word.word_sync:extract_comments",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_verify_written",
+   "callee": "cdf_gco_crms.word.document_comments:<genexpr>",
+   "n": 1
+  },
+  {
+   "caller": "cdf_gco_crms.word.document_comments:_verify_written",
+   "callee": "cdf_gco_crms.word.document_comments:package_structure_problems",
+   "n": 1
+  },
+  {
+   "caller": "main:cmd_build_word",
+   "callee": "main:_emit",
+   "n": 1
+  }
+ ],
+ "touches_challenge_engine": false,
+ "touches_objection_engine": false,
+ "touches_excel_builder": false,
+ "touches_word_builder": true,
+ "stdout_tail": "      \"customXml/item1.xml\",\n      \"customXml/itemProps1.xml\",\n      \"docProps/app.xml\",\n      \"docProps/core.xml\",\n      \"docProps/thumbnail.jpeg\",\n      \"word/fontTable.xml\",\n      \"word/numbering.xml\",\n      \"word/settings.xml\",\n      \"word/styles.xml\",\n      \"word/stylesWithEffects.xml\",\n      \"word/theme/theme1.xml\",\n      \"word/webSettings.xml\"\n    ],\n    \"parts_changed\": [\n      \"[Content_Types].xml\",\n      \"word/_rels/document.xml.rels\",\n      \"word/comments.xml\",\n      \"word/commentsExtended.xml\",\n      \"word/commentsIds.xml\",\n      \"word/document.xml\"\n    ],\n    \"warnings\": []\n  }\n}\n"
+}

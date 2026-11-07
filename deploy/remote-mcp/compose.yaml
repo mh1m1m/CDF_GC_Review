@@ -1,0 +1,33 @@
+name: cdf-public-synthetic-mcp
+services:
+  mcp:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.libreoffice
+    image: cdf-remote-mcp:local
+    user: "10001:10001"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=1024m,mode=1777"]
+    ports: ["${CDF_REMOTE_BIND_IP:?Set an approved bind address}:443:8443"]
+    environment:
+      CDF_OPERATION_MODE: PUBLIC_SYNTHETIC_DEMO
+      PYTHONDONTWRITEBYTECODE: "1"
+      CDF_ENABLE_PROVIDER_API: "0"
+      CDF_ENABLE_SUPERVISED_CLI: "0"
+    volumes:
+      - "${CDF_PUBLIC_SOURCE_DIR:?Use a tracked git archive}:/repo:ro"
+      - "${CDF_REMOTE_CONFIG_DIR:?Provision config and public JWKS}:/run/cdf-config:ro"
+      - "${CDF_REMOTE_TLS_DIR:?Provision a trusted certificate and protected key}:/run/cdf-tls:ro"
+      - "${CDF_REMOTE_STATE_DIR:?Provision UID 10001 protected synthetic state}:/var/lib/cdf:rw"
+    command: [python, -m, cdf_gco_crms.interfaces.remote_mcp, --config, /run/cdf-config/remote.json, --db, /var/lib/cdf/public-demo.sqlite, --tls-certfile, /run/cdf-tls/fullchain.pem, --tls-keyfile, /run/cdf-tls/privkey.pem]
+    networks: [isolated]
+    restart: "no"
+networks:
+  isolated:
+    internal: true

@@ -1,0 +1,7 @@
+# Versioned local review and MAT calibration governance
+
+New review records preserve original observation, proposed/final wording, actor from the trusted session, timestamp, rationale, evidence, action and previous version. Concurrent stale forms fail rather than overwrite. Legacy calibration writes also invalidate the new form's expected version. Same idempotency key and same body replay the original event; changed content conflicts.
+
+Accept/revise/reject/more-evidence/merge/reclassify/escalate/dissent/defer/close map to existing calibration semantics. Reject follows the existing material withdrawal evidence/rationale rules. Merge retains both originals; reclassification cannot erase original material categories. Close is a local review label, never case issuance. Revisions are not cryptographically signed institutional dispositions. Synthetic session identity is not proof of a verified person.
+
+Natural-language acceptance requests produce a controlled structured input checkpoint. Neither the router nor MAT autonomously saves a human decision. Synthetic history counts and language patterns remain illustrative reviewer preferences; no validated alignment score is generated. Proposals remain PROVISIONAL / NOT_APPROVED; separate DNA-rule approval and existing profile validation remain required for promotion. This slice does not autonomously retrain MAT or change delegated authority. The public execution profile remains the existing fixed synthetic advisory fixture.

@@ -1,0 +1,106 @@
+{
+ "schema": "CDF-AUDIT-WORKFLOW-INTEGRATION-1",
+ "runtime_questions": [
+  {
+   "question": "Does the production orchestrator (main.py) invoke Black Team when a workbook is built or issued?",
+   "answer": "NO",
+   "evidence": "round1/build-excel/build-word/finalize-titles traces: touches_challenge_engine = [False, False, False, False]"
+  },
+  {
+   "question": "Is there any production entry point that invokes the challenge?",
+   "answer": "YES, as separate operator commands",
+   "evidence": "review / challenge / adjudicate call run_challenge → black_team → red_advocate → adjudicate (04/05/06 traces); nothing forces them before a build"
+  },
+  {
+   "question": "Is that invocation a real model call?",
+   "answer": "NO",
+   "evidence": "zero socket attempts in every trace; no provider SDK in any tree"
+  },
+  {
+   "question": "Does Red Advocate receive the actual Black Team output?",
+   "answer": "YES (in-process object)",
+   "evidence": "_argue passes the Objection built by black_team; context_isolation probe"
+  },
+  {
+   "question": "Does the adjudicator receive both arguments?",
+   "answer": "YES (in-process objects)",
+   "evidence": "adjudicate(objection, advocacy, registry)"
+  },
+  {
+   "question": "Does the adjudicator evaluate evidence independently?",
+   "answer": "PARTIAL",
+   "evidence": "rule table _TABLE[kind][stance] + admissibility/verified checks; no independent reading of the arguments' content"
+  },
+  {
+   "question": "Can a valid objection change the final observation?",
+   "answer": "NO (automatically)",
+   "evidence": "advocate produced a revised comment (True); build-excel after review wrote the ORIGINAL comment unchanged (workbook comment == JSON input: True). The revision lives only in the challenge record; a human must re-enter it."
+  },
+  {
+   "question": "Does the change reach the official observation register?",
+   "answer": "NO",
+   "evidence": "no code path applies Advocacy.revised_comment / revised_quote / route_to to ReviewState"
+  },
+  {
+   "question": "Does the final observation reach Word comments and Excel?",
+   "answer": "YES for the human-entered observation",
+   "evidence": "round1 → build_workbook; build-word → comment_document (traces 01/03)"
+  },
+  {
+   "question": "Are approved titles synchronized?",
+   "answer": "PARTIAL",
+   "evidence": "finalize-titles writes title/status/evidence to the helper sheet (08 trace rc=0); Word comments carry no title by protocol; round1 JSON 'title' is dropped by cmd_round1 (07 trace refused)"
+  },
+  {
+   "question": "Does the workflow block issuance when required evidence is missing?",
+   "answer": "NO",
+   "evidence": "build-excel/build-word ran with rc=0 on the same case whose review returned rc=1 (blocker) — only tests/test_e2e.py::_issue and the operator's discipline chain review before build"
+  },
+  {
+   "question": "Independent Final Red-Team Reviewer (Art. 20) invoked anywhere?",
+   "answer": "NO",
+   "evidence": "no component; see AI-IMPLEMENTATION-INVENTORY"
+  }
+ ],
+ "component_status": [
+  {
+   "component": "black_team / red_advocate / adjudicate",
+   "status": "CONNECTED_TO_OPERATOR_COMMANDS_ONLY",
+   "note": "reachable via review/challenge/adjudicate; not on round1/append/build paths"
+  },
+  {
+   "component": "apply_human_decisions",
+   "status": "CONNECTED_TO_OPERATOR_COMMAND_ONLY",
+   "note": "adjudicate command"
+  },
+  {
+   "component": "confidentiality_scan",
+   "status": "CONNECTED (challenge command, test_e2e, build_rc)",
+   "note": ""
+  },
+  {
+   "component": "evaluate_held_out / held_out_cases",
+   "status": "DISCONNECTED_COMPONENT (evaluation only)",
+   "note": "called by tests and tools/build_rc.py, never by a review"
+  },
+  {
+   "component": "production_guard.evaluate",
+   "status": "CONNECTED (release command)",
+   "note": ""
+  },
+  {
+   "component": "Advocacy.revised_comment → ReviewState",
+   "status": "NOT_IMPLEMENTED",
+   "note": "no consumer"
+  },
+  {
+   "component": "Article 20 independent reviewer",
+   "status": "NOT_IMPLEMENTED",
+   "note": ""
+  }
+ ],
+ "integration_success_rate": {
+  "entry_points_that_run_the_challenge_before_issuing": "0 of 4 (round1, append, build-excel, build-word)",
+  "operator_commands_that_run_it": "3 (review, challenge, adjudicate)"
+ }
+}

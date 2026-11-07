@@ -1,0 +1,111 @@
+{
+ "schema": "CDF-AUDIT-SECURITY-NEGATIVE-1",
+ "results": [
+  {
+   "test": "INJ-01: injected instruction treated as content (same outcome as clean baseline)",
+   "result": "PASS",
+   "detail": "kinds=[] baseline=[]"
+  },
+  {
+   "test": "INJ-01: injected text not echoed into the challenge record as an instruction",
+   "result": "PASS",
+   "detail": "the record may quote document excerpts as evidence; the engine has no instruction channel, so the string cannot execute"
+  },
+  {
+   "test": "INJ-02: injected instruction treated as content (same outcome as clean baseline)",
+   "result": "PASS",
+   "detail": "kinds=[] baseline=[]"
+  },
+  {
+   "test": "INJ-02: injected text not echoed into the challenge record as an instruction",
+   "result": "PASS",
+   "detail": "the record may quote document excerpts as evidence; the engine has no instruction channel, so the string cannot execute"
+  },
+  {
+   "test": "assurance package: no subprocess/socket/eval/exec/network imports, no write-mode open",
+   "result": "FAIL",
+   "detail": "hits=['reference_verify.py: import subprocess'] — reference_verify._pdftotext spawns the fixed binary `pdftotext` (no shell, read-only extraction of a PDF source); reachable from EvidenceRegistry.add_document_text only for .pdf inputs; no other I/O channel in the package"
+  },
+  {
+   "test": "agents can modify source files / execute arbitrary code / send external requests",
+   "result": "NOT_APPLICABLE",
+   "detail": "NOT_APPLICABLE: no agent has tools; the functions have no I/O channel"
+  },
+  {
+   "test": "confidentiality_scan of produced workbook and Word files",
+   "result": "PASS",
+   "detail": "5 files, hits=[]"
+  },
+  {
+   "test": "internal challenge records are separate files (not inside requester artefacts)",
+   "result": "PASS",
+   "detail": "['review.json', 'challenge.json', 'adj.json']"
+  },
+  {
+   "test": "provider unavailable / timeout / rate limit / invalid JSON response",
+   "result": "NOT_APPLICABLE",
+   "detail": "NOT_APPLICABLE: no provider; nothing to time out"
+  },
+  {
+   "test": "missing evidence (quoted clause absent) → objection, no fabricated anchor",
+   "result": "PASS",
+   "detail": "kinds=['CLAUSE_NOT_FOUND'] dispositions=['WITHHELD_FOR_EVIDENCE']"
+  },
+  {
+   "test": "contradictory sources bound (binding vs unverified): the unverified one never upgrades or overrides",
+   "result": "PASS",
+   "detail": "objections=[] verified=['EV-e3a780fc3336']"
+  },
+  {
+   "test": "seventh productive cycle refused",
+   "result": "PASS",
+   "detail": "events=6"
+  },
+  {
+   "test": "repeated duplicate objection refused (canonical text + same refs)",
+   "result": "PASS",
+   "detail": ""
+  },
+  {
+   "test": "adjudicator returns an unsupported decision → ValueError",
+   "result": "PASS",
+   "detail": ""
+  },
+  {
+   "test": "hallucinated evidence id does not resolve (KeyError)",
+   "result": "PASS",
+   "detail": ""
+  },
+  {
+   "test": "independent reviewer receives contaminated context (planted 'expected')",
+   "result": "PASS",
+   "detail": "{'disposition_without_label': 'UPHELD_WITH_REVISION', 'disposition_with_planted_expected_attr': 'UPHELD_WITH_REVISION', 'changed': False}"
+  },
+  {
+   "test": "tool returns corrupted output",
+   "result": "NOT_APPLICABLE",
+   "detail": "NOT_APPLICABLE: no tools"
+  },
+  {
+   "test": "execution interrupted between agents → command fails, no partial record persisted, no approval",
+   "result": "PASS",
+   "detail": "rc=1 stderr_tail='              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\nRuntimeError: AUDIT: interrupted between Black Team and Red Advocate\\n'"
+  },
+  {
+   "test": "persistence failure after adjudication → non-zero exit, nothing silently approved",
+   "result": "NOT_VERIFIED",
+   "detail": "rc=0; euid=0: root bypasses directory permissions, so this injection could not be exercised here (NOT_VERIFIED)"
+  },
+  {
+   "test": "idempotence: review twice gives identical chain hash",
+   "result": "PASS",
+   "detail": ""
+  }
+ ],
+ "summary": {
+  "PASS": 15,
+  "FAIL": 1,
+  "NOT_APPLICABLE": 3,
+  "NOT_VERIFIED": 1
+ }
+}

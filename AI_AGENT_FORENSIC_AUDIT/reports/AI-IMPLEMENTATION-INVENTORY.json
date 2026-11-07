@@ -1,0 +1,385 @@
+{
+ "schema": "CDF-AUDIT-AI-IMPLEMENTATION-INVENTORY-1",
+ "trees": {
+  "v7.12 engine (audited)": {
+   "python_files": 69,
+   "agent_like_defs": [
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/personas.py",
+     "name": "RecipientPersona",
+     "line": 50,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/objection_engine.py",
+     "name": "Objection",
+     "line": 134,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/objection_engine.py",
+     "name": "challenge_id",
+     "line": 151,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "Objection",
+     "line": 214,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "Adjudication",
+     "line": 254,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "ObjectionRecord",
+     "line": 274,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "ChallengeRecord",
+     "line": 311,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "black_team",
+     "line": 389,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "red_advocate",
+     "line": 573,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "adjudicate",
+     "line": 709,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "run_challenge",
+     "line": 802,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "no_objection",
+     "line": 306,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/cdf_gco_crms/assurance/challenge.py",
+     "name": "objection",
+     "line": 354,
+     "kind": "FunctionDef"
+    }
+   ]
+  },
+  "v7.12 entry point": {
+   "python_files": 1,
+   "agent_like_defs": [
+    {
+     "file": "v7.12/main.py",
+     "name": "_challenge_record",
+     "line": 360,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/main.py",
+     "name": "cmd_challenge",
+     "line": 388,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/main.py",
+     "name": "cmd_adjudicate",
+     "line": 397,
+     "kind": "FunctionDef"
+    }
+   ]
+  },
+  "v7.12 tools": {
+   "python_files": 11,
+   "agent_like_defs": []
+  },
+  "v7.12 tests": {
+   "python_files": 11,
+   "agent_like_defs": [
+    {
+     "file": "v7.12/tests/test_assurance.py",
+     "name": "test_closed_challenge_and_invalid_actor",
+     "line": 338,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_persona_from_index_and_caveats",
+     "line": 147,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_zero_objection_is_a_recorded_result",
+     "line": 169,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_objections_are_deterministic_and_grounded",
+     "line": 199,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_advocate_never_defends_without_evidence",
+     "line": 221,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_advocate_outputs_evidence_and_revisions",
+     "line": 232,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/tests/test_challenge.py",
+     "name": "test_adjudicator_ignores_injected_expected_and_fake_refs",
+     "line": 261,
+     "kind": "FunctionDef"
+    }
+   ]
+  },
+  "v7.11 package": {
+   "python_files": 51,
+   "agent_like_defs": []
+  },
+  "Batch 10 ChatGPT adapter cdf_v712": {
+   "python_files": 21,
+   "agent_like_defs": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/assurance.py",
+     "name": "Objection",
+     "line": 84,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/source/cdf_v712/assurance.py",
+     "name": "challenge_id",
+     "line": 98,
+     "kind": "FunctionDef"
+    }
+   ]
+  },
+  "Batch 10 RUN_IN_CHATGPT.py": {
+   "python_files": 1,
+   "agent_like_defs": []
+  },
+  "Batch 10 legacy_source_v712_rc": {
+   "python_files": 54,
+   "agent_like_defs": [
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/adversarial/challenge.py",
+     "name": "Challenge",
+     "line": 8,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/adversarial/challenge.py",
+     "name": "adjudicate",
+     "line": 28,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/adversarial/challenge.py",
+     "name": "challenge_once",
+     "line": 37,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "uploads/batch10/CDF-GCO-CRMS-v7.12/02_ENGINE/legacy_source_v712_rc/cdf_gco_crms/adversarial/challenge.py",
+     "name": "challenge_id",
+     "line": 17,
+     "kind": "FunctionDef"
+    }
+   ]
+  },
+  "exploratory ChatGPT copy in sources/": {
+   "python_files": 21,
+   "agent_like_defs": [
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/test_assurance.py",
+     "name": "test_closed_challenge",
+     "line": 60,
+     "kind": "FunctionDef"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/assurance.py",
+     "name": "Objection",
+     "line": 84,
+     "kind": "ClassDef"
+    },
+    {
+     "file": "v7.12/sources/v7.12/chatgpt_cdf_v712/assurance.py",
+     "name": "challenge_id",
+     "line": 98,
+     "kind": "FunctionDef"
+    }
+   ]
+  }
+ },
+ "agent_like_components": [
+  {
+   "agent": "GCO Observation Drafting Agent",
+   "source": null,
+   "note": "no component: observations are authored by the human GCO reviewer and entered via JSON (main.py round1/append)",
+   "production_entry_points_reaching_it": [],
+   "model_invocation": "NONE (not implemented)",
+   "provider_dependency": "NONE",
+   "context_management": "n/a",
+   "tool_permissions": "n/a",
+   "persistence": "n/a",
+   "error_handling": "n/a"
+  },
+  {
+   "agent": "Black Team — Recipient Department Challenger",
+   "source": "cdf_gco_crms/assurance/challenge.py:black_team",
+   "note": "rule-based function; callers: run_challenge, tests",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "Red Advocate — GCO Observation Defender",
+   "source": "cdf_gco_crms/assurance/challenge.py:red_advocate",
+   "note": "rule-based function; callers: _argue (run_challenge), tests",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "Independent Institutional Adjudicator",
+   "source": "cdf_gco_crms/assurance/challenge.py:adjudicate",
+   "note": "rule table _TABLE × stance; callers: _argue, tests",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "GCO Editorial Agent",
+   "source": null,
+   "note": "no component: Advocacy.revised_comment is returned in the record but never applied to the ReviewState by production code",
+   "production_entry_points_reaching_it": [],
+   "model_invocation": "NONE (not implemented)",
+   "provider_dependency": "NONE",
+   "context_management": "n/a",
+   "tool_permissions": "n/a",
+   "persistence": "n/a",
+   "error_handling": "n/a"
+  },
+  {
+   "agent": "Independent Final Red-Team Reviewer (Art. 20)",
+   "source": null,
+   "note": "no component: protocol role only (20.1–20.5, R1–R7); no code, no test",
+   "production_entry_points_reaching_it": [],
+   "model_invocation": "NONE (not implemented)",
+   "provider_dependency": "NONE",
+   "context_management": "n/a",
+   "tool_permissions": "n/a",
+   "persistence": "n/a",
+   "error_handling": "n/a"
+  },
+  {
+   "agent": "Regulatory and Institutional Evidence Verification Agent",
+   "source": "cdf_gco_crms/assurance/evidence.py:EvidenceRegistry + references/index.py + assurance/reference_verify.py",
+   "note": "deterministic binding of excerpts to hashed files; approval classes carried from the source register, never inferred",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "Challenge state machine (support)",
+   "source": "cdf_gco_crms/assurance/objection_engine.py:Objection",
+   "note": "hash-chained events, six productive cycles, decide()",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "Human authorization control (support)",
+   "source": "cdf_gco_crms/assurance/objection_engine.py:HumanDecision + challenge.apply_human_decisions",
+   "note": "Ed25519 signature against a caller-supplied trust store",
+   "production_entry_points_reaching_it": [
+    "adjudicate",
+    "challenge",
+    "review"
+   ],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  },
+  {
+   "agent": "Review-round manager / title registry / Word / Excel / gates (support)",
+   "source": "cdf_gco_crms/rounds, model, word, excel, qa",
+   "note": "deterministic",
+   "production_entry_points_reaching_it": [],
+   "model_invocation": "NONE (pure Python)",
+   "provider_dependency": "NONE",
+   "context_management": "shared in-process objects (same EvidenceRegistry, same persona, same Objection instance)",
+   "tool_permissions": "none: the functions read the registry and the state; they open no file and no network",
+   "persistence": "ChallengeRecord.to_json() written by main.py review/adjudicate to build/adversarial/*.json",
+   "error_handling": "ValueError on a DEFEND without evidence; PermissionError on unverified human decisions"
+  }
+ ]
+}

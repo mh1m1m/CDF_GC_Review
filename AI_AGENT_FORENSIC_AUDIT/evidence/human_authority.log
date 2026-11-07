@@ -1,0 +1,15 @@
+PASS | human_decision=True (boolean) | {'applied': [], 'rejected': [{'item': 'True', 'reason': 'NOT_A_HUMAN_DECISION_RECORD'}], 'remaining_blockers':
+PASS | dict pretending to be a decision | {'applied': [], 'rejected': [{'item': "{'approved': True, 'reviewer': 'x'}", 'reason': 'NOT_A_HUMAN_DECISION_R
+PASS | fabricated reviewer name, unsigned | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'reason': 'Institu
+PASS | invalid signature | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'reason': 'Decisio
+PASS | valid signature but key id absent from trust store | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'reason': 'Institu
+PASS | reuse of a valid approval for another observation | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-009', 'reason': 'Decisio
+PASS | record modified after signing (decision field changed) | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'reason': 'Decisio
+PASS | verification_status NOT_VERIFIED with a valid signature | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'reason': 'Reviewe
+FAIL | expired or revoked authorization (timestamp 2020-01-01, otherwise valid) | {'applied': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'decision': 'ESCALATED_TO_GCO_REVI
+PASS | Observation constructed with title_status=APPROVED and no evidence | ValueError: GCO-AUD-R1-001: an approved title needs reviewer, date and decision reference (19A.9 human decision proof)
+PASS | finalize_titles APPROVE with empty reviewer/date/ref | {'rejected': ['GCO-AUD-R2-002: decision without reviewer, ISO date or decision reference (19A.9)'], 'applied':
+PASS | finalize_titles APPROVE with non-ISO date | {'rejected': ['GCO-AUD-R2-002: decision without reviewer, ISO date or decision reference (19A.9)'], 'applied':
+PASS | engine decides WITHDRAWAL-type outcome on an issued observation without a human record | PermissionError: Article 17.7 prevents AI self-reversal
+FAIL | CONTROL: valid signed record in trust store (expected to be applied) | {'applied': [], 'rejected': [{'decision_id': 'D-AUD-1', 'observation_id': 'GCO-AUD-R1-002', 'decision': 'ESCAL
+12/14 controls behaved as required; gaps: 3

@@ -1,0 +1,46 @@
+{
+ "profile_id": "SYN_GRC_DNA",
+ "version": "0.1.0-synthetic",
+ "profile_type": "PROFESSIONAL_REVIEW_METHOD",
+ "person_reference": "SYNTHETIC REVIEWER (fictional; no real person)",
+ "status": "PROVISIONAL",
+ "human_approval_status": "NOT_APPROVED",
+ "synthetic": true,
+ "label": "SYNTHETIC_TEST_CASE",
+ "generated_utc": "2026-01-01T00:00:00+00:00",
+ "evidence_scope": "synthetic comment history (tests/fixtures/mat); no institutional material",
+ "attribution_confidence": "NOT_APPLICABLE",
+ "corpus_hashes": [],
+ "writing_patterns": [
+  {"pattern_id": "SYN-WP01", "text": "one move per comment; no numbering header or reference line in the reviewer's own words", "confidence": "MEDIUM", "evidence": ["SYN-OBS-001", "SYN-OBS-004"], "counterexamples": [], "validation_status": "SYNTHETIC", "mat_approved": false},
+  {"pattern_id": "SYN-WP02", "text": "anchor to the exact phrase; state the replacement pair alone", "confidence": "MEDIUM", "evidence": ["SYN-OBS-002"], "counterexamples": [], "validation_status": "SYNTHETIC", "mat_approved": false}
+ ],
+ "question_patterns": [
+  {"pattern_id": "SYN-QP01", "text": "closed verification question when the existence of an internal approval is uncertain", "confidence": "LOW", "evidence": ["SYN-OBS-003"], "validation_status": "SYNTHETIC", "mat_approved": false}
+ ],
+ "recommendation_patterns": [
+  {"pattern_id": "SYN-RP01", "text": "keep the control, drop the sanction or liability clause", "confidence": "MEDIUM", "evidence": ["SYN-OBS-005"], "counterexamples": ["SYN-OBS-006"], "validation_status": "SYNTHETIC", "mat_approved": false}
+ ],
+ "selection_rules": [
+  {"rule_id": "SYN-S01", "rule_type": "SELECTION", "condition": "observation concerns money flows, fund segregation or fee exposure", "action": "KEEP", "evidence": ["SYN-OBS-001"], "counterexamples": [], "classification": "SUPPORTED_INFERENCE", "confidence": "MEDIUM", "scope": "contracts", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S02", "rule_type": "SELECTION", "condition": "observation is purely formal (typography, grammar, headings)", "action": "PROPOSE_WITHDRAWAL or reduce to a defect flag", "evidence": ["SYN-OBS-004"], "counterexamples": [], "classification": "SUPPORTED_INFERENCE", "confidence": "MEDIUM", "scope": "all", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S03", "rule_type": "SELECTION", "condition": "observation attaches a sanction or liability to the counterparty", "action": "SOFTEN: keep the control, drop the consequence", "evidence": ["SYN-OBS-005"], "counterexamples": ["SYN-OBS-006"], "classification": "SUPPORTED_INFERENCE", "confidence": "MEDIUM", "scope": "contracts", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S04", "rule_type": "RECOMMENDATION_VS_QUESTION", "condition": "the point depends on business suitability owned by another unit", "action": "CONVERT_TO_QUESTION addressed to the owning unit by role", "evidence": ["SYN-OBS-003"], "counterexamples": [], "classification": "HYPOTHESIS", "confidence": "LOW", "scope": "all", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S05", "rule_type": "SELECTION", "condition": "observation asserts the drafter's own legal appraisal", "action": "REVISE: remove the appraisal, refer to the competent body", "evidence": ["SYN-OBS-002"], "counterexamples": [], "classification": "HYPOTHESIS", "confidence": "LOW", "scope": "all", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S06", "rule_type": "SELECTION", "condition": "observation is a regulatory-compliance safeguard", "action": "NO RULE: keep and escalate for human decision", "evidence": [], "counterexamples": [], "classification": "NOT_ESTABLISHED", "confidence": "NOT_ESTABLISHED", "scope": "all", "mat_explicitly_approved": false},
+  {"rule_id": "SYN-S07", "rule_type": "WORDING", "condition": "the comment names a person", "action": "PROHIBITED: refer to the unit by role", "evidence": [], "counterexamples": [], "classification": "SYSTEM_CONSTRAINT", "confidence": "HIGH", "scope": "all", "mat_explicitly_approved": false}
+ ],
+ "withdrawal_rules": [
+  {"rule_id": "MAT-W06", "ground": "DUPLICATION", "rule_type": "WITHDRAWAL", "observations_consistent_with_ground": ["SYN-OBS-007"], "sample_size": 1, "classification": "HYPOTHESIS", "confidence": "LOW", "counterexamples": [], "human_validation": "PENDING", "mat_explicitly_approved": false},
+  {"rule_id": "MAT-W10", "ground": "LOW_MATERIALITY", "rule_type": "WITHDRAWAL", "observations_consistent_with_ground": ["SYN-OBS-004"], "sample_size": 1, "classification": "HYPOTHESIS", "confidence": "LOW", "counterexamples": [], "human_validation": "PENDING", "mat_explicitly_approved": false},
+  {"rule_id": "MAT-W15", "ground": "UNKNOWN_REASON", "rule_type": "WITHDRAWAL", "observations_consistent_with_ground": [], "sample_size": 0, "classification": "DEFAULT_WHEN_UNDOCUMENTED", "confidence": "NOT_ESTABLISHED", "counterexamples": [], "human_validation": "PENDING", "mat_explicitly_approved": false}
+ ],
+ "debate_patterns": [
+  {"pattern_id": "SYN-DP01", "text": "NOT_ESTABLISHED: no debate material in the synthetic corpus", "confidence": "NONE", "evidence": [], "validation_status": "NOT_ESTABLISHED", "mat_approved": false}
+ ],
+ "guards": {"never_withdraw_regulatory_safeguard_without_human": true, "never_name_persons": true, "never_approve": true, "preserve_candidates": true},
+ "supporting_evidence": ["SYN-OBS-001", "SYN-OBS-002", "SYN-OBS-003", "SYN-OBS-004", "SYN-OBS-005", "SYN-OBS-006", "SYN-OBS-007"],
+ "counterexamples": ["SYN-OBS-006"],
+ "validation_results": [{"test": "unseen-example validation", "result": "NOT_RUN (synthetic profile)"}],
+ "distribution": {}
+}

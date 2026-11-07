@@ -1,0 +1,9 @@
+# Governed record retrieval and extraction
+
+Knowledge answers reuse the public reference provider and lookup service. Each result carries source ID/title, page, provision, version, approval/currency status, classification and limitation. Public synthetic records remain nonbinding. Explicit conflict/overlap/staleness scenarios use identified fictional provisions and actual case quotations; they are not claims about real CDF policy. Unknown ownership and unsupported hierarchy escalate for human reconciliation.
+
+Case memory checks grants for every requested case, returns bounded historical review records with source quotation/location/evidence and applies a server-configured retention window (default 365 days, range 1–3650). Records are illustrative history, not binding requirements or independently validated human training labels. Original records are retained; retrieval expiry is not destructive deletion.
+
+Supplemental intake accepts bounded base64 bytes (60 KB decoded), fixed declared formats and public-synthetic classification only. DOCX paragraphs/tables, XLSX cells/formulas as text, PDF pages and UTF-8 lines retain exact anchors and source SHA-256. OOXML admission rejects traversal, encrypted/oversized archives, excessive expansion, macros and entity declarations. PDF reading order and empty/scanned pages produce explicit warnings. Images require an authorized OCR provider and return unsupported here. Extraction confidence is NULL, never an invented probability.
+
+Duplicates bind case/hash/format. Corrections append original anchor ID, replacement, actor, rationale and version; original bytes/text remain immutable. Extracted attachments are not automatically sent to providers or substituted as the fixed engine's review source. Private access remains disabled through HTTP/MCP.

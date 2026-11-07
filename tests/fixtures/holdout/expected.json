@@ -1,0 +1,125 @@
+{
+ "expected": {
+  "HO-01": {
+   "disposition": null,
+   "family": "CLEAN",
+   "objection": "NO_MATERIAL_OBJECTION"
+  },
+  "HO-02": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "CLAUSE_NOT_FOUND",
+   "objection": "CLAUSE_NOT_FOUND"
+  },
+  "HO-03": {
+   "disposition": "NARROWED_TO_GCO_SCOPE",
+   "family": "UNSUPPORTED_BREACH_CLAIM",
+   "objection": "UNSUPPORTED_BREACH_CLAIM"
+  },
+  "HO-04": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "UNCLEAR_ACTION",
+   "objection": "UNCLEAR_ACTION"
+  },
+  "HO-05": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "VERBOSE",
+   "objection": "VERBOSE"
+  },
+  "HO-06": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "DUPLICATE_REMEDY",
+   "objection": "DUPLICATE_REMEDY"
+  },
+  "HO-07": {
+   "disposition": "ESCALATED_TO_GCO_REVIEWER",
+   "family": "RESERVED_DECISION",
+   "objection": "RESERVED_DECISION"
+  },
+  "HO-08": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "AUTHORITY_MISMATCH",
+   "objection": "AUTHORITY_MISMATCH"
+  },
+  "HO-09": {
+   "disposition": null,
+   "family": "CLEAN",
+   "objection": "NO_MATERIAL_OBJECTION"
+  },
+  "HO-10": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "CLAUSE_NOT_FOUND",
+   "objection": "CLAUSE_NOT_FOUND"
+  },
+  "HO-11": {
+   "disposition": "NARROWED_TO_GCO_SCOPE",
+   "family": "UNSUPPORTED_BREACH_CLAIM",
+   "objection": "UNSUPPORTED_BREACH_CLAIM"
+  },
+  "HO-12": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "UNCLEAR_ACTION",
+   "objection": "UNCLEAR_ACTION"
+  },
+  "HO-13": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "VERBOSE",
+   "objection": "VERBOSE"
+  },
+  "HO-14": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "DUPLICATE_REMEDY",
+   "objection": "DUPLICATE_REMEDY"
+  },
+  "HO-15": {
+   "disposition": "ESCALATED_TO_GCO_REVIEWER",
+   "family": "RESERVED_DECISION",
+   "objection": "RESERVED_DECISION"
+  },
+  "HO-16": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "AUTHORITY_MISMATCH",
+   "objection": "AUTHORITY_MISMATCH"
+  },
+  "HO-17": {
+   "disposition": null,
+   "family": "CLEAN",
+   "objection": "NO_MATERIAL_OBJECTION"
+  },
+  "HO-18": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "CLAUSE_NOT_FOUND",
+   "objection": "CLAUSE_NOT_FOUND"
+  },
+  "HO-19": {
+   "disposition": "NARROWED_TO_GCO_SCOPE",
+   "family": "UNSUPPORTED_BREACH_CLAIM",
+   "objection": "UNSUPPORTED_BREACH_CLAIM"
+  },
+  "HO-20": {
+   "disposition": "WITHHELD_FOR_EVIDENCE",
+   "family": "UNCLEAR_ACTION",
+   "objection": "UNCLEAR_ACTION"
+  },
+  "HO-21": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "VERBOSE",
+   "objection": "VERBOSE"
+  },
+  "HO-22": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "DUPLICATE_REMEDY",
+   "objection": "DUPLICATE_REMEDY"
+  },
+  "HO-23": {
+   "disposition": "ESCALATED_TO_GCO_REVIEWER",
+   "family": "RESERVED_DECISION",
+   "objection": "RESERVED_DECISION"
+  },
+  "HO-24": {
+   "disposition": "UPHELD_WITH_REVISION",
+   "family": "AUTHORITY_MISMATCH",
+   "objection": "AUTHORITY_MISMATCH"
+  }
+ },
+ "schema": "CDF-PUBLIC-HOLDOUT-v7.12.1"
+}

@@ -1,0 +1,17 @@
+{
+  "resource": "https://REPLACE_APPROVED_MCP_HOST/mcp",
+  "issuer": "https://REPLACE_APPROVED_OAUTH_ISSUER",
+  "jwks_file": "/run/cdf-config/jwks.json",
+  "enable_public_synthetic_remote": false,
+  "max_token_lifetime": 900,
+  "allowed_origins": [],
+  "bindings": [
+    {
+      "subject": "REPLACE_EXACT_APPROVED_SUBJECT",
+      "client_id": "REPLACE_EXACT_REGISTERED_CLIENT_ID",
+      "principal_id": "SYN-REMOTE-REVIEWER",
+      "roles": ["CALIBRATION_REVIEWER"],
+      "enabled": false
+    }
+  ]
+}
