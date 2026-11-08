@@ -30,6 +30,7 @@ class Registry:
     def put(self, ws, coord: str, formula: str, expected, **style):
         if not formula.startswith("="):
             formula = "=" + formula
+        coord = coord.replace("$", "")        # "$B$13" and "B13" are one cell: the cached value must find it (1.1.0)
         cell = ws[coord]
         cell.value = formula
         for k, v in style.items():

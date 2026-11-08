@@ -7,7 +7,7 @@ from openpyxl import load_workbook
 from cdf_gco_crms.config import round_schema as S
 from cdf_gco_crms.config import workbook_settings as W
 from cdf_gco_crms.excel.workbook_builder import build_workbook
-from cdf_gco_crms.ingestion.workbook_reader import parse_workbook
+from cdf_gco_crms.ingestion.workbook_reader import calc_block, parse_workbook
 from cdf_gco_crms.model.entities import Observation, RoundCells, TitleEvidence
 from cdf_gco_crms.observations import text_derivation as TD
 from cdf_gco_crms.regression import synthetic as SY
@@ -87,10 +87,11 @@ def test_title_survives_rebuild_and_dashboard_shows_only_approved(tmp_path):
     assert by[ids[0]].title_status == S.TITLE_PROPOSED and by[ids[0]].title == "عنوان مقترح رقم 1"
     # the dashboard table is title-led: header row carries the seven columns of 10.4A.11
     ws = load_workbook(out)[W.DASHBOARD_SHEET]
-    heads = [c.value for row in ws.iter_rows() for c in row if isinstance(c.value, str)]
-    assert "عنوان الملاحظة" in heads and "ملخص الملاحظة" not in heads and "الموضع عند الإصدار" in heads
-    hs = load_workbook(out)[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    heads = [c.value for row in ws.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row if isinstance(c.value, str)]
+    # v7.15: the location line is a formula shown only when the location changed since issue
+    assert "عنوان الملاحظة" in heads and not any("ملخص الملاحظة" in v for v in heads)
+    assert any("الموضع عند الإصدار" in v for v in heads)
+    hs, hdr = calc_block(load_workbook(out))                # v7.15: calculation block on the dashboard from column R
     disp = [hs.cell(row=r, column=hdr["obs.title_disp"]).value for r in range(2, 6)]
     assert disp[1] == "عنوان مقترح رقم 2"
     assert all(d == S.title_fallback(i + 1) for i, d in enumerate(disp) if i != 1)
@@ -103,8 +104,7 @@ def test_tampered_approval_is_demoted_on_read(tmp_path):
     out = tmp_path / "t.xlsx"
     build_workbook(st, out)
     wb = load_workbook(out)
-    hs = wb[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    hs, hdr = calc_block(wb)                # v7.15: calculation block on the dashboard from column R
     hs.cell(row=3, column=hdr["obs.title_status"]).value = S.TITLE_APPROVED    # forged status, no evidence
     wb.save(out)
     pw = parse_workbook(out)

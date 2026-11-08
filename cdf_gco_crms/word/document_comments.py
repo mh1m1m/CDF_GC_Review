@@ -588,7 +588,7 @@ def _comment_paragraph(runs: list[tuple[str, str]], *, first: bool, rtl: bool) -
     return p
 
 
-def _gtext_paragraphs(value, prefix: str | None = None) -> list[list[tuple[str, str]]]:
+def _gtext_paragraphs(value, prefix: str | None = None, prefix_style: str = "body") -> list[list[tuple[str, str]]]:
     """Comment body paragraphs of a GText (bold labels kept) or plain value; ``prefix`` opens the first line."""
     segs = value.segments if isinstance(value, GText) else [Segment(plain_text(value), False)]
     paras: list[list[tuple[str, str]]] = [[]]
@@ -600,7 +600,7 @@ def _gtext_paragraphs(value, prefix: str | None = None) -> list[list[tuple[str, 
                 paras[-1].append((ln, "bodybold" if seg.bold else "body"))
     paras = [p for p in paras if p] or [[]]
     if prefix:
-        paras[0].insert(0, (prefix, "body"))
+        paras[0].insert(0, (prefix, prefix_style))
     return paras
 
 
@@ -614,7 +614,8 @@ def follow_up_paragraphs(o: Observation, r: int) -> list[list[tuple[str, str]]]:
     status = o.value(r)
     fb = o.cells[r].feedback if r in o.cells else None
     return [[(f"متابعة الملاحظة #{o.reader_no} {S.EN_DASH} الجولة {S.ordinal(r)}", "label")],
-            [(f"REF: {o.internal_id} / R{r}-FU", "ref")]] + _gtext_paragraphs(fb, prefix=f"{status}: ")
+            [(f"REF: {o.internal_id} / R{r}-FU", "ref")]] + _gtext_paragraphs(fb, prefix=f"{status}: ",
+                                                                            prefix_style="bodybold")
 
 
 def _comment_element(cid: int, paragraphs: list[list[tuple[str, str]]], para_id: str) -> etree._Element:
@@ -626,11 +627,42 @@ def _comment_element(cid: int, paragraphs: list[list[tuple[str, str]]], para_id:
     for i, runs in enumerate(paragraphs):
         rtl = not (len(runs) == 1 and runs[0][1] == "ref")
         p = _comment_paragraph(runs, first=(i == 0), rtl=rtl)
-        if i == 0:
+        if i == len(paragraphs) - 1:
+            # [MS-DOCX]: w15:commentEx/@paraId names the LAST paragraph of the comment (kit 1.1.0; v1.0.0 used the
+            # first, which Word ignores, so replies did not thread and done="1" did not grey the thread)
             p.set(f"{{{W14NS}}}paraId", para_id)
             p.set(f"{{{W14NS}}}textId", para_id)
         c.append(p)
     return c
+
+
+def _gco_key_to_last(c: etree._Element) -> bool:
+    """Move a GCO comment's thread key (w14:paraId and w14:textId, same values) from an earlier paragraph to its
+    last paragraph when the last has none. Returns True when moved. Call for GCO comments only."""
+    paras = c.findall(_P)
+    if len(paras) < 2 or paras[-1].get(f"{{{W14NS}}}paraId"):
+        return False
+    src = next((p for p in paras[:-1] if p.get(f"{{{W14NS}}}paraId")), None)
+    if src is None:
+        return False
+    pid = src.attrib.pop(f"{{{W14NS}}}paraId")
+    tid = src.attrib.pop(f"{{{W14NS}}}textId", None) or pid
+    paras[-1].set(f"{{{W14NS}}}paraId", pid)
+    paras[-1].set(f"{{{W14NS}}}textId", tid)
+    return True
+
+
+def comment_thread_pid(c: etree._Element) -> str | None:
+    """Thread key of an existing comment: the w14:paraId of its last paragraph, else of its first paragraph
+    (comments written by kit 1.0.0 carry it there), else of any paragraph; None when no paragraph has one."""
+    paras = c.findall(_P)
+    if not paras:
+        return None
+    for p in (paras[-1], paras[0], *paras[1:-1]):
+        pid = p.get(f"{{{W14NS}}}paraId")
+        if pid:
+            return pid.upper()
+    return None
 
 
 def _marker(tag: str, cid: int) -> etree._Element:
@@ -803,17 +835,32 @@ def comment_document(src_docx, state: ReviewState, out_docx, *, round_no: int | 
         ids_by_pid = {(e.get(f"{{{W16CIDNS}}}paraId") or "").upper() for e in ids_root}
 
         def para_id_of(cid: str) -> str:
-            """w14:paraId of an existing comment's first paragraph, generated when missing (GCO comments only)."""
+            """Thread key of an existing GCO root comment, on its LAST paragraph (called for GCO roots only).
+
+            Accepts the key on the last paragraph (kit 1.1.0, Word) or on the first (kit 1.0.0). A first-paragraph
+            key of a GCO comment is moved, with the same value, to the last paragraph, so the commentsExtended and
+            commentsIds entries that name it stay valid and Word threads the reply. Generated when missing."""
             c = comment_by_cid[cid]
-            p = c.find(_P)
-            if p is None:
-                p = etree.SubElement(c, _P)
-            pid = p.get(f"{{{W14NS}}}paraId")
-            if not pid:
-                pid = pids.new()
-                p.set(f"{{{W14NS}}}paraId", pid)
-                p.set(f"{{{W14NS}}}textId", pid)
+            if c.get(w("author")) == GCO_AUTHOR and _gco_key_to_last(c):
+                rep.warnings.append(f"comment {cid}: thread key moved from the first to the last paragraph "
+                                    "(written by kit 1.0.0; [MS-DOCX] commentEx names the last paragraph)")
+            paras = c.findall(_P)
+            if not paras:
+                paras = [etree.SubElement(c, _P)]
+            pid = comment_thread_pid(c)
+            if pid:
+                return pid
+            pid = pids.new()
+            paras[-1].set(f"{{{W14NS}}}paraId", pid)
+            paras[-1].set(f"{{{W14NS}}}textId", pid)
             return pid.upper()
+
+        # GCO comments written by kit 1.0.0 carry their thread key on the first paragraph: move it, same value, to
+        # the last paragraph so that Word honours their commentsExtended entries (owner comments are never touched)
+        moved = [cid for cid, c in comment_by_cid.items() if c.get(w("author")) == GCO_AUTHOR and _gco_key_to_last(c)]
+        if moved:
+            rep.warnings.append(f"{len(moved)} GCO comment(s) written by kit 1.0.0: thread key moved to the last "
+                                f"paragraph ([MS-DOCX]); comments {moved[:10]}")
 
         def ensure_ex(pid: str, parent_pid: str | None, done: bool) -> None:
             e = ex_by_pid.get(pid)
@@ -914,10 +961,12 @@ def comment_document(src_docx, state: ReviewState, out_docx, *, round_no: int | 
             rep.anchor_kind[label] = "reply"
         # keep every other comment that already carries a paraId in the thread parts (Word expects one entry each)
         for cid, c in comment_by_cid.items():
-            p = c.find(_P)
-            pid = (p.get(f"{{{W14NS}}}paraId") if p is not None else None)
-            if pid and pid.upper() not in ex_by_pid:
-                ensure_ex(pid.upper(), None, False)
+            have = {(p.get(f"{{{W14NS}}}paraId") or "").upper() for p in c.findall(_P)} - {""}
+            if have & set(ex_by_pid):                              # already listed (by any of its paragraphs)
+                continue
+            pid = comment_thread_pid(c)
+            if pid:
+                ensure_ex(pid, None, False)
         parts[DOC_PART] = _serialise(doc_root)
         parts[COMMENTS_PART] = _serialise(comments_root)
         parts[COMMENTS_EX_PART] = _serialise(ex_root)
@@ -1232,7 +1281,10 @@ def package_structure_problems(docx) -> list[str]:
             if cid in cid_set:
                 problems.append(f"comment {cid} is referenced without a comment range")
         if COMMENTS_EX_PART in parts:
-            pids = {(c.find(_P).get(f"{{{W14NS}}}paraId") or "").upper() for c in croot.findall(w("comment")) if c.find(_P) is not None}
+            # Word links w15:commentEx/@paraId (and @paraIdParent) to the LAST paragraph of a comment; a
+            # multi-paragraph comment therefore resolves through any of its paragraphs, not only the first (1.1.0)
+            pids = {(p.get(f"{{{W14NS}}}paraId") or "").upper() for c in croot.findall(w("comment"))
+                    for p in c.findall(_P)}
             pids.discard("")
             ex = etree.fromstring(parts[COMMENTS_EX_PART])
             for e in ex.findall(f"{{{W15NS}}}commentEx"):

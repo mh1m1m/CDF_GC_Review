@@ -82,11 +82,16 @@ def _after_label(text: str, label: str) -> str | None:
     return parts[0] if parts else None
 
 
-def required_action(value: str, feedback_text: str, r: int, birth: int, limit: int = ACTION_MAX) -> str:
+def required_action(value: str, feedback_text: str, r: int, birth: int, limit: int = ACTION_MAX,
+                    summary: str | None = None) -> str:
+    """Required action on the dashboard. kit 1.1.3: a GCO-authored action summary for the current round, where the
+    draft gives one, replaces the derived text (the generic first-round line and cut feedback extracts)."""
     if value == "":
         return ""
     if value == S.CLOSED:
         return S.ACTION_NONE
+    if summary and summary.strip():
+        return cut(" ".join(summary.split()), limit)
     if r == birth:
         return S.ACTION_FIRST
     fb = feedback_text or ""
