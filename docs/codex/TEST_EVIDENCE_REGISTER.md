@@ -136,3 +136,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-08 pypdf 6.21.2 → 6.21.4
 
 `pip_audit -r requirements-execution.txt --vulnerability-service pypi`: 7 CVEs in pypdf 6.21.2 before, **no known vulnerabilities** after. `pytest tests qa_public`: **363 passed, 11 skipped** (expected skips) with pypdf 6.21.4.
+
+## 2026-11-08 LibreOffice pin deb13u9
+
+Debian trixie-security index lists calc, writer, impress and core at `4:25.2.3-2+deb13u9`; deb13u8 is no longer served (CI log: "Version '4:25.2.3-2+deb13u8' for 'libreoffice-calc' was not found"). Image build NOT_RUN locally (no Docker daemon); PR CI is the source of truth.

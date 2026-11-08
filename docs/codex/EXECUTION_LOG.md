@@ -118,3 +118,7 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-08 LibreOffice pin deb13u8 → deb13u9
+
+The four Docker-based jobs (stable-libreoffice, unified-execution, phase2-copilot, institutional-visual-acceptance) failed at `apt-get install`: Debian replaced `4:25.2.3-2+deb13u8` with the security update `4:25.2.3-2+deb13u9` in trixie-security, so the pinned version no longer resolves (main is affected the same way). `Dockerfile.libreoffice` and `docs/codex/STABLE_LIBREOFFICE.md` now pin deb13u9 (LibreOffice still reports 25.2.3.2). Checked against the trixie-security package index for calc, writer, impress and core.
