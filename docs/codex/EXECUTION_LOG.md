@@ -118,3 +118,15 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-08 Engine to v7.15 (plan step 4, branch `claude/engine-v715`)
+
+Owner approved the repo steps of the v7.15 plan (PR #17) on 2026-11-08. Ported the 21 engine files where kit 1.1.6 differs from PR #16, plus `excel/dash_layout.py`: one-sheet dashboard with the calculation block in hidden columns from R, TWO_SHEETS_ONLY / HELPER_RETIRED guard, gates PASS when met (`AMENDMENT_DEPENDENT = ()`), dashboard required action (`action_summary`), migration that removes a v7.14 helper sheet, comment thread key on the last paragraph ([MS-DOCX]). Versions 7.15 / 7.15.0 / `.../7.15`. The guide icons and the logo are institutional assets (C5) and are not committed: a public build skips them and G-UX-21 reports NOT_VERIFIED. Only the kit-generated gauge hub is committed. Tests that encoded v7.14 behaviour now test v7.15 behaviour; none deleted.
+
+## 2026-11-08 v7.15 comment rules (plan step 5, branch `claude/comments-v715`)
+
+New `cdf_gco_crms/comments/v715.py`: composer and checks for 07.1, 07.2, 07.4A(a)(b)(d), 08.2A, 08.2B, G-SUB-12 (conditional form), P14 (v7.15 per-comment rule) and R3(c)(d). Reviews under a version before v7.15 keep the earlier checks (00.2 carve-out). `assurance/challenge.py`: `WORD_BUDGET` 120 → 100 (07.2); the Red Advocate no longer turns a silent matrix or a routed matter into an F6 question but into a recommendation (conditional where the matrix may already cover it). R2 stays a reader judgement; its v7.15 change (the three required parts never count as deletable) is for the reader prompt, not a rule check.
+
+## 2026-11-08 Stage packets 19A.3A and 19A.6A (plan step 6, branch `claude/stage-packets`)
+
+New `cdf_gco_crms/protocol/stage_packets.py`: supplied sources with the 19A.7 particulars, carried by every stage packet except READ with their SHA-256 (same digest as kit 1.1.2+); a citation is SUPPLIED only when quoted verbatim in the packet. Retention against the adjudication: a ROUTED_OUTSIDE_GCO or WITHHELD_FOR_EVIDENCE observation left in the draft blocks issue unless a RETAIN decision with the reviewer's role (never a name) and date is recorded; the adjudication record is never rewritten; the delivery note lists retained observations with the adjudicator's ground. Wiring into the chat-kit stage commands follows with the kit builder (step 7).

@@ -26,6 +26,37 @@ def fixed1(x: float) -> str:
     return str(Decimal(str(x)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
+def fixed0(x: float) -> str:
+    """Excel FIXED(x,0) for 0 <= x < 1000."""
+    return str(Decimal(str(x)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+MINUS = "−"                 # minus sign of the delta chips (spec 4.3), not a dash
+NO_CHANGE = "دون تغيير"
+POINTS = "نقطة"
+KPI_KEYS = ("issued", "closed", "cond", "req", "open", "rate")
+KPI_FAVOUR = {"issued": 0, "closed": 1, "cond": 0, "req": -1, "open": -1, "rate": 1}
+NO_PREVIOUS = "لا توجد جولة سابقة"
+PREVIOUS = "في الجولة السابقة: "
+NEEDLE = 1.4                     # width of the needle slice (spec 7.1)
+CARD_TAG = "ملخص آلي غير معتمد"
+FULL_TEXT = "النص الكامل في ورقة الملاحظات"
+CARD_CUT = 300                   # observation, feedback and action on a card (10.4A.11)
+
+
+def list_title(a: "ObsA") -> str:
+    """Title in the action list and the table: the approved title, else the tagged mechanical summary (10.4A.16)."""
+    if a.title_status in S.TITLE_SHOWN_STATES and a.title.strip():
+        return a.title_disp
+    return f"{CARD_TAG}: {a.summary}" if a.summary else a.title_disp
+
+
+def card_comment(text: str) -> str:
+    """The observation as issued, cut at 300 characters on a word boundary, pointing to the full text when cut."""
+    t = TD.cut(text, CARD_CUT)
+    return t + f" ({FULL_TEXT})" if t.endswith("…") else t
+
+
 @dataclass
 class LongRow:
     k: int
@@ -96,6 +127,7 @@ class TrendRow:
     stalled: int
     reopen_state: int
     ever: int
+    impl: float | str = ""        # implementation rate (closed + conditional) / issued; derived, display only (17.8)
 
 
 class Analytics:
@@ -147,7 +179,9 @@ class Analytics:
             change = L.change_label(vals_for_lc, o.birth_round, r) if ex else ""
             pr = L.priority(vals_for_lc, o.birth_round, r) if ex else None
             reason = L.reason(vals_for_lc, o.birth_round, r) if ex else ""
-            action = TD.required_action(v, fbs[r], r, o.birth_round) if ex else ""
+            action = (TD.required_action(v, fbs[r], r, o.birth_round,
+                                         summary=getattr(o, "action_summary", None) if r == R else None)
+                      if ex else "")
             cur_loc = TD.current_location(plain_text(o.location), fbs, o.birth_round, r) if ex else ""
             basis = S.CLOSURE_BASIS_WORDS.get(o.closure_basis.get(r, ""), "") if ex else ""
             resp = plain_text(o.cells[r].response) if (ex and r in o.cells) else ""
@@ -179,7 +213,8 @@ class Analytics:
             rate=(cnt[S.CLOSED] / issued) if issued else "",
             closed_event=sum(x.closed_event for x in rows), reopen_event=sum(x.reopen_event for x in rows),
             stalled=sum(x.stalled for x in rows), reopen_state=sum(x.reopen_state for x in rows),
-            ever=sum(x.ever for x in rows))
+            ever=sum(x.ever for x in rows),
+            impl=((cnt[S.CLOSED] + cnt[S.CLOSED_COND]) / issued) if issued else "")
 
     # ---------------------------------------------------------------- per view
     def view(self, S_: int | None = None, scope: str = S.SCOPE_ALL, reader_label: str | None = None,
@@ -288,6 +323,64 @@ class View:
     def readiness_note(self) -> str:
         return S.READY_NOTE if self.readiness() == S.READY_ALL_CLOSED else ""
 
+    def readiness_tile(self) -> str:
+        r = self.readiness()
+        return f"{r} {S.READY_NOTE}" if r == S.READY_ALL_CLOSED else r
+
+    # ------------------------------------------------------------- KPI deltas and chips (spec 4.3, zone B)
+    def kpi(self, key: str) -> dict:
+        cur = getattr(self.t, key)
+        if self.S == 1:
+            return {"cur": cur, "prev": "", "delta": "", "chip": "", "dir": 0, "prevtxt": NO_PREVIOUS}
+        prev = getattr(self.an.trend[self.S - 1], key)
+        if key == "rate":
+            if prev == "" or cur == "":
+                delta, chip = "", ""
+            else:
+                delta = (cur - prev) * 100
+                f = fixed1(abs(delta))
+                chip = NO_CHANGE if f == "0.0" else f"{'+' if delta > 0 else MINUS}{f} {POINTS}"
+            prevtxt = "" if prev == "" else f"{PREVIOUS}{fixed1(prev * 100)}%"
+        else:
+            delta = cur - prev
+            chip = NO_CHANGE if delta == 0 else f"{'+' if delta > 0 else MINUS}{abs(delta)}"
+            prevtxt = f"{PREVIOUS}{prev}"
+        if delta == "" or chip == NO_CHANGE:
+            d = 0
+        else:
+            d = (1 if delta > 0 else -1) * KPI_FAVOUR[key]
+        return {"cur": cur, "prev": prev, "delta": delta, "chip": chip, "dir": d, "prevtxt": prevtxt}
+
+    # ------------------------------------------------------------- gauges (spec 7.1, 7.2)
+    def gauge(self) -> dict:
+        t = self.t
+        impl = (t.closed + t.cond) / t.issued if t.issued else 0
+        rate = t.closed / t.issued if t.issued else 0
+        sus = t.closed / t.ever if t.ever else 0
+
+        def needle(v):
+            return [100 * v, NEEDLE, 200 - 100 * v - NEEDLE]
+
+        def arc(v):
+            return [100 * v, 100 - 100 * v, 100]
+        return {"impl": impl, "rate": rate, "sus": sus,
+                "comp_arc": [t.closed, t.cond, t.req, t.open, t.issued], "comp_needle": needle(impl),
+                "rate_arc": arc(rate), "rate_needle": needle(rate), "sus_arc": arc(sus), "sus_needle": needle(sus)}
+
+    def legend(self) -> list[str]:
+        t = self.t
+        out = []
+        for value, n in ((S.CLOSED, t.closed), (S.CLOSED_COND, t.cond), (S.REQUIRES_EDIT, t.req), (S.OPEN, t.open)):
+            out.append(f"{value} {n}" if not t.issued else f"{value} {n} ({fixed0(100 * n / t.issued)}%)")
+        return out
+
+    # ------------------------------------------------------------- action list position (zone D back links)
+    def queue_pos(self, k: int):
+        qk = self.qkey[k]
+        if qk == "":
+            return ""
+        return sum(1 for x in self.qkey.values() if x != "" and x <= qk)
+
     def prev_count(self, attr: str):
         if self.S == 1:
             return ""
@@ -339,6 +432,35 @@ class View:
         return {"head": f"{a.reader_label}{S.SEP}{x.value}", "loc": a.location, "cur_loc": x.cur_loc,
                 "comment": TD.cut(a.comment, DETAIL_CUT), "feedback": fb, "action": x.action, "resp": resp, "impl": impl,
                 "closure": closure}
+
+    def card(self, a: ObsA) -> dict:
+        """Fields of observation a's card in the selected round (spec 5, zone H)."""
+        x = a.long[self.S]
+        if not x.exists:
+            return {"ex": 0, "pill": S.NOT_RAISED, "change": ""}
+        d = {"ex": 1, "pill": x.value, "change": x.change, "loc": a.location, "cur_loc": x.cur_loc,
+             "comment": card_comment(a.comment), "summary": a.summary,
+             "feedback": "لا توجد مرئيات متابعة في الجولة الأولى." if self.S == 1 else TD.cut(x.feedback, CARD_CUT),
+             "action": x.action}
+        d["resp"] = S.NO_RESPONSE if x.lfr == 0 else f"{a.long[x.lfr].resp} ({S.round_label(x.lfr)})"
+        d["impl"] = S.NO_RESPONSE if x.lfi == 0 else f"{a.long[x.lfi].impl} ({S.round_label(x.lfi)})"
+        if x.lcr == "":
+            d["closure"] = "غير مغلقة في الجولة المعروضة"
+        else:
+            basis = a.long[x.lcr].basis or S.NOT_RECORDED
+            d["closure"] = f"أُغلقت في {S.round_label(x.lcr)}{S.SEP}أساس الإغلاق: {basis}"
+        return d
+
+    def strip(self, a: ObsA, j: int) -> tuple[str, str]:
+        """(round label, pill) of the card's timeline strip for round j (rounds after S blank)."""
+        if not a.long[self.S].exists or j > self.S:
+            return "", ""
+        if j < a.birth:
+            return S.round_label(j), "لم تكن مطروحة"
+        return S.round_label(j), a.long[j].value
+
+    def strip_start(self) -> int:
+        return max(1, self.S - 10)
 
     def timeline(self, r: int) -> tuple[str, str, str, str]:
         """(status, change, owner impl claim, GCO feedback summary) for round r of the selected observation."""

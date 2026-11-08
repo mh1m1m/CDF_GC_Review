@@ -387,3 +387,16 @@ def test_cli_mat_profile_flag(tmp_path, capsys):
     assert payload["mat_advisor"] == {"enabled": False}
     with pytest.raises((SystemExit, MP.ProfileNotConfigured)):
         CLI.main(["review", str(xlsx), "--docx", str(docx), "--synthetic-reference", "--gate-dir", str(tmp_path / "gate3"), "--mat-profile", str(tmp_path / "missing.json")])
+
+
+def test_red_advocate_revisions_ask_no_question_v715(profile, tmp_path):
+    """07.4A(d): when the matrix is silent, the revision is a conditional recommendation, not an F6 question."""
+    st, docx, idx, reg, persona = _env(tmp_path, profile)
+    obs = st.ordered()[1]
+    o = CH.Objection(obs.internal_id, "AUTHORITY_UNSUPPORTED", "لا سند في المصفوفة.", "الإدارة",
+                     detail={"asserted_body": "اللجنة التنفيذية"})
+    from cdf_gco_crms.model.entities import plain_text
+    adv = CH.red_advocate(o, obs, reg)
+    assert adv.stance == "REVISE", adv
+    text = plain_text(adv.revised_comment)
+    assert "؟" not in text and not text.startswith("هل") and "ما لم تتضمن" in text and text.startswith("نوصي")
