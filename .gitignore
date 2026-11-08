@@ -62,3 +62,7 @@ apps/web/.vite/
 
 # Generated frontend incremental build metadata
 apps/web/*.tsbuildinfo
+
+# Dashboard guide icons and the CDF wordmark are institutional brand assets (C5); only the generated gauge hub is public.
+shared/icons/*
+!shared/icons/gauge-hub.png

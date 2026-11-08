@@ -1,5 +1,5 @@
-<!-- Author: Mohammed Alsaleh | Last modified by: Mohammed Alsaleh | Company: صندوق التنمية الثقافي | Title: CDF–GCO–CRMS v7.12 source -->
-# CDF–GCO–CRMS v7.12 — workbook engine
+<!-- Author: Mohammed Alsaleh | Last modified by: Mohammed Alsaleh | Company: صندوق التنمية الثقافي | Title: CDF–GCO–CRMS v7.15 source -->
+# CDF–GCO–CRMS v7.15 — workbook engine
 
 Builds the requester feedback workbook of the CDF–GCO–CRMS protocol with its executive dashboard
 "لوحة المتابعة التنفيذية" (protocol Art. 10.4A) in the CDF brand library of Annex D.11 (v7.12), appends review
@@ -11,6 +11,28 @@ This is the **public engineering repository**. It holds the engine, the tests, t
 and the forensic audit harness. It holds **no** institutional document, reference PDF, review case, brand asset or
 protocol text: `REPOSITORY-STRUCTURE.md` lists what is tracked and what is excluded by policy.
 
+## Protocol v7.15 (in review as draft PRs)
+
+The engine is being brought from v7.12 to protocol **v7.15**. Each part is its own draft PR into `main`; nothing is
+merged until the owner approves it. The protocol text itself is never committed here: these files cite article
+numbers only.
+
+| Part | PR | What changes |
+|---|---|---|
+| CI and install | #18 | the Docker-based workflows also run for PRs into `main`; install line matches CI; pypdf 6.21.4; LibreOffice pinned to the Debian security build |
+| Engine v7.15 | #19 | one-sheet dashboard (calculation block in hidden columns from R; the helper sheet "بيانات اللوحة" retired and migrated); guards TWO_SHEETS_ONLY and HELPER_RETIRED; G-UX-21 reports NOT_VERIFIED when the institutional guide icons are not provisioned (C5) |
+| Comment rules | #20 | `cdf_gco_crms/comments/`: 07.4A shape of a new comment, 07.2 ceilings, 08.2A closing action, 08.2B improvement label, G-SUB-12 conditional form, P14 per-comment rule, R3(c)(d); the 19A red-advocate revisions ask no question |
+| Stage packets | #21 | `cdf_gco_crms/protocol/stage_packets.py`: supplied sources (19A.3A) with the chat kit's SHA-256 digest, and retention against the adjudication (19A.6A) |
+
+Not yet done:
+
+- The chat kit builder and its self-test need the document ingestion code of PR #16 (`cdf_gco_crms.documents`),
+  which is not on `main`.
+- The 00.8 regression against the reference cases is **NOT_VERIFIED** until the reference-case package is
+  provisioned from the institution's store; it is not in this repository.
+- The hosted deployment (PR #16: Vercel and Supabase) is outside these PRs. Accepting uploads of real documents
+  depends on the owner's amendment of 00A.4 (drafted as v7.16) and is not enabled by any change here.
+
 ## Status (three dimensions, never merged into one claim)
 
 | Dimension | Status |
@@ -21,7 +43,9 @@ protocol text: `REPOSITORY-STRUCTURE.md` lists what is tracked and what is exclu
 
 ## Quick start (fresh public clone)
 
-    python -m pip install -r requirements-lock.txt   # exact versions (Python ≥ 3.11); LibreOffice optional (render/recalc tests skip without it)
+    python -m pip install -r requirements-execution.txt -r requirements-security.txt -r requirements-calibration.txt
+                                                     # as CI does (Python ≥ 3.11); requirements-lock.txt alone misses httpx and hypothesis
+                                                     # LibreOffice optional (render/recalc tests skip without it)
     python -m pytest tests -q                        # the whole suite runs without institutional files:
                                                      # the reference layer falls back to the public SYNTHETIC fixture
     CDF_TEST_SYNTHETIC_REFERENCE=1 python -m pytest tests -q   # force the fixture even where the sources are on disk
