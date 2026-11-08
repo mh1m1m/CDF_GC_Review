@@ -4,8 +4,25 @@ from __future__ import annotations
 from .round_schema import SEP, ordinal
 
 DASHBOARD_SHEET = "لوحة المتابعة التنفيذية"
-HELPER_SHEET = "بيانات اللوحة"
+HELPER_SHEET = "بيانات اللوحة"        # v7.14 hidden helper sheet: never created from kit 1.1.0, removed on rebuild
 LEGACY_PRINT_VIEW_SHEET = "عرض الطباعة"
+
+# calculation block on the dashboard (v7.15 draft of 10.4A.3): hidden columns from R, outside the print area;
+# columns O to Q stay empty page surface
+CALC_FIRST_COL = 18                  # column R
+CALC_TABLE_PREFIXES = ("meta", "list", "round", "obs", "long", "q", "t", "trend", "bar", "kpi", "gauge", "legend")
+
+# reader-facing texts of the one-sheet dashboard (spec 2.1, 5)
+HEADER_LINE = "الصندوق الثقافي   |   قطاع الحوكمة والامتثال   |   إدارة الحوكمة والامتثال المؤسسي"
+FOOTER_RIGHT = "© الصندوق الثقافي · إدارة الحوكمة والامتثال المؤسسي"
+FOOTER_NOTE = "هذه اللوحة عرض لا سجل: القيم الرسمية في ورقة الملاحظات"
+LOGO_ALT = "شعار الصندوق الثقافي"
+
+# gates whose v7.14 wording the one-sheet design cannot meet until the v7.15 amendment is approved: when their
+# check runs and meets the v7.15 draft they report NOT_VERIFIED, never PASS (spec 11)
+# kit 1.1.6: v7.15 was approved by the protocol owner on 7 November 2026, so these gates report PASS when met.
+AMENDMENT = "v7.15 one-sheet dashboard, approved by the protocol owner on 7 November 2026"
+AMENDMENT_DEPENDENT = ()
 
 AUTHOR = "Mohammed Alsaleh"
 COMPANY = "صندوق التنمية الثقافي"

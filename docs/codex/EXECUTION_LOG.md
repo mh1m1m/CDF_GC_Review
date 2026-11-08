@@ -118,3 +118,7 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-08 Engine to v7.15 (plan step 4, branch `claude/engine-v715`)
+
+Owner approved the repo steps of the v7.15 plan (PR #17) on 2026-11-08. Ported the 21 engine files where kit 1.1.6 differs from PR #16, plus `excel/dash_layout.py`: one-sheet dashboard with the calculation block in hidden columns from R, TWO_SHEETS_ONLY / HELPER_RETIRED guard, gates PASS when met (`AMENDMENT_DEPENDENT = ()`), dashboard required action (`action_summary`), migration that removes a v7.14 helper sheet, comment thread key on the last paragraph ([MS-DOCX]). Versions 7.15 / 7.15.0 / `.../7.15`. The guide icons and the logo are institutional assets (C5) and are not committed: a public build skips them and G-UX-21 reports NOT_VERIFIED. Only the kit-generated gauge hub is committed. Tests that encoded v7.14 behaviour now test v7.15 behaviour; none deleted.

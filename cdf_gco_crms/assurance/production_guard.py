@@ -43,7 +43,7 @@ DEMO_KEYWORD = "بيانات تجريبية"
 SYNTHETIC_NAME_MARKERS = ("SYNTHETIC", "DEMO", "SAMPLE", "FIXTURE", "تجريب", "اختبار")
 
 REQUIRED = (
-    "VISIBLE_SHEETS", "DASHBOARD_PRESENT", "HELPER_PRESENT", "HELPER_HIDDEN", "CORE_COLUMNS_AE",
+    "VISIBLE_SHEETS", "DASHBOARD_PRESENT", "TWO_SHEETS_ONLY", "HELPER_RETIRED", "CORE_COLUMNS_AE",
     "INTERNAL_ID_UNIQUENESS", "NO_EXTERNAL_LINK_FILES", "NOT_SYNTHETIC_AS_INSTITUTIONAL",
 )
 # Reported but not release-blocking: the v7.12 engine never writes this label.
@@ -102,13 +102,10 @@ def audit_xlsx(path: str | Path) -> dict:
         visible = [s for s in sheets if s["state"] == "visible"]
         findings.append({"gate": "VISIBLE_SHEETS", "status": "PASS" if len(visible) == 2 else "FAIL", "detail": names})
         findings.append({"gate": "DASHBOARD_PRESENT", "status": "PASS" if W.DASHBOARD_SHEET in names else "FAIL"})
-        findings.append({"gate": "HELPER_PRESENT", "status": "PASS" if W.HELPER_SHEET in names else "FAIL"})
-        if W.HELPER_SHEET in names:
-            helper = next(s for s in sheets if s["name"] == W.HELPER_SHEET)
-            findings.append({"gate": "HELPER_HIDDEN", "status": "PASS" if helper["state"] == "hidden" else "FAIL",
-                             "detail": helper["state"]})
-        else:
-            findings.append({"gate": "HELPER_HIDDEN", "status": "FAIL", "detail": "helper sheet missing"})
+        # kit 1.1.0 (v7.15 draft of 10.4A.2): exactly two sheets; the calculation block replaces the helper sheet
+        findings.append({"gate": "TWO_SHEETS_ONLY", "status": "PASS" if len(names) == 2 else "FAIL", "detail": names})
+        findings.append({"gate": "HELPER_RETIRED", "status": "PASS" if W.HELPER_SHEET not in names else "FAIL",
+                         "detail": "the calculation block sits in hidden columns of the dashboard"})
         observations: list[dict] = []
         dashboard_text: list[str] = []
         header_cells: dict[str, str] = {}

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter as gl
 
 from conftest import C, CC, O, RE, history, new_obs
 from cdf_gco_crms.analytics.dashboard_analytics import Analytics
@@ -15,7 +16,7 @@ from cdf_gco_crms.config import design_tokens as T
 from cdf_gco_crms.config import round_schema as S
 from cdf_gco_crms.config import workbook_settings as W
 from cdf_gco_crms.excel.workbook_builder import build_workbook
-from cdf_gco_crms.ingestion.workbook_reader import parse_workbook
+from cdf_gco_crms.ingestion.workbook_reader import calc_block, parse_workbook
 from cdf_gco_crms.model import lifecycle as L
 from cdf_gco_crms.model.entities import DashboardViewState, RoundAssessment
 from cdf_gco_crms.qa import inspect as I
@@ -34,8 +35,18 @@ def cached(path):
 
 
 def kpis(path):
-    d = cached(path)[W.DASHBOARD_SHEET]
-    return [d.cell(row=14, column=c).value for c in (2, 4, 6, 8, 10, 12)]
+    """The six KPI cards (issued, closed, cond, req, open, rate), read from the calculation block by key (v7.15
+    one-sheet dashboard), and checked against the values the visible cards show."""
+    wb = cached(path)
+    hs, hdr = calc_block(wb)
+    by_key = {hs.cell(row=r, column=hdr["kpi.key"]).value: hs.cell(row=r, column=hdr["kpi.cur"]).value
+              for r in range(2, 9)}
+    vals = [by_key[k] for k in ("issued", "closed", "cond", "req", "open", "rate")]
+    d = wb[W.DASHBOARD_SHEET]
+    shown = [c.value for row in d.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row]
+    for v in vals:
+        assert v in shown, (v, "KPI not shown on the visible dashboard")
+    return vals
 
 
 # ------------------------------------------------------------------------ TEST 01
@@ -54,9 +65,9 @@ def test_01_round1_ten_observations(tmp_path):
         assert ws.cell(row=r, column=6).fill.fgColor.rgb[-6:] == T.ROUND1_OPEN_FILL
     assert kpis(p) == [10, 0, 0, 0, 10, 0]
     d = cached(p)[W.DASHBOARD_SHEET]
-    assert "بانتظار الإفادة الأولى" in d["B18"].value
-    hs = cached(p)[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    assert any(isinstance(c.value, str) and "بانتظار الإفادة الأولى" in c.value
+               for row in d.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row)
+    hs, hdr = calc_block(cached(p))                # v7.15: calculation block on the dashboard from column R
     reasons = {hs.cell(row=r, column=hdr["obs.reason"]).value for r in range(2, 12)}
     assert reasons == {S.REASON_AWAIT_FIRST}            # not "overdue" or "failed" (TEST A)
 
@@ -144,8 +155,7 @@ def test_06_twenty_rounds_scalability(tmp_path):
     assert pw.schema.rounds == list(range(1, 21))
     assert pw.data_ws.title == "الملاحظات حتى الجولة 20"
     assert pw.schema.last_col == 8 + 4 * 19
-    hs = cached(h.files[20])[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    hs, hdr = calc_block(cached(h.files[20]))                # v7.15: calculation block on the dashboard from column R
     assert [hs.cell(row=r + 1, column=hdr["trend.label"]).value for r in (11, 20)] == ["الجولة 11", "الجولة 20"]
     assert elapsed < 120
 
@@ -257,8 +267,7 @@ def test_11_navigation_after_owner_sort(five_round, tmp_path):
     p = h.files[5]
     pw = parse_workbook(p)
     # every cached link resolves to the row holding its Internal_ID
-    hs = cached(p)[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    hs, hdr = calc_block(cached(p))                # v7.15: calculation block on the dashboard from column R
     for k in range(1, len(pw.state.observations) + 1):
         sheet, coord = I.hyperlink_target(hs.cell(row=k + 1, column=hdr["obs.link"]).value)
         row = int("".join(ch for ch in coord if ch.isdigit()))
@@ -275,7 +284,7 @@ def test_11_navigation_after_owner_sort(five_round, tmp_path):
     wb.save(q)
     assert lo_engine.recalc(q).ok
     v = load_workbook(q, data_only=True)
-    hs2, ws2 = v[W.HELPER_SHEET], v[pw.data_ws.title]
+    (hs2, _), ws2 = calc_block(v), v[pw.data_ws.title]
     for k in range(1, len(pw.state.observations) + 1):
         sheet, coord = I.hyperlink_target(hs2.cell(row=k + 1, column=hdr["obs.link"]).value)
         row = int("".join(ch for ch in coord if ch.isdigit()))
@@ -326,7 +335,8 @@ def test_12b_word_reply_threads(five_round, tmp_path):
         ct = z.read("[Content_Types].xml").decode()
         rels = z.read("word/_rels/document.xml.rels").decode()
         ex = etree.fromstring(z.read(WS.COMMENTS_EX_PART))
-    pids = [c.find(f"{{{WS.WNS}}}p").get(f"{{{WS.W14NS}}}paraId") for c in croot.findall(f"{{{WS.WNS}}}comment")]
+    # [MS-DOCX]: the thread key (w14:paraId) sits on the comment's last paragraph (kit 1.1.0 fix)
+    pids = [c.findall(f"{{{WS.WNS}}}p")[-1].get(f"{{{WS.W14NS}}}paraId") for c in croot.findall(f"{{{WS.WNS}}}comment")]
     assert len(pids) == len(comments) == len(set(pids)) and all(len(x) == 8 and int(x, 16) < 0x80000000 for x in pids)
     assert "w14" in croot.get(f"{{{WS.MCNS}}}Ignorable", "").split() and croot.nsmap["w14"] == WS.W14NS
     assert f'PartName="/{WS.COMMENTS_EX_PART}" ContentType="{WS.COMMENTS_EX_CT}"' in ct
@@ -354,6 +364,29 @@ def test_13_v710_migration(five_round, tmp_path):
     assert rep.removed_sheets == [W.LEGACY_PRINT_VIEW_SHEET] and rep.no_round_added and rep.ids_preserved
     with pytest.raises(Exception):
         migrate(src, src.parent)                                                     # never in place
+
+
+def test_13b_v714_helper_sheet_migrates_to_the_one_sheet_dashboard(five_round, tmp_path):
+    """A v7.14 workbook with the hidden helper sheet: migration removes it and the calculation block takes its
+    place in hidden columns of the dashboard from column R (v7.15, 10.4A.3)."""
+    from cdf_gco_crms.migration.migrate import migrate
+    h, traj, out = five_round
+    src = tmp_path / "legacy" / "doc.xlsx"
+    src.parent.mkdir()
+    shutil.copy(h.files[4], src)
+    wb = load_workbook(src)
+    helper = wb.create_sheet(W.HELPER_SHEET)
+    helper["A1"] = "meta.key"
+    helper.sheet_state = "hidden"
+    wb.save(src)
+    rep = migrate(src, tmp_path / "out")
+    assert rep.status == "PASSED", rep.to_json()
+    assert W.HELPER_SHEET in rep.removed_sheets and rep.ids_preserved
+    migrated = load_workbook(rep.output)
+    assert W.HELPER_SHEET not in migrated.sheetnames and len(migrated.sheetnames) == 2
+    hs, hdr = calc_block(migrated)
+    assert hs.title == W.DASHBOARD_SHEET and min(hdr.values()) >= W.CALC_FIRST_COL
+    assert all(hs.column_dimensions[gl(c)].hidden for c in hdr.values())
 
 
 # ------------------------------------------------------------------------ TEST 14
@@ -391,7 +424,9 @@ def test_15_information_boundary(five_round, tmp_path):
                 r"\bCRITICAL\b"):
         assert not re.search(pat, body), pat
     d = cached(h.files[5])[W.DASHBOARD_SHEET]
-    assert not any(isinstance(c.value, str) and "GCO-" in c.value for row in d.iter_rows() for c in row)
+    # the visible dashboard; the hidden calculation block from column R carries link targets, as the v7.14 helper did
+    assert not any(isinstance(c.value, str) and "GCO-" in c.value
+                   for row in d.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row)
 
 
 # ------------------------------------------------------------------------ TEST 16
@@ -410,8 +445,10 @@ def test_16_visual_render_and_layout(five_round, tmp_path):
     assert d.sheet_view.rightToLeft and not d.sheet_view.showGridLines
     assert I.min_font_size(d) >= T.MIN_FONT
     from cdf_gco_crms.qa.ux_gates import _chart_rects
-    for c1, r1, c2, r2 in _chart_rects(p, W.DASHBOARD_SHEET):
-        assert all(d.cell(row=r, column=c).value in (None, "") for r in range(r1, r2 + 1) for c in range(c1, c2 + 1))
+    for (c1, r1, c2, r2), kind in _chart_rects(p, W.DASHBOARD_SHEET):
+        # v7.15 gauges (10.4A): the readout sits in the lower half, under the transparent arc; nothing else under a chart
+        last = r1 + (r2 - r1 + 1) // 2 - 1 if kind in ("doughnutChart", "pieChart") else r2
+        assert all(d.cell(row=r, column=c).value in (None, "") for r in range(r1, last + 1) for c in range(c1, c2 + 1))
 
 
 # ------------------------------------------------------------------------ TEST 17
@@ -429,14 +466,15 @@ def test_18_dashboard_refresh(five_round):
     h, traj, out = five_round
     for r in (2, 3, 4, 5):
         d = cached(h.files[r])[W.DASHBOARD_SHEET]
-        assert d["B6"].value == S.round_label(r) and d["B10"].value == S.round_label(r)
-        hs = cached(h.files[r])[W.HELPER_SHEET]
-        hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+        shown = [c.value for row in d.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row]
+        assert shown.count(S.round_label(r)) >= 2           # selector and section heading show the current round
+        hs, hdr = calc_block(cached(h.files[r]))                # v7.15: calculation block on the dashboard from column R
         assert [hs.cell(row=i + 1, column=hdr["trend.r"]).value for i in range(1, r + 1)] == list(range(1, r + 1))
         st = h.states[r]
         assert kpis(h.files[r])[0] == sum(1 for o in st.observations if o.birth_round <= r)
         pkg = I.package(h.files[r])
-        assert all(c.endswith(f"${r + 1}") for ch in pkg.charts if ch.kinds[0] != "barChart/bar" for c in ch.category_refs)
+        trend = [ch for ch in pkg.charts if ch.kinds[0] in ("barChart/col", "lineChart")]   # gauges have no categories
+        assert trend and all(c.endswith(f"${r + 1}") for ch in trend for c in ch.category_refs)
 
 
 # ------------------------------------------------------------------------ TEST 19

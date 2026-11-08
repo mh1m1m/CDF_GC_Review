@@ -16,16 +16,16 @@ IMPL, PART, NOT = "IMPLEMENTED", "PARTIAL", "NOT_IMPLEMENTED"
 INNOVATIONS = [
     (1, "A", "Official Brand Token Engine", IMPL, "P1", "config/design_tokens.py holds every colour; branding/brand_tokens.py records the provenance of each brand value: the seven HEX values printed on page 12 of the 87-page CDF Design Guide, re-checked against the rendered swatches (branding/guide_page_check.py)",
      "Native fills and fonts", "None", "Brand, derived and protocol colours kept apart; no invented brand value", "G-UX-01", "Derived dark tones for text and chart marks are recorded as not brand"),
-    (2, "A", "Executive Brand Header", IMPL, "P1", "Ink top rule, then the Warm Gray identity band of the guide's own pages carrying the supplied horizontal logo in black, background removed, proportions kept; powder-blue divider under the selectors",
-     "Picture in a one-cell anchor", "92 KB image", "Logo used only from the supplied file; never redrawn", "G-UX-02", "The supplied guide states no clear-space measure; a margin of 24 px is applied"),
-    (3, "A", "Brand-Consistent KPI Cards", IMPL, "P1", "Six equal two-column white cards on the page surface, each capped with the D.2 fill of the status it counts, the same fill as the register (Powder Blue total, Warm Gray rate); 32 pt values in the dark tone of the status",
-     "Merged cells and borders", "None", "Values come from formulas only", "G-UX-19, G-DASH-04", ""),
+    (2, "A", "Executive Brand Header", PART, "P1", "Dark identity band #161616 (decision DASH_HEADER) with white title, document name and the #D9D9D9 header line; logo slot g1–g3 for the official white-on-dark logo (--logo-on-dark), used unchanged",
+     "Picture in a one-cell anchor", "None", "Logo used only from a supplied official file; never recoloured or redrawn", "G-UX-02", "No white-on-dark logo was supplied and the Design Guide prints none; the slot stays empty and G-UX-02 reports NOT_VERIFIED"),
+    (3, "A", "Brand-Consistent KPI Cards", IMPL, "P1", "Six equal cards: 5-pt cap in the status's brand mark (Powder Blue total, Cinder rate), guide icon in the far corner, 32-pt value in the deep tone, previous value and a delta chip (favourable, unfavourable, neutral)",
+     "Merged cells, conditional formats, pictures", "None", "Values and chips come from formulas only; no target or threshold", "G-UX-19, G-DASH-04", ""),
     (4, "A", "Semantic Status Palette", IMPL, "P1", "Three token families: brand (D.11, structure only), semantic status fills of D.2 shared with the register, protocol (D.7)",
      "Native", "None", "A status reads the same fill on the dashboard and in the register (AMB-161); every colour accompanies its written value", "G-UX-01, G-UX-13", ""),
     (5, "A", "Institutional Typography Hierarchy", IMPL, "P1", "Calibri type scale of the guide's page 21 applied as D.12: title 24, document 14, sections 16, card values 32, body 10, notes 9", "Native", "None",
      "The guide itself names Calibri; the v7.11 conflict with the identity file's Brando Arabic is closed (AMB-150)", "G-UX-03, G-DASH-18", ""),
-    (6, "A", "Subtle Brand Motifs", NOT, "P3", "Not built", "", "", "Only pages 12 and 21 of the 87-page guide were supplied as renders; no motif page was seen, so none is invented",
-     "—", "Requires the motif pages of the full design guide"),
+    (6, "A", "Subtle Brand Motifs", IMPL, "P3", "Cultural-sector icons of guide page 18 (palm, dallah, fort, jar, books, oud) on the Powder Blue section bands; page-17 icons on facts, KPI cards and tiles",
+     "Pictures", "21 PNG of 128 px", "Raster-extracted at 600 dpi, never redrawn; page, box and SHA-256 recorded", "G-UX-21", ""),
     (7, "A", "Refined Empty States", IMPL, "P2", "Texts for no observation, empty action list, empty table scope and empty detail panel",
      "Formulas", "None", "No zero shown as a result where nothing exists", "G-DASH-15", ""),
     (8, "A", "Unified Visual Components", IMPL, "P2", "Shared builders for text, formula cells, boxes, sections and status rules (excel/dashboard_writer.py)",
@@ -36,8 +36,8 @@ INNOVATIONS = [
      "Native", "None", "Records untouched", "TEST 16", "No separate mode: a second view would need macros or a duplicate sheet"),
     (11, "B", "Intelligent KPI Hierarchy", IMPL, "P2", "Total, closed, conditional, requires modification, open, rate in reading order; secondary indicators below",
      "Native", "None", "", "G-UX-19", ""),
-    (12, "B", "Review Completion Progress", IMPL, "P1", "100 % stacked bar of the four values plus the rate card", "Native bar chart", "None",
-     "Readiness text adds that full closure is not approval of the document", "G-DASH-08", ""),
+    (12, "B", "Review Completion Progress", IMPL, "P1", "Dark gauge deck: composite needle gauge whose arc is the status distribution and whose needle is (closed + conditional) ÷ issued; mini gauges for the closure rate and sustainability; 100 % stacked bar with legend pills", "Doughnut and pie overlays, bar chart", "8 charts",
+     "No invented bands or targets; the implementation rate is a captioned display indicator, never a closure value (17.8)", "G-DASH-08, G-DASH-23", "Overlay alignment as Excel draws it is NOT_VERIFIED"),
     (13, "B", "Round-over-Round Comparison Cards", IMPL, "P2", "Each card shows its value in the previous round", "Formulas", "None", "", "G-DASH-05", ""),
     (14, "B", "Observation Movement Matrix", IMPL, "P2", "5 × 4 transition matrix between the comparison round and the selected round", "COUNTIFS", "25 formulas", "",
      "G-DASH-05", ""),
@@ -49,19 +49,19 @@ INNOVATIONS = [
     (18, "B", "Review Readiness Panel", IMPL, "P2", "Rule-based categorical readiness", "Formulas", "None", "States that it is not an approval", "G-DASH-05", ""),
     (19, "B", "Executive Narrative Generator", IMPL, "P2", "Two deterministic sentences built by formulas", "Formulas", "None", "No inference beyond the counts",
      "G-DASH-05", ""),
-    (20, "B", "Visual History of Review Rounds", IMPL, "P2", "Stacked composition by round, closure-rate line, movement columns", "Native charts", "3 charts",
-     "", "G-DASH-08", "Charts show every recorded round"),
+    (20, "B", "Visual History of Review Rounds", IMPL, "P2", "Stacked composition by round; closure rate (solid) and implementation rate (dashed) lines", "Native charts", "2 charts",
+     "", "G-DASH-08", "Charts show every recorded round; the movement chart of v1.0.0 is dropped (it repeated the tiles)"),
     (21, "C", "Adaptive Round-Aware Table", IMPL, "P1", "Fixed eight-column table driven by the selected round", "Formulas", "N rows × 8", "", "TEST 19", ""),
     (22, "C", "Dynamic Column Labels", IMPL, "P2", "Previous/selected status headers follow the selected round", "Formulas", "None", "", "G-DASH-05", ""),
     (23, "C", "Intelligent Column Widths", IMPL, "P2", "Grid of 13-character columns sized for Arabic; data sheet widths per 10.3", "Native", "None", "", "G-DASH-18", ""),
     (24, "C", "Adaptive Row Heights", PART, "P2", "Heights computed at build from the longest content over all rounds, capped", "Native", "None", "",
      "G-UX-06", "Excel cannot refit rows to formula results without macros; some rows keep spare space"),
-    (25, "C", "Focused Action View", IMPL, "P1", "Action list (top ten) and the scope \"الملاحظات التي تتطلب إجراء\"", "Formulas", "None",
-     "Order is workflow, not severity (AMB-145)", "G-UX-17", ""),
+    (25, "C", "Focused Action View", IMPL, "P1", "Complete action list allocated to the current round's rows not مغلقة, with an overflow line for an earlier round that has more", "Formulas", "None",
+     "Order is workflow, not severity (AMB-145)", "G-UX-17, G-DASH-24", ""),
     (26, "C", "Compact Full-History View", IMPL, "P2", "Full table (default scope) plus per-observation timeline", "Formulas", "None", "", "TEST 19", ""),
     (27, "C", "Alternating Row Surfaces", IMPL, "P3", "Conditional zebra and rule only on filled rows", "Conditional formatting", "2 rules", "", "TEST 16", ""),
     (28, "C", "Observation Navigation Links", IMPL, "P1", "HYPERLINK to the row found by Internal_ID", "HYPERLINK, MATCH", "None", "", "TEST 11, G-DASH-06", ""),
-    (29, "C", "Selected Observation Highlight", IMPL, "P3", "Conditional fill of the selected number in the table", "Conditional formatting", "1 rule", "", "TEST 16", ""),
+    (29, "C", "Selected Observation Highlight", NOT, "P3", "Retired: the fourth selector now jumps to a card (spec 8); the selected-row token of D.10 is retired", "", "", "", "—", ""),
     (30, "C", "Cross-Round Consistency Highlights", IMPL, "P2", "Change column flags (reopened, no progress, closed)", "Conditional formatting", "4 rules",
      "Official values untouched", "G-DASH-19", ""),
     (31, "D", "Contextual Cell Notes", IMPL, "P1", "Notes on every visible data-sheet header and on selectors and key labels", "Legacy Notes (VML)", "One note per header",
@@ -81,9 +81,9 @@ INNOVATIONS = [
     (39, "D", "Contextual Error Prevention", IMPL, "P2", "Stop alerts with messages on every list; selectors restricted to lists", "Data validation", "None", "",
      "G-UX-09", ""),
     (40, "D", "Interactive Help Center", IMPL, "P2", "User guide zone and navigation row", "Text and links", "None", "", "G-UX-18", ""),
-    (41, "E", "Observation Detail Panel", IMPL, "P1", "Status, locations, observation, latest feedback, action, latest owner response and claim, closure basis",
-     "Formulas", "None", "No Internal_ID shown", "TEST 19", ""),
-    (42, "E", "Observation Lifecycle Timeline", IMPL, "P2", "One row per round up to the selected one", "Formulas", "R rows", "", "TEST 20", ""),
+    (41, "E", "Observation Detail Panel", IMPL, "P1", "One 16-row card per observation (appendix), one click from its number or title in any list and from the jump selector; back link to its list row",
+     "Formulas, HYPERLINK", "17 rows per observation", "No Internal_ID shown", "G-DASH-24", "Link behaviour on a protected sheet in Excel for the web and mobile is NOT_VERIFIED"),
+    (42, "E", "Observation Lifecycle Timeline", IMPL, "P2", "Status pills of rounds 1 to 11 on each card (window ending at the selected round)", "Formulas", "22 cells per card", "", "G-DASH-16", ""),
     (43, "E", "Conditional Closure Tracker", PART, "P2", "Conditional rows in the action list with the \"شرط الإغلاق:\" text; scope filter", "Formulas", "None",
      "", "TEST 02", "The fulfilment of a condition is not a recorded field; tracking it needs a register field"),
     (44, "E", "Action Queue", IMPL, "P1", "Ordered list with reason, status, action and link", "SMALL/MATCH", "None", "No deadline invented", "G-DASH-05", ""),
@@ -113,9 +113,9 @@ UX_AUDIT = [
      "No answer to \"where do we stand and what must we do\" on opening", "Opens on the dashboard, first screen states round, counts and the required action", "P1",
      "screenshots/before_v710_printview.png; before_prototype.png; after_dashboard_round5_p1.png"),
     ("Dashboard heading", "v7.11: Powder Blue band #BBDDE6 with the black logo; prototype: full-width #101820 bar with white text", "Partial (v7.11 used a verified colour, but not the guide's own header)",
-     "The guide's pages carry a Warm Gray header band; v7.11 chose the surface colour instead", "Ink top rule, Warm Gray band #D7D2CB with the black logo, title 24 pt, document name 14 pt", "P1", "after_dashboard_round5_p1.png"),
-    ("Logo", "None in either version", "Missing", "No institutional identity", "Supplied logo, proportions kept (G-UX-02)", "P1", "after_dashboard_round5_p1.png"),
-    ("KPI cards", "v7.11: six white cards with a dark top rule; prototype: two cards (total, closed)", "Partial", "v7.11 cards carried no brand colour; the page had no surface", "Six cards capped in the D.2 fill of their status, the register's own colours, on a #F3F3F4 page surface, 32 pt values", "P1", "after_dashboard_round5_p1.png"),
+     "The guide's pages carry a Warm Gray header band; v7.11 chose the surface colour instead", "Kit 1.1.0: dark identity band #161616 (decision DASH_HEADER), white title 24 pt and document name 14 pt, header line #D9D9D9; logo slot for the white-on-dark file", "P1", "samples/demo5-p01.png"),
+    ("Logo", "None in either version", "Missing", "No institutional identity", "Official white-on-dark logo, unchanged (G-UX-02); not supplied, slot left empty", "P1", "samples/demo5-p01.png"),
+    ("KPI cards", "v7.11: six white cards with a dark top rule; prototype: two cards (total, closed)", "Partial", "v7.11 cards carried no brand colour; the page had no surface", "Six cards capped in the brand mark of their status (three-tone families; D.2 fills unchanged in cells), guide icons, delta chips, on a #F3F3F4 page surface", "P1", "samples/demo5-p01.png"),
     ("Review-round selector", "Prototype: numeric cell \"3\" without list", "n/a", "Free typing; no validation; no historic band",
      "Four validated selectors with Notes and input messages; historic band", "P2", ""),
     ("Observation table", "v7.10: full register copy; prototype: number, location, summary, status", "n/a",
@@ -124,11 +124,11 @@ UX_AUDIT = [
     ("Status formatting", "D.2 fills E2EFDA/DDEBF7/FFF2CC/FCE4D6 in the register; v7.11 dashboard used the same", "Semantic (kept)", "Colour alone in the prototype legend", "Kept exactly as the issued registers on both sheets (AMB-161); cards capped in the same fills; value always written beside the colour", "P1", ""),
     ("Response-entry cells", "Placeholders (10.8)", "Protocol", "No selection-time guidance on response cells", "Input messages on current response cells; closed-row message", "P1", ""),
     ("Navigation", "None", "n/a", "Reader must scroll and search", "Navigation row and per-row links", "P2", ""),
-    ("Charts", "v7.11: dark Office tones; none (v7.10)", "Partial", "Chart marks in colours outside the brand", "Marks filled with the D.2 status fills of the register and outlined in ink (3:1 boundary); rate line in ink with Wistful Blue markers", "P2", "after_dashboard_round5_p2.png"),
+    ("Charts", "v7.11: dark Office tones; none (v7.10)", "Partial", "Chart marks in colours outside the brand", "Marks in the brand colour of each status with a 0.75-pt Cinder outline on white and a 1.25-pt panel separator on the dark deck; closure rate solid Cinder, implementation rate dashed #1F4E79", "P2", "samples/demo5-p02.png"),
     ("Guidance", "Transmittal text only", "n/a", "Rules live outside the file", "User guide zone, Notes, input messages", "P1", ""),
     ("Historical review blocks", "All blocks expanded; print view shows the latest two", "n/a", "Wide sheet", "Older blocks grouped (expanded) for one-click collapse", "P2", ""),
     ("Print settings", "Print view sheet, A4 landscape", "n/a", "Extra sheet to maintain", "Dashboard prints A4 portrait one page wide; data sheet prints with grouped columns", "P3", ""),
-    ("Footer", "None", "n/a", "—", "Not added: the guide's legal footer is a logo variant, not supplied as a file", "P3", ""),
+    ("Footer", "None", "n/a", "—", "Cinder Black band (guide page 30): copyright line and the latest review date in white 9 pt", "P3", "samples/demo5-p20.png"),
     ("Empty states", "Not handled (errors or blanks)", "n/a", "Broken-looking dashboard when empty", "Explicit empty-state texts (G-DASH-15)", "P2", ""),
 ]
 
@@ -139,38 +139,34 @@ def brand_rows(guide_report=None) -> list[list]:
         rows.append([t.name, "#" + t.hex, t.verification, t.source, t.page, t.use, t.note])
     rows.append(["typography", "Calibri (guide page 21)", "STATED_IN_GUIDE", BT.GUIDE_87, "page 21",
                  "every cell, chart text and Note", BT.TYPOGRAPHY_FINDING])
-    rows.append(["logo", "official horizontal logo (supplied image)", "SUPPLIED_FILE", "image sent on 23 October 2026",
-                 "—", "dashboard identity band", BT.LOGO_FINDING])
+    rows.append(["logo", "official white-on-dark logo (to be supplied)", "NOT_SUPPLIED", "decision DASH_HEADER",
+                 "—", "dashboard identity band (#161616)",
+                 "No white-on-dark logo file was supplied, and the 87-page Design Guide prints none: every logo raster in "
+                 "it is ink on a light ground (pages 1–87 header, page 10 variants). The slot stays empty; the on-light "
+                 "logo is never recoloured or redrawn (D.11)."])
     return rows
 
 
 def contrast_rows() -> list[list]:
-    pairs = [
-        ("Title text on the identity band", T.BRAND_INK, T.TITLE_BAND), ("Fund line on the identity band", T.MUTED_TEXT, T.TITLE_BAND),
-        ("Body on white", T.BRAND_INK, T.WHITE), ("Body on the page surface", T.BRAND_INK, T.PAGE_SURFACE),
-        ("Muted labels on white", T.MUTED_TEXT, T.WHITE), ("Muted labels on the page surface", T.MUTED_TEXT, T.PAGE_SURFACE),
-        ("Card cap: total (Powder Blue)", T.BRAND_INK, T.CARD_CAP["issued"]), ("Card cap: closed (D.2)", T.BRAND_INK, T.CARD_CAP["closed"]),
-        ("Card cap: conditional (D.2)", T.BRAND_INK, T.CARD_CAP["cond"]), ("Card cap: requires modification (D.2)", T.BRAND_INK, T.CARD_CAP["req"]),
-        ("Card cap: open (D.2)", T.BRAND_INK, T.CARD_CAP["open"]), ("Card cap: rate (Warm Gray)", T.BRAND_INK, T.CARD_CAP["rate"]),
-        ("Detail labels on Warm Gray", T.BRAND_INK, T.LABEL_FILL), ("Table headers on Powder Blue", T.BRAND_INK, T.ACCENT),
-        ("Closed card value", T.STATUS_TEXT["مغلقة"], T.WHITE), ("Conditional card value", T.STATUS_TEXT["مغلقة بشرط"], T.WHITE),
-        ("Requires-modification card value", T.STATUS_TEXT["يتطلب تعديل"], T.WHITE), ("Open card value", T.STATUS_TEXT["مفتوحة"], T.WHITE),
-        ("Text on مغلقة fill", T.BRAND_INK, T.STATUS_FILL["مغلقة"]), ("Text on مغلقة بشرط fill", T.BRAND_INK, T.STATUS_FILL["مغلقة بشرط"]),
-        ("Text on يتطلب تعديل fill", T.BRAND_INK, T.STATUS_FILL["يتطلب تعديل"]), ("Text on مفتوحة fill", T.BRAND_INK, T.STATUS_FILL["مفتوحة"]),
-        ("Reopened flag", T.BRAND_INK, T.FLAG_REOPENED), ("Stalled flag / historic band", T.BRAND_INK, T.FLAG_STALLED),
-        ("Selected observation", T.BRAND_INK, T.SELECTED_ROW), ("Selector cell", T.BRAND_INK, T.SELECTOR_FILL),
-        ("Help text", T.BRAND_INK, T.HELP_FILL), ("Closed-row status (9 pt)", T.CLOSED_ROW_TEXT, T.CLOSED_ROW_GRAY),
-        ("Closed-row guidance (v7.11; was #808080 = 2.80:1)", T.CLOSED_GUIDE_TEXT, T.CLOSED_ROW_GRAY),
-        ("Placeholder (protocol 10.8) on current input", T.PLACEHOLDER_GRAY, T.INPUT),
-        ("Placeholder (protocol 10.8) left unanswered in an earlier block", T.PLACEHOLDER_GRAY, T.LIGHT_GRAY),
-        ("Chart axis and labels", T.CHART_TEXT, T.WHITE), ("Note text", T.TEXT_BLACK, T.NOTE_FILL),
-        ("Links", T.LINK, T.WHITE),
-    ]
+    """The contrast table of spec 4.6 (design_tokens.CONTRAST_TABLE) plus the protocol pairs of the data sheet."""
     out = []
-    for name, fg, bg in pairs:
+    for name, fg, bg, stated, kind in T.CONTRAST_TABLE:
+        r = contrast_ratio(fg, bg)
+        need = 3.0 if kind == "mark" else 4.5
+        out.append([name, "#" + fg, "#" + bg, round(r, 2), "PASS" if r >= need else "FAIL",
+                    f"stated {stated}" if stated is not None else ""])
+    for name, fg, bg in (("Closed-row status (9 pt)", T.CLOSED_ROW_TEXT, T.CLOSED_ROW_GRAY),
+                         ("Placeholder (protocol 10.8) on current input", T.PLACEHOLDER_GRAY, T.INPUT),
+                         ("Placeholder (protocol 10.8) left unanswered in an earlier block", T.PLACEHOLDER_GRAY, T.LIGHT_GRAY),
+                         ("Note text", T.TEXT_BLACK, T.NOTE_FILL)):
         r = contrast_ratio(fg, bg)
         exc = name.startswith("Placeholder")
-        status = "PASS" if r >= 4.5 else ("RECORDED_EXCEPTION" if exc else "FAIL")
-        out.append([name, "#" + fg, "#" + bg, round(r, 2), status,
+        out.append([name, "#" + fg, "#" + bg, round(r, 2), "PASS" if r >= 4.5 else ("RECORDED_EXCEPTION" if exc else "FAIL"),
                     "colour fixed by protocol 10.8; italic guidance that disappears on typing (AMB-153)" if exc else ""])
     return out
+
+
+def icon_rows() -> list[list]:
+    """Icon register (v7.15 draft of D.11): key, meaning, page, PDF box, xref, SHA-256 of the ink and white PNG."""
+    return [[k, v["meaning"], v["page"], ", ".join(str(x) for x in v["box"]), v["xref"], v["ink"], v["white"],
+             v["clean_share"]] for k, v in T.ICONS.items()]
