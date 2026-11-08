@@ -63,7 +63,7 @@ KINDS = ("CLAUSE_NOT_FOUND", "AUTHORITY_MISMATCH", "AUTHORITY_UNSUPPORTED", "OUT
 RESERVED_MATTERS = ("STATUS_CHANGE_OF_ISSUED", "TITLE_APPROVAL", "WITHDRAWAL", "ISSUED_OBSERVATION")
 INDEPENDENCE = "SINGLE_PROCESS_RULE_BASED"
 ROLE_ISOLATION = "NOT_VERIFIED"
-WORD_BUDGET = 120                      # engineering threshold on the whole comment body (Art. 07 ceilings are lower)
+WORD_BUDGET = 100                      # 07.2 (v7.15): a whole new comment with a proposed text, labels not counted
 ACTION_LABELS = ("التوصية:", "المطلوب:")
 RECORD_SCHEMA = "CDF-ADV-RECORD-v7.12"
 MANDATE_OWN = 0.34                     # recipient task overlap at or above this: the recipient owns the task
@@ -601,19 +601,21 @@ def red_advocate(objection: Objection, observation: Observation, registry: Evide
                             anchor_refs + [ev_id], revised_comment=_gtext(revised))
         return Advocacy(cid, "CONCEDE", "البند لا يسمي جهة اعتماد مقروءة؛ لا يُسند تأكيد الصلاحية.", anchor_refs)
     if kind == "AUTHORITY_UNSUPPORTED":
-        question = f"هل اعتماد ما ورد في البند المشار إليه من اختصاص «{d.get('asserted_body')}»، وما سند ذلك في مصفوفة الصلاحيات؟"
+        # v7.15 07.4A(d): no question; a recommendation conditional on the matrix not already naming the approver
+        conditional = ("نوصي بإسناد اعتماد ما ورد في البند المشار إليه إلى الجهة المختصة وفق مصفوفة الصلاحيات "
+                       "المعتمدة، ما لم تتضمن المصفوفة جهة اعتماده.")
         if anchor:
-            return Advocacy(cid, "REVISE", "المصفوفة صامتة؛ يُحوَّل التأكيد إلى سؤال للإدارة بصيغة F6 دون تسمية جهة اعتماد (05.6).",
-                            anchor_refs, revised_comment=GText.plain(question))
+            return Advocacy(cid, "REVISE", "المصفوفة صامتة؛ يُحوَّل التأكيد إلى توصية مشروطة دون تسمية جهة اعتماد (05.6، 07.4A).",
+                            anchor_refs, revised_comment=GText.plain(conditional))
         return Advocacy(cid, "CONCEDE", "لا سند في المصفوفة ولا مرساة في الوثيقة؛ تُحجب الملاحظة.", [])
     if kind == "OUTSIDE_RECIPIENT_MANDATE":
         other, ev_other = d.get("other_unit"), d.get("other_evidence")
         if other and ev_other:
             rec = recommendation_part(comment)
             cite = org_citation(registry.resolve(ev_other).page_or_paragraph.lstrip("p."), registry.resolve(ev_other).approval_status)
-            question = f"التأكيد من قبل {other} على ما يلي: {rec.rstrip('.')}، ({cite})؟"
-            return Advocacy(cid, "REVISE", f"تُضيَّق التوصية إلى طلب تأكيد موجه إلى مالك المسألة «{other}» بصيغة F6 (03A.2).",
-                            anchor_refs + [ev_other], revised_comment=GText.plain(question), route_to=other)
+            routed = f"نوصي بأن يعتمد {other} ما يلي: {rec.rstrip('.')}، ({cite})."
+            return Advocacy(cid, "REVISE", f"تُضيَّق التوصية وتُوجَّه إلى مالك المسألة «{other}» (03A.2، 07.4A).",
+                            anchor_refs + [ev_other], revised_comment=GText.plain(routed), route_to=other)
         return Advocacy(cid, "CONCEDE", "لم تُحدد الوحدة المالكة؛ يُحال المطلوب إلى الإدارة صاحبة الطلب.", anchor_refs,
                         route_to=OWNER_FALLBACK)
     if kind == "CONTESTED_OWNERSHIP":
