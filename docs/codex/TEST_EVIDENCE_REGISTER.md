@@ -132,3 +132,11 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-10-25 P0 audit fixes (local, Python 3.13)
 
 `pytest tests qa_public`: **363 passed, 11 skipped** (same expected skips). New `tests/test_p0_audit_fixes.py`: 20 passed; 17 of them fail against the pre-fix source (checked by stashing the fixes). `python -m cdf_gco_crms.acceptance.phase2 --no-browser --no-exports`: PASS. Browser and LibreOffice export steps NOT_RUN locally (sandbox Playwright mismatch); PR CI is the source of truth. Public guard PASS; Bandit 0 medium/high; web build and contract tests pass.
+
+## 2026-11-08 pypdf 6.21.2 → 6.21.4
+
+`pip_audit -r requirements-execution.txt --vulnerability-service pypi`: 7 CVEs in pypdf 6.21.2 before, **no known vulnerabilities** after. `pytest tests qa_public`: **363 passed, 11 skipped** (expected skips) with pypdf 6.21.4.
+
+## 2026-11-08 LibreOffice pin deb13u9
+
+Debian trixie-security index lists calc, writer, impress and core at `4:25.2.3-2+deb13u9`; deb13u8 is no longer served (CI log: "Version '4:25.2.3-2+deb13u8' for 'libreoffice-calc' was not found"). Image build NOT_RUN locally (no Docker daemon); PR CI is the source of truth.
