@@ -144,3 +144,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-08 v7.15 comment rules (`claude/comments-v715`, local, Python 3.13)
 
 `pytest tests qa_public`: **380 passed, 11 skipped** (expected skips). New `tests/test_comments_v715.py` (11 tests, one negative case per rule plus the 00.2 carve-out) and `test_red_advocate_revisions_ask_no_question_v715` (fails on the pre-change code, checked by restoring it). Public guard: PASS.
+
+## 2026-11-08 Stage packets (`claude/stage-packets`, local, Python 3.13)
+
+`pytest tests qa_public`: all pass except the expected skips (see the PR). New `tests/test_stage_packets_v715.py`: 10 tests (READ without sources, digest and tamper check, kit-compatible digest, missing particulars refused, verbatim-only supply, routed observation blocks issue, recorded retention clears it and is listed with the ground, four incomplete-retention cases). Public guard: PASS.
