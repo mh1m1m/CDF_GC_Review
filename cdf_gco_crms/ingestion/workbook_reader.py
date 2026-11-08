@@ -49,17 +49,32 @@ def find_data_sheet(wb):
     raise SchemaError("NO_DATA_SHEET", "no sheet with the fixed headers of 10.3 was found")
 
 
+def calc_block(wb):
+    """(sheet, {header: column}) of the dashboard's calculation tables.
+
+    Kit 1.1.0 writes them on the dashboard from column R (v7.15 draft of 10.4A.3); a workbook of v7.14 carries
+    them on the hidden helper sheet "بيانات اللوحة". Tables are found by their row-1 header names, never by
+    position. Returns (None, {}) when neither exists (v7.10)."""
+    for name, first in ((W.DASHBOARD_SHEET, W.CALC_FIRST_COL), (W.HELPER_SHEET, 1)):
+        if name not in wb.sheetnames:
+            continue
+        ws = wb[name]
+        cols = {}
+        for c in range(first, ws.max_column + 1):
+            v = ws.cell(row=1, column=c).value
+            if isinstance(v, str) and "." in v and v.split(".", 1)[0] in W.CALC_TABLE_PREFIXES:
+                cols[v] = c
+        if "meta.key" in cols:
+            return ws, cols
+    return None, {}
+
+
 def read_helper(wb) -> dict:
-    """Return helper tables by header name: {'meta': {...}, 'rounds': {r: {...}}, 'basis': {(id, r): words}}."""
+    """Return the calculation tables by header name: {'meta': {...}, 'rounds': {r: {...}}, 'basis': {(id, r): words}}."""
     out = {"meta": {}, "rounds": {}, "basis": {}, "titles": {}}
-    if W.HELPER_SHEET not in wb.sheetnames:
+    ws, cols = calc_block(wb)
+    if ws is None:
         return out
-    ws = wb[W.HELPER_SHEET]
-    cols = {}
-    for c in range(1, ws.max_column + 1):
-        v = ws.cell(row=1, column=c).value
-        if isinstance(v, str) and "." in v:
-            cols[v] = c
     def column(name):
         c = cols.get(name)
         if c is None:

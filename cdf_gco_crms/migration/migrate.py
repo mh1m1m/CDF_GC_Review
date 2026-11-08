@@ -167,8 +167,10 @@ def migrate(src, out_dir, *, backup_dir=None, overrides: dict | None = None, rou
                         data_ws.column_dimensions[get_column_letter(c)].outline_level = 1
                 data_ws.sheet_properties.outlinePr.summaryRight = False
 
-        # 4. remove an earlier dashboard or helper (prototype) before building the engine's own
-        for name in (W.DASHBOARD_SHEET, W.HELPER_SHEET):
+        # 4. remove an earlier dashboard before building the engine's own; a v7.14 helper sheet is removed by
+        #    ``assemble`` once the calculation block exists on the new dashboard (v7.15 draft of 10.4A.3)
+        had_helper = W.HELPER_SHEET in wb.sheetnames
+        for name in (W.DASHBOARD_SHEET,):
             if name in wb.sheetnames:
                 del wb[name]
                 rep.removed_sheets.append(name)
@@ -178,6 +180,8 @@ def migrate(src, out_dir, *, backup_dir=None, overrides: dict | None = None, rou
 
         # 5. dashboard first, then retire the print view (proposal PHASE 10)
         an, view, reg, _refs, _dash = assemble(wb, st, data_ws, parsed.schema, parsed.rows, view_state=view_state)
+        if had_helper and W.HELPER_SHEET not in wb.sheetnames:
+            rep.removed_sheets.append(W.HELPER_SHEET)
         if W.LEGACY_PRINT_VIEW_SHEET in wb.sheetnames:
             del wb[W.LEGACY_PRINT_VIEW_SHEET]
             rep.removed_sheets.append(W.LEGACY_PRINT_VIEW_SHEET)
@@ -185,7 +189,8 @@ def migrate(src, out_dir, *, backup_dir=None, overrides: dict | None = None, rou
                                                                           data_ws.title)]
         build_time = dt.datetime.now(RIYADH)
         set_properties(wb, st, build_time)
-        save_atomic(wb, dst, reg.expected(view), build_time)      # cached values of the default view
+        save_atomic(wb, dst, reg.expected(view), build_time,       # cached values of the default view
+                    alts=_dash.chart_alts + _dash.image_alts)
     finally:
         if work.exists():
             work.unlink()

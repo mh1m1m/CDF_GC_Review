@@ -1,4 +1,11 @@
-"""Hidden helper sheet "بيانات اللوحة" (protocol 10.4A.3).
+"""Calculation block of the executive dashboard (protocol 10.4A.3; kit 1.1.0, v7.15 draft).
+
+The tables that v7.14 kept on the hidden helper sheet "بيانات اللوحة" are written on the dashboard itself, from
+column R (``W.CALC_FIRST_COL``) to the last column the block needs. Those columns are hidden (not grouped) and lie
+outside the print area; columns O to Q stay empty page surface. Formulas, the formula registry and the expected
+values are those of v7.14 apart from the references, plus the feeds of the one-sheet design (order keys, card and
+list rows, implementation rate, KPI deltas and chips, gauge and needle values, legend texts). No helper sheet is
+created; the allowlist of 10.4A.3 and G-UX-17 applies unchanged.
 
 Tables, each identified by the names in row 1 (never by position):
   meta.*    document block and the view state read from the dashboard selectors
@@ -11,9 +18,12 @@ Tables, each identified by the names in row 1 (never by position):
             indicators (D.10)
   trend.*   one row per round
   feed.*/bar.*  chart feeds
-  q.*/t.*   order of the action queue and of the observation table
+  q.*/t.*   order of the action list and of the observation table
+  kpi.*     the six KPI cards: value, previous value, delta, chip text, direction (spec 4.3)
+  gauge.*   arc and needle feeds of the three gauges (spec 7.1, 7.2)
+  legend.*  the four legend pills of the distribution card
 
-The sheet holds only allowlisted fields (10.4A.4, G-SHARE-3).
+The block holds only allowlisted fields (10.4A.4, G-SHARE-3).
 """
 from __future__ import annotations
 
@@ -37,8 +47,8 @@ def sheet_ref(name: str) -> str:
     return "'" + name.replace("'", "''") + "'!"
 
 
-HP = sheet_ref(W.HELPER_SHEET)
 DP = sheet_ref(W.DASHBOARD_SHEET)
+HP = DP                        # kit 1.1.0: the block is on the dashboard (v7.14: the helper sheet)
 
 
 @dataclass
@@ -62,9 +72,10 @@ class Table:
 
 
 class HelperBook:
-    def __init__(self, ws):
+    def __init__(self, ws, first_col: int = W.CALC_FIRST_COL):
         self.ws = ws
-        self.next_col = 1
+        self.first_col = first_col
+        self.next_col = first_col
         self.tables: dict[str, Table] = {}
 
     def table(self, name: str, columns: list[str], nrows: int) -> Table:
@@ -84,15 +95,19 @@ class HelperBook:
 class HelperRefs:
     meta_rows: dict[str, int] = field(default_factory=dict)
     tables: dict[str, Table] = field(default_factory=dict)
+    meta_col: str = "B"
+    first_col: int = 1
+    last_col: int = 1
 
     def meta(self, key: str, *, sheet: bool = True) -> str:
-        return (HP if sheet else "") + f"$B${self.meta_rows[key]}"
+        return (HP if sheet else "") + f"${self.meta_col}${self.meta_rows[key]}"
 
 
 META_KEYS = ["doc_name", "cover_version", "owning_department", "current_round", "current_label",
              "data_sheet", "is_demo", "schema", "engine_version", "obs_count", "round_count",
              "selected_round", "compare_round", "scope", "selected_k", "latest_date", "queue_count",
-             "table_count", "complete_filled", "complete_needed", "selected_label", "compare_label"]
+             "table_count", "complete_filled", "complete_needed", "selected_label", "compare_label",
+             "impl_rate", "rate_v", "sus_v", "queue_alloc", "queue_more"]
 
 LONG_COLS = ["k", "round", "id", "birth", "exists", "row", "ccol", "fcol", "rcol", "icol", "value", "prev",
              "closed", "closed_event", "ecb", "ever", "reopen_event", "reopen_state", "stalled", "change",
@@ -102,21 +117,24 @@ LONG_COLS = ["k", "round", "id", "birth", "exists", "row", "ccol", "fcol", "rcol
 OBS_COLS = ["k", "reader", "reader_label", "id", "birth", "row", "location", "comment", "summary", "comment_cut",
             "title_disp", "title", "title_status", "title_by", "title_on", "title_ref",
             "idx", "exists", "v", "prev_disp", "change", "priority", "reason", "action", "cur_loc", "idxC", "vC", "codeS",
-            "codeC", "qkey", "include", "rank", "vR", "link"]
+            "codeC", "qkey", "include", "rank", "vR", "link",
+            "title_list", "approved", "comment_card", "card_row", "qpos", "list_row", "link_row"]
 
 TREND_COLS = ["r", "label", "issued", "new", "closed", "cond", "req", "open", "invalid", "rate",
-              "closed_event", "reopen_event", "stalled", "reopen_state", "ever"]
+              "closed_event", "reopen_event", "stalled", "reopen_state", "ever", "impl"]
 
 DETAIL_CUT = 300
 
 
-def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_last_row: int,
+def write_helper(wb, ws, an, schema, lay, reg: Registry, *, data_sheet: str, data_last_row: int,
                  data_last_col: int, state) -> HelperRefs:
-    ws = wb.create_sheet(W.HELPER_SHEET)
-    ws.sheet_state = "hidden"
-    ws.sheet_view.rightToLeft = True
+    """Write the calculation block on the dashboard sheet ``ws`` from column R; ``lay`` is the row plan."""
+    from .dash_layout import CARD_STRIDE
+    from ..analytics.dashboard_analytics import (KPI_FAVOUR, KPI_KEYS, MINUS, NEEDLE, NO_CHANGE, NO_PREVIOUS,
+                                                 POINTS, PREVIOUS, card_comment, list_title)
+    sel = lay
     hb = HelperBook(ws)
-    refs = HelperRefs()
+    refs = HelperRefs(first_col=W.CALC_FIRST_COL)
     R = an.R
     N = len(an.obs)
     obs = an.obs
@@ -129,6 +147,7 @@ def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_la
 
     # ------------------------------------------------------------------ meta
     meta = hb.table("meta", ["key", "value"], len(META_KEYS))
+    refs.meta_col = meta.c("value")
     for i, key in enumerate(META_KEYS, start=1):
         ws.cell(row=i + 1, column=meta.cols["key"], value=key)
         refs.meta_rows[key] = i + 1
@@ -143,7 +162,8 @@ def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_la
     mset("current_label", S.round_label(R) if R else "")
     mset("data_sheet", data_sheet)
     mset("is_demo", "1" if doc.is_demo else "0")
-    mset("schema", "CDF-GCO-CRMS/requester-workbook/7.11")
+    from .. import WORKBOOK_SCHEMA
+    mset("schema", WORKBOOK_SCHEMA)
     from .. import ENGINE_VERSION
     mset("engine_version", ENGINE_VERSION)
     mset("obs_count", N)
@@ -330,6 +350,19 @@ def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_la
         oput("link", f'"#\'"&{refs.meta("data_sheet", sheet=False)}&"\'!"&ADDRESS({O("row", k)},'
                      f'IF(AND({O("vR", k)}<>"",{O("vR", k)}<>{q(S.CLOSED)}),INDEX({rt.rng("c_response")},{Rx}),1),4)',
              link_expected)
+        # one-sheet dashboard feeds (kit 1.1.0)
+        oval("title_list", list_title(a))
+        oval("approved", 1 if (a.title_status in S.TITLE_SHOWN_STATES and a.title.strip()) else 0)
+        oval("comment_card", card_comment(a.comment))
+        oput("card_row", f"{lay.card0}+({O('k', k)}-1)*{CARD_STRIDE}", lay.card_row(k))
+        qk_rng = obs_t.rng("qkey")
+        oput("qpos", f'IF({O("qkey", k)}="","",COUNTIF({qk_rng},"<="&{O("qkey", k)}))',
+             lambda v, k=k: v.queue_pos(k))
+        oput("list_row", f'IF({O("qpos", k)}="",{lay.bands["queue"]},IF({O("qpos", k)}>{lay.QN},'
+                         f'{lay.bands["queue"]},{lay.q0}+{O("qpos", k)}-1))',
+             lambda v, k=k: lay.list_row(v.queue_pos(k)))
+        oput("link_row", f'"#\'"&{refs.meta("data_sheet", sheet=False)}&"\'!"&ADDRESS({O("row", k)},1,4)',
+             _link(data_sheet, a.row, 1))
 
     # ------------------------------------------------------------------ queue / table order
     qt = hb.table("q", ["i", "key", "k"], N)
@@ -366,14 +399,74 @@ def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_la
         ws.cell(row=n, column=tr.cols["rate"]).number_format = "0%"
         for col in ("closed_event", "reopen_event", "stalled", "reopen_state", "ever"):
             tput(col, f"SUMIFS({lr(col)},{lr('round')},{rc})", getattr(t, col))
+        tput("impl", f'IF({tr.cell("issued", r)}=0,"",({tr.cell("closed", r)}+{tr.cell("cond", r)})/'
+                     f'{tr.cell("issued", r)})', t.impl)
+        ws.cell(row=n, column=tr.cols["impl"]).number_format = "0%"
     bar = hb.table("bar", ["label", "closed", "cond", "req", "open"], 1)
     reg.put(ws, f"{bar.c('label')}2", f"{refs.meta('selected_label', sheet=False)}", lambda v: S.round_label(v.S))
     for col in ("closed", "cond", "req", "open"):
         reg.put(ws, f"{bar.c(col)}2", f"INDEX({tr.rng(col)},{Sx})", lambda v, col=col: getattr(v.t, col))
 
+    # ------------------------------------------------------------------ KPI cards: value, previous, delta, chip
+    kt = hb.table("kpi", ["key", "cur", "prev", "delta", "chip", "dir", "prevtxt"], len(KPI_KEYS))
+    for i, key in enumerate(KPI_KEYS, start=1):
+        n = i + 1
+        K = lambda col: kt.cell(col, i)                   # noqa: E731
+        ws.cell(row=n, column=kt.cols["key"], value=key)
+        def kput(col, formula, expected):
+            reg.put(ws, f"{kt.c(col)}{n}", formula, expected)
+        kput("cur", f"INDEX({tr.rng(key)},{Sx})", lambda v, key=key: v.kpi(key)["cur"])
+        kput("prev", f'IF({Sx}=1,"",INDEX({tr.rng(key)},{Sx}-1))', lambda v, key=key: v.kpi(key)["prev"])
+        if key == "rate":
+            kput("delta", f'IF(OR({Sx}=1,{K("prev")}="",{K("cur")}=""),"",({K("cur")}-{K("prev")})*100)',
+                 lambda v: v.kpi("rate")["delta"])
+            kput("chip", f'IF({K("delta")}="","",IF(FIXED(ABS({K("delta")}),1)="0.0",{q(NO_CHANGE)},'
+                         f'IF({K("delta")}>0,"+",{q(MINUS)})&FIXED(ABS({K("delta")}),1)&" {POINTS}"))',
+                 lambda v: v.kpi("rate")["chip"])
+            kput("prevtxt", f'IF({Sx}=1,{q(NO_PREVIOUS)},IF({K("prev")}="","",{q(PREVIOUS)}&FIXED({K("prev")}*100,1)'
+                            f'&"%"))', lambda v: v.kpi("rate")["prevtxt"])
+        else:
+            kput("delta", f'IF({Sx}=1,"",{K("cur")}-{K("prev")})', lambda v, key=key: v.kpi(key)["delta"])
+            kput("chip", f'IF({K("delta")}="","",IF({K("delta")}=0,{q(NO_CHANGE)},'
+                         f'IF({K("delta")}>0,"+",{q(MINUS)})&ABS({K("delta")})))', lambda v, key=key: v.kpi(key)["chip"])
+            kput("prevtxt", f'IF({Sx}=1,{q(NO_PREVIOUS)},{q(PREVIOUS)}&{K("prev")})',
+                 lambda v, key=key: v.kpi(key)["prevtxt"])
+        kput("dir", f'IF(OR({K("delta")}="",{K("chip")}={q(NO_CHANGE)}),0,SIGN({K("delta")})*{KPI_FAVOUR[key]})',
+             lambda v, key=key: v.kpi(key)["dir"])
+
+    # ------------------------------------------------------------------ gauges (spec 7.1, 7.2)
+    I_, C_, CC_ = (f"INDEX({tr.rng(c)},{Sx})" for c in ("issued", "closed", "cond"))
+    EV_ = f"INDEX({tr.rng('ever')},{Sx})"
+    reg.put(ws, refs.meta("impl_rate", sheet=False), f"IF({I_}=0,0,({C_}+{CC_})/{I_})", lambda v: v.gauge()["impl"])
+    reg.put(ws, refs.meta("rate_v", sheet=False), f"IF({I_}=0,0,{C_}/{I_})", lambda v: v.gauge()["rate"])
+    reg.put(ws, refs.meta("sus_v", sheet=False), f"IF({EV_}=0,0,{C_}/{EV_})", lambda v: v.gauge()["sus"])
+    gt = hb.table("gauge", ["comp_arc", "comp_needle", "rate_arc", "rate_needle", "sus_arc", "sus_needle"], 5)
+    arc_src = [C_] + [f"INDEX({tr.rng(c)},{Sx})" for c in ("cond", "req", "open")] + [I_]
+    for i, f in enumerate(arc_src):
+        reg.put(ws, f"{gt.c('comp_arc')}{i + 2}", f, lambda v, i=i: v.gauge()["comp_arc"][i])
+    for key, meta_key in (("comp", "impl_rate"), ("rate", "rate_v"), ("sus", "sus_v")):
+        mv = refs.meta(meta_key, sheet=False)
+        for i, f in enumerate((f"100*{mv}", f"{NEEDLE}", f"200-100*{mv}-{NEEDLE}")):
+            reg.put(ws, f"{gt.c(key + '_needle')}{i + 2}", f, lambda v, key=key, i=i: v.gauge()[key + "_needle"][i])
+        if key != "comp":
+            for i, f in enumerate((f"100*{mv}", f"100-100*{mv}", "100")):
+                reg.put(ws, f"{gt.c(key + '_arc')}{i + 2}", f, lambda v, key=key, i=i: v.gauge()[key + "_arc"][i])
+
+    # ------------------------------------------------------------------ legend pills of the distribution card
+    lg = hb.table("legend", ["text"], 4)
+    for i, (value, col) in enumerate(((S.CLOSED, "closed"), (S.CLOSED_COND, "cond"), (S.REQUIRES_EDIT, "req"),
+                                      (S.OPEN, "open"))):
+        cnt = f"INDEX({tr.rng(col)},{Sx})"
+        reg.put(ws, f"{lg.c('text')}{i + 2}", f'{q(value + " ")}&{cnt}&IF({I_}=0,""," ("&FIXED(100*{cnt}/{I_},0)&"%)")',
+                lambda v, i=i: v.legend()[i])
+
     # meta aggregates
     reg.put(ws, refs.meta("queue_count", sheet=False), f"COUNT({obs_t.rng('qkey')})", lambda v: len(v.queue))
     reg.put(ws, refs.meta("table_count", sheet=False), f"COUNTIF({obs_t.rng('include')},1)", lambda v: len(v.table))
+    mset("queue_alloc", lay.QN)
+    reg.put(ws, refs.meta("queue_more", sheet=False),
+            f"MAX(0,{refs.meta('queue_count', sheet=False)}-{refs.meta('queue_alloc', sheet=False)})",
+            lambda v: max(0, len(v.queue) - lay.QN))
     reg.put(ws, refs.meta("complete_needed", sheet=False),
             f'SUMPRODUCT(({lr("round")}={Rx})*({lr("exists")}=1)*({lr("value")}<>{q(S.CLOSED)}))',
             lambda v: v.completeness()[1])
@@ -393,10 +486,21 @@ def write_helper(wb, an, schema, sel, reg: Registry, *, data_sheet: str, data_la
     name(W.NAME_SCOPES, HP + scope_rng)
     name(W.NAME_READERS, obs_t.rng("reader_label", sheet=True))
 
-    for col in range(1, hb.next_col):
-        ws.column_dimensions[get_column_letter(col)].width = 14
-    ws.protection.sheet = True
+    # block cells wrap, so that no text of a hidden column overflows into the visible page (LibreOffice draws the
+    # overflow of hidden cells into empty neighbours)
+    from openpyxl.styles import Alignment
+    contained = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=hb.first_col, max_col=hb.next_col - 1):
+        for c in row:
+            if c.value is not None:
+                c.alignment = contained
+    # hidden block columns (not grouped), outside the print area (A1:N[last row])
+    for col in range(hb.first_col, hb.next_col):
+        cd = ws.column_dimensions[get_column_letter(col)]
+        cd.width = 14
+        cd.hidden = True
     refs.tables = hb.tables
+    refs.last_col = hb.next_col - 1
     return refs
 
 

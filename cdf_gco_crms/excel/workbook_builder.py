@@ -1,14 +1,17 @@
-"""Assembles the requester workbook: data sheet, hidden helper sheet, executive dashboard.
+"""Assembles the requester workbook: the one-sheet executive dashboard and the data sheet (kit 1.1.0).
+
+Exactly two sheets (v7.15 draft of 10.4A.2): "لوحة المتابعة التنفيذية" first and active, then the data sheet of
+10.4. The dashboard carries its own calculation block in hidden columns from R; no helper sheet is created, and a
+workbook that still carries the v7.14 helper sheet "بيانات اللوحة" loses it once the block exists.
 
 Two entry points:
 * ``build_workbook`` renders a fresh workbook from the review state (rounds 1..n).
-* ``assemble`` adds the helper and dashboard to a workbook whose data sheet
-  already exists (used by the v7.10 migration, which keeps the data sheet as
-  delivered).
+* ``assemble`` adds the dashboard to a workbook whose data sheet already exists (used by the migration, which
+  keeps the data sheet as delivered).
 
-Output is written atomically: a temporary file is produced, post-processed
-(cached values of the selected view, app.xml without library names), reopened
-and checked, and only then moved over the target (directive §10).
+Output is written atomically: a temporary file is produced, post-processed (cached values of the selected view,
+app.xml without library names, alt text on every chart and image), reopened and checked, and only then moved over
+the target (directive §10).
 """
 from __future__ import annotations
 
@@ -33,7 +36,8 @@ from ..config import design_tokens as T
 from ..config import workbook_settings as W
 from ..model.entities import DashboardViewState, ReviewState
 from ..rounds.round_parser import RoundSchema
-from .dashboard_writer import DashInfo, Selectors, write_dashboard
+from .dash_layout import Layout as Plan, plan
+from .dashboard_writer import DashInfo, write_dashboard
 from .formula_registry import Registry
 from .helper_writer import HelperRefs, write_helper
 from .register_writer import write_data_sheet
@@ -42,7 +46,6 @@ NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
 RIYADH = ZoneInfo("Asia/Riyadh")
-DEFAULT_LOGO = Path(__file__).resolve().parents[2] / "assets" / "cdf_logo_horizontal_transparent.png"
 
 
 @dataclass
@@ -71,21 +74,28 @@ def default_view(an: Analytics, vs: DashboardViewState | None) -> View:
 
 def assemble(wb, state: ReviewState, data_ws, schema: RoundSchema, rows: dict[str, int], *,
              view_state: DashboardViewState | None = None, logo_path=None):
+    """Add the one-sheet dashboard (with its calculation block) in front of ``data_ws``.
+
+    ``logo_path`` is the official white-on-dark logo file (DASH_HEADER); None or False leaves the logo slot empty.
+    """
     data_sheet = data_ws.title
     an = Analytics(state, rows, round_cols=schema.blocks, data_sheet=data_sheet)
     view = default_view(an, view_state)
     reg = Registry()
-    sel = Selectors()
+    lay = plan(len(an.obs), an.R, len(an.view(an.R).queue))
     last_row = max(rows.values()) if rows else 1
-    refs = write_helper(wb, an, schema, sel, reg, data_sheet=data_sheet, data_last_row=max(last_row, data_ws.max_row),
-                        data_last_col=schema.last_col, state=state)
-    logo = None
-    if logo_path is not False:
-        p = Path(logo_path) if logo_path else DEFAULT_LOGO
-        logo = str(p) if p.exists() else None
-    dash = write_dashboard(wb, an, view, schema, refs, reg, state, data_sheet=data_sheet, sel=sel, logo_path=logo)
-    # order: dashboard, data sheet, helper (hidden)
-    order = [wb[W.DASHBOARD_SHEET], data_ws, wb[W.HELPER_SHEET]]
+    for name in (W.DASHBOARD_SHEET,):
+        if name in wb.sheetnames:                     # a derived sheet is rebuilt, never edited (10.4A.15)
+            del wb[name]
+    ws = wb.create_sheet(W.DASHBOARD_SHEET, 0)
+    refs = write_helper(wb, ws, an, schema, lay, reg, data_sheet=data_sheet,
+                        data_last_row=max(last_row, data_ws.max_row), data_last_col=schema.last_col, state=state)
+    logo = str(logo_path) if logo_path and Path(logo_path).exists() else None
+    dash = write_dashboard(wb, ws, an, view, schema, refs, reg, state, data_sheet=data_sheet, lay=lay,
+                           logo_path=logo)
+    if W.HELPER_SHEET in wb.sheetnames:               # v7.14 helper sheet: removed once the block exists
+        del wb[W.HELPER_SHEET]
+    order = [wb[W.DASHBOARD_SHEET], data_ws]
     others = [s for s in wb._sheets if s not in order]
     wb._sheets = order + others
     for s in wb.worksheets:
@@ -125,19 +135,21 @@ def build_workbook(state: ReviewState, out_path, *, view_state: DashboardViewSta
                                          logo_path=logo_path)
     set_properties(wb, state, build_time, working_copy=working_copy)
     out_path = Path(out_path)
-    save_atomic(wb, out_path, reg.expected(view) if write_cache else None, build_time)
+    save_atomic(wb, out_path, reg.expected(view) if write_cache else None, build_time,
+                alts=dash.chart_alts + dash.image_alts)
     return BuildResult(out_path, state, schema, an, view, reg, refs, dash, data_ws.title, rows, write_cache, build_time)
 
 
 # ------------------------------------------------------------------ saving
-def save_atomic(wb, out_path: Path, cached: dict | None, build_time: dt.datetime, *, require_dashboard: bool = True):
+def save_atomic(wb, out_path: Path, cached: dict | None, build_time: dt.datetime, *, require_dashboard: bool = True,
+                alts: list[str] | None = None):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=str(out_path.parent))
     os.close(fd)
     try:
         wb.save(tmp)
-        postprocess(tmp, cached, build_time)
+        postprocess(tmp, cached, build_time, alts=alts)
         chk = load_workbook(tmp)                  # must reopen before it replaces anything
         if require_dashboard and W.DASHBOARD_SHEET not in chk.sheetnames:
             raise RuntimeError("dashboard sheet missing after save")
@@ -198,8 +210,9 @@ APP_XML = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
            '<SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged></Properties>')
 
 
-def postprocess(path, cached: dict | None, build_time: dt.datetime):
-    """Write cached results for the selected view and library-free app properties (09.4, D5)."""
+def postprocess(path, cached: dict | None, build_time: dt.datetime, *, alts: list[str] | None = None):
+    """Write cached results for the selected view, library-free app properties (09.4, D5) and the alt text of every
+    chart and image of the dashboard (spec 7.5: ``alts`` in drawing order, charts then images)."""
     path = str(path)
     by_sheet: dict[str, dict[str, object]] = {}
     for (sheet, coord), val in (cached or {}).items():
@@ -208,6 +221,7 @@ def postprocess(path, cached: dict | None, build_time: dt.datetime):
     with zipfile.ZipFile(path) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
         paths = _sheet_paths(zin)
         rev = {v: k for k, v in paths.items()}
+        dash_drawing = _drawing_of(zin, paths.get(W.DASHBOARD_SHEET)) if alts else None
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "docProps/app.xml":
@@ -218,6 +232,8 @@ def postprocess(path, cached: dict | None, build_time: dt.datetime):
                 data = _note_runs(data)
             elif re.fullmatch(r"xl/drawings/commentsDrawing\d+\.vml", item.filename):
                 data = _note_vml(data)
+            elif dash_drawing and item.filename == dash_drawing:
+                data = _alt_text(data, alts)
             elif item.filename in rev and rev[item.filename] in by_sheet:
                 root = etree.fromstring(data)
                 _set_cached(root, by_sheet[rev[item.filename]])
@@ -227,6 +243,35 @@ def postprocess(path, cached: dict | None, build_time: dt.datetime):
             zi.external_attr = item.external_attr
             zout.writestr(zi, data)
     os.replace(tmp, path)
+
+
+def _drawing_of(z: zipfile.ZipFile, sheet_part: str | None) -> str | None:
+    if not sheet_part:
+        return None
+    d, f = os.path.split(sheet_part)
+    rp = f"{d}/_rels/{f}.rels"
+    if rp not in z.namelist():
+        return None
+    for r in etree.fromstring(z.read(rp)):
+        if r.get("Type", "").endswith("/drawing"):
+            t = r.get("Target")
+            if t.startswith("/"):                           # openpyxl writes absolute part names
+                return t.lstrip("/")
+            return os.path.normpath(os.path.join(d, t)).replace("\\", "/")
+    return None
+
+
+XDR = "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+
+
+def _alt_text(data: bytes, alts: list[str]) -> bytes:
+    """Alt text (``descr``) on every chart frame and picture: openpyxl numbers them 1..n in drawing order."""
+    root = etree.fromstring(data)
+    for el in root.iter(f"{{{XDR}}}cNvPr"):
+        i = int(el.get("id") or 0)
+        if 1 <= i <= len(alts):
+            el.set("descr", alts[i - 1])
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
 NOTE_FONT_SIZE = 9

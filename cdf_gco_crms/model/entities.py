@@ -215,6 +215,8 @@ class Observation:
     title: str | None = None
     title_status: str = S.TITLE_NONE
     title_evidence: "TitleEvidence | None" = None
+    # kit 1.1.3: GCO-authored one-line summary of the required action for the current round (dashboard only)
+    action_summary: str | None = None
 
     def __post_init__(self):
         if not INTERNAL_ID_RE.match(self.internal_id):
@@ -252,6 +254,7 @@ class RoundAssessment:
     status: str
     feedback: GText | str | None = None
     closure_basis: str | None = None   # VERIFIED_TEXT | GCO_REASSESSMENT | ROUTED_RESIDUAL | RISK_ACCEPTED
+    action_summary: str | None = None  # kit 1.1.3: GCO-authored required action shown on the dashboard
 
     def __post_init__(self):
         if self.status not in S.CLOSURE_VALUES:

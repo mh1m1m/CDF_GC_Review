@@ -124,7 +124,7 @@ def test_build_reference_status_infers_nothing_from_names(tmp_path):
 
 
 # ================================================================== production_guard
-def _workbook(path: Path, *, helper_state="hidden", headers=S.FIXED_HEADERS, ids=("GCO-TST-R1-001", "GCO-TST-R1-002"),
+def _workbook(path: Path, *, helper_state=None, headers=S.FIXED_HEADERS, ids=("GCO-TST-R1-001", "GCO-TST-R1-002"),
               banner=False, keywords=None, extra_visible=False):
     wb = Workbook()
     dash = wb.active
@@ -138,9 +138,10 @@ def _workbook(path: Path, *, helper_state="hidden", headers=S.FIXED_HEADERS, ids
     for row, internal_id in enumerate(ids, start=2):
         data.cell(row=row, column=1, value=row - 1)
         data.cell(row=row, column=2, value=internal_id)
-    helper = wb.create_sheet(W.HELPER_SHEET)
-    helper["A1"] = "document"
-    helper.sheet_state = helper_state
+    if helper_state is not None:                 # v7.14 helper sheet: retired by the v7.15 one-sheet dashboard
+        helper = wb.create_sheet(W.HELPER_SHEET)
+        helper["A1"] = "document"
+        helper.sheet_state = helper_state
     if extra_visible:
         wb.create_sheet("عرض الطباعة")
     if keywords:
@@ -164,7 +165,13 @@ def test_fail_closed_on_structural_defects(tmp_path):
                   ids=("GCO-TST-R1-001", "GCO-TST-R1-001"), headers=S.FIXED_HEADERS[:4] + ("عمود آخر",))
     d = evaluate(p, excel365_verified=True, human_approved=True, reference_case_verified=True)
     assert d.status == STATUS_INCOMPLETE
-    assert {"HELPER_HIDDEN", "VISIBLE_SHEETS", "INTERNAL_ID_UNIQUENESS", "CORE_COLUMNS_AE"} <= set(d.blocked)
+    assert {"HELPER_RETIRED", "TWO_SHEETS_ONLY", "VISIBLE_SHEETS", "INTERNAL_ID_UNIQUENESS",
+            "CORE_COLUMNS_AE"} <= set(d.blocked)
+
+
+def test_v714_helper_sheet_alone_blocks_a_v715_workbook(tmp_path):
+    d = evaluate(_workbook(tmp_path / "CDF-GCO-CRMS-TST-R1.xlsx", helper_state="hidden"))
+    assert {"HELPER_RETIRED", "TWO_SHEETS_ONLY"} <= set(d.blocked)
 
 
 def test_synthetic_file_never_presented_as_institutional(tmp_path):

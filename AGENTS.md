@@ -20,7 +20,7 @@ Current source and reproducible evidence establish implemented behavior; version
 ## Workflow and verification
 - Work in a feature branch on the appropriate stacked base; do not reset history, retarget existing PRs or merge into main without explicit instruction. Open draft PRs for review.
 - Use focused, incremental changes and meaningful negative tests for authorization/state transitions. Reuse existing contracts. Text-changing decisions must sign challenge_id and revision_sha256 via revision_digest; legacy unbound revision approvals are rejected.
-- Run relevant Python tests, public_repository_guard, and UI build/browser tests when affected. Full public suite: python -m pytest tests qa_public -q -p no:cacheprovider -rs. Install requirements-lock.txt and optional requirements-calibration.txt. UI: cd apps/web && npm install --no-audit --no-fund && npm run build.
+- Run relevant Python tests, public_repository_guard, and UI build/browser tests when affected. Full public suite: python -m pytest tests qa_public -q -p no:cacheprovider -rs. Install requirements-execution.txt, requirements-security.txt and requirements-calibration.txt (as CI does; requirements-lock.txt alone pulls mcp 2.x and misses httpx and hypothesis). UI: cd apps/web && npm install --no-audit --no-fund && npm run build.
 - Report PASSED, FAILED, SKIPPED, NOT_RUN and BLOCKED_EXTERNAL separately; record command, SHA, environment and limitations. Never count skips as passes or successful mock tests as live readiness.
 - Update docs/codex/EXECUTION_LOG.md, TEST_EVIDENCE_REGISTER.md, OPEN_ISSUES.md and session handoff after substantial work. Link exact commits, PRs and evidence; distinguish inspected paths from executed capabilities.
 

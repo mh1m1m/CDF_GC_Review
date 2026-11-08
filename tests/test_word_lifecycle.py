@@ -208,7 +208,8 @@ def test_lifecycle_comment_shape_08_2(life):
     bold = [r for r in el.iter(W("r")) if r.find(f"{W('rPr')}/{W('b')}") is not None]
     assert any("".join(t.text or "" for t in r.iter(W("t"))) == "التوصية:" for r in bold)   # bold label kept
     fonts = {f.get(W("ascii")) for f in el.iter(W("rFonts"))}
-    assert fonts == {"Calibri"} and el.find(W("p")).get(f"{{{WS.W14NS}}}paraId")
+    # [MS-DOCX]: w15:commentEx/@paraId names the comment's LAST paragraph (kit 1.1.0 fix)
+    assert fonts == {"Calibri"} and el.findall(W("p"))[-1].get(f"{{{WS.W14NS}}}paraId")
 
 
 def test_lifecycle_preserves_foreign_comment_and_tracked_changes(life):
