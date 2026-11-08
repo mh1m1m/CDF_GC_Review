@@ -11,7 +11,8 @@ institutional inputs and the protocol texts) is preserved outside GitHub and is 
   migration, qa, regression, references (parsers, index, **public SYNTHETIC fixture** `synthetic_index.py`), assurance
   (incl. `issuance_gate.py`, the PR #2 interface over the central gate), **release** (`authorization_gate.py`,
   `trust.py`, `dispositions.py`), **agents** (providers, runner, roles, debate, orchestrator, evaluator, security,
-  tracing), protocol (`render.py` only)
+  tracing), protocol (`render.py`; from v7.15 also `stage_packets.py`, 19A.3A and 19A.6A), **comments** (v7.15
+  comment shape and checks: 07.2, 07.4A, 08.2A, 08.2B, G-SUB-12, P14, R3(c)(d))
 - `tests/` — the regression suite that runs on a public clone: TEST 01–20 (+12b, 19b), 25–27, 24 brand (page render
   test skips), 28 titles, 29 security, 30 Word lifecycle, 32 end-to-end, **33 release gate**, **34 synthetic
   reference**, **35 agents (unit/integration)**, **36 release lifecycle (ten negative tests)**, **37 live inference
@@ -33,8 +34,9 @@ institutional inputs and the protocol texts) is preserved outside GitHub and is 
 | `sources/` (reference PDFs and text extracts, `INSTITUTIONAL-SOURCE-STATUS.json`, decisions, kit, design-guide pages, v7.11 round files, issued register) | institutional records and policies not cleared for publication |
 | `cdf_gco_crms/protocol/v711_amendments.py`, `v712_amendments.py`, `consolidate.py`, `tools/build_protocol.py`, `tools/decisions_traceability.py`, `tests/test_protocol.py` | carry or build the institutional protocol text |
 | `tests/test_references.py`, `tests/test_challenge.py` | assert on passages of the institutional sources |
-| `assets/` (logo), `sources/CDF_Design_Guide.pdf`, page renders | restricted brand assets |
+| `assets/` (logo), `sources/CDF_Design_Guide.pdf`, page renders, the dashboard guide icons and the CDF wordmark under `shared/icons/` (only the generated `gauge-hub.png` is tracked) | restricted brand assets (C5); the dashboard writer skips a missing icon and G-UX-21 reports NOT_VERIFIED |
 | `EVIDENCE/` | baseline manifest names institutional files |
+| the protocol texts (`CDF-GCO-CRMS-v7.15` and later in any format, Annexes F and G), the 00.8 reference-case package | institutional texts; code and docs cite article numbers only |
 | `AI_AGENT_FORENSIC_AUDIT/cases/`, `evidence/agent_execution_records/`, `evidence/live_outputs/`, `live_prompts/`, `synthetic_case_generator.py`, `reports/STATUS-FORM.md` | sealed cases, live transcripts that quote mandate excerpts, internal status form |
 | `deliverables/`, `build/`, `dist/` | regenerated outputs; the production RC ZIP and the audit-evidence backup are kept as downloadable artefacts outside the repository until every member is cleared |
 | `*.env`, `*.key`, `*.pem`, `*.rejected.json`, caches, virtual environments | credentials and local state |

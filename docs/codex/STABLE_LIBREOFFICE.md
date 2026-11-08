@@ -4,7 +4,7 @@ This environment retains the existing Python application and verifies Writer, Ca
 
 ## Version policy
 
-`Dockerfile.libreoffice` uses Python 3.12 on Debian 13 (trixie), with the base image pinned to the registry-resolved digest in its FROM line. Calc, Writer and Impress are pinned to Debian's security-maintained package `4:25.2.3-2+deb13u8` (LibreOffice reports `25.2.3.2`). This is the Debian-maintained distribution build, not a claim to the newest upstream LibreOffice release. Prerelease/development version strings are rejected at build and smoke time.
+`Dockerfile.libreoffice` uses Python 3.12 on Debian 13 (trixie), with the base image pinned to the registry-resolved digest in its FROM line. Calc, Writer and Impress are pinned to Debian's security-maintained package `4:25.2.3-2+deb13u9` (LibreOffice reports `25.2.3.2`). This is the Debian-maintained distribution build, not a claim to the newest upstream LibreOffice release. Prerelease/development version strings are rejected at build and smoke time.
 
 The image records its base reference, all installed Debian packages, LibreOffice version and `pip freeze` under `/opt/cdf-runtime/`. Core Python requirements retain the existing lock. Optional API requirements and transitive OS/Python dependencies can change as repositories evolve. The recipe is version-traceable but not a bit-for-bit immutable artifact. For immutable reuse, retain the successfully tested image by digest in an authorized registry or save it as an artifact; this task does not authorize registry publication.
 

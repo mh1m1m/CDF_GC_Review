@@ -118,3 +118,7 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-08 Docs for v7.15 (step 9)
+
+README now names v7.15 and lists the draft PRs (#18 CI, #19 engine, #20 comment rules, #21 stage packets), what is not done yet (kit builder waits on PR #16's document ingestion; 00.8 regression NOT_VERIFIED until the reference-case package is provisioned; hosted uploads depend on the 00A.4 amendment), and the install line CI uses. REPOSITORY-STRUCTURE.md updates the branch line, adds `comments/` and `stage_packets.py`, and lists the guide icons, wordmark, protocol texts and reference-case package as excluded. `.gitignore` now excludes `shared/icons/*` except the generated `gauge-hub.png`.
