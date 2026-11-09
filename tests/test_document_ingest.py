@@ -129,3 +129,13 @@ def test_glyph_lines_from_real_world_layouts():
     # no space glyph between two words: a wide gap still separates them
     words = [_glyph("ب", 10, 16), _glyph("ا", 16, 19), _glyph("ب", 30, 36), _glyph("ل", 36, 40)]
     assert _line_from_glyphs(_glyph_lines(words)[0], rtl=True) == "لب اب"
+
+
+def test_a_prefix_shared_by_two_blocks_is_not_a_placement():
+    from cdf_gco_crms.documents.annotate import find_block
+    from cdf_gco_crms.documents.ingest import Block, SourceText
+    head = "يلتزم الطرف الثاني بتقديم تقرير ربع سنوي عن سير الأعمال"
+    two = SourceText("pdf", [Block(0, head + " إلى فريق العمل.", "p1"), Block(1, head + " إلى الصندوق.", "p2")])
+    assert find_block(two, head + " إلى لجنة غير موجودة في النص") is None
+    one = SourceText("pdf", [Block(0, head + " إلى فريق العمل.", "p1"), Block(1, "نص آخر لا علاقة له.", "p2")])
+    assert find_block(one, head + " إلى فريق العمل وتستمر في الكتلة التالية") is one.blocks[0]
