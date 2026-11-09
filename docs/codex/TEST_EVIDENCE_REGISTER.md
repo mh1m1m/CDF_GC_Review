@@ -148,3 +148,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-08 Stage packets (`claude/stage-packets`, local, Python 3.13)
 
 `pytest tests qa_public`: all pass except the expected skips (see the PR). New `tests/test_stage_packets_v715.py`: 10 tests (READ without sources, digest and tamper check, kit-compatible digest, missing particulars refused, verbatim-only supply, routed observation blocks issue, recorded retention clears it and is listed with the ground, four incomplete-retention cases). Public guard: PASS.
+
+## 2026-11-09 Document reading (step 7a)
+
+`pytest tests/test_document_ingest.py`: 7 passed. `pytest tests qa_public`: **370 passed, 11 skipped** (expected skips). Public guard PASS (403 tracked entries).
