@@ -152,3 +152,11 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-09 Document reading (step 7a)
 
 `pytest tests/test_document_ingest.py`: 7 passed. `pytest tests qa_public`: **370 passed, 11 skipped** (expected skips). Public guard PASS (403 tracked entries).
+
+## 2026-11-09 Chat kit 1.2.0 (step 7b)
+
+- `python tools/build_chat_kit.py --selftest`: built (160 files, 43 brand assets listed as missing), self-test **PASS 42/42** from the unpacked zip; again in a fresh virtual environment with only `kit/requirements.txt` (openpyxl, python-docx, lxml, pillow, pdfplumber): **PASS 42/42**.
+- Two builds of the same commit give the same zip SHA-256.
+- `tests/test_chat_kit_build.py`: 7 passed (contents, tracked files only, no brand asset without `--brand-dir`, determinism, manifest digests, kit `check` = engine v7.15 rules incl. the 00.2 carve-out, P2 without labels).
+- `pytest tests qa_public`: **404 passed, 11 skipped** (expected skips). Public guard PASS (422 tracked entries).
+- Brand-dependent gates (G-UX-21 guide icons) stay NOT_VERIFIED in a kit built without `--brand-dir`.

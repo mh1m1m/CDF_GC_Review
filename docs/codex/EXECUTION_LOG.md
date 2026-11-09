@@ -134,3 +134,17 @@ New `cdf_gco_crms/protocol/stage_packets.py`: supplied sources with the 19A.7 pa
 ## 2026-11-09 Document reading split out of PR #16 (step 7a)
 
 Owner's choice: move only the document-reading code out of the hosted-deployment PR so the chat-kit builder does not depend on the hosted site. Taken unchanged from `feature/hosted-vercel-supabase` (byte-identical to chat kit 1.1.6, so a later merge of #16 adds nothing new here): `cdf_gco_crms/documents/{__init__,ingest,annotate}.py`, `tests/test_document_ingest.py`, `tests/document_fixtures.py`, `tests/fixtures/documents/synthetic_arabic_memo.txt` (synthetic). Left in #16: `review.py`, `worker.py`, `policy.py` (upload queue, worker, site policy) and their tests. No new dependency (pdfplumber, pypdf, python-docx, openpyxl already pinned). Includes the pypdf 6.21.4 and LibreOffice deb13u9 CI fixes from #18.
+
+## 2026-11-09 Chat kit built from the repository (step 7b)
+
+Owner's choices: split the document-reading code out of #16 (done as #23), and run the kit's self-test in CI. This branch stacks #19, #20, #21 and #23.
+
+- `kit/`: `cdfkit.py`, `kit_stages.py`, `kit_selftest.py`, `AGENT-GUIDE.md`, `prompts/`, `examples/`, `requirements.txt` from chat kit 1.1.6 (reviewed: no network, no shell; one fixed `pdftoppm` call). Kit version 1.2.0.
+- `cdfkit.py` is thinner: `words`, `compose_comment`, the per-comment checks (07.1, 07.2, 07.4A, G-SUB-12, 08.2A, 08.2B) and P14 now come from `cdf_gco_crms.comments`; a draft's `protocol_version` (default 7.15) selects the rules, so a review begun before v7.15 keeps the earlier ones (00.2). P2 and P4 are measured on the drafted words, without the fixed labels that v7.15 puts in every comment (they were counted as repetition).
+- `kit_stages.py` takes supplied sources (19A.3A) and retention (19A.6A) from `cdf_gco_crms.protocol.stage_packets`; an extract missing a 19A.7 particular is now refused, and a retention needs `{"decision": "RETAIN", "reviewer_role", "date"}`.
+- The example drafts and the self-test's round-3 observation follow the v7.15 shape (reason, "نوصي بـ"/"نقترح", proposed text, closing action, conditional form, no question). The self-test gains a step proving `check` refuses a question.
+- `AGENT-GUIDE.md` and the start prompts updated to v7.15 (fields table, retention record, conditional form; protocol file name).
+- `tools/build_chat_kit.py` builds `cdf-chat-kit-<version>.zip` from `git ls-files cdf_gco_crms shared` plus `kit/`; deterministic (fixed timestamps); `KIT-MANIFEST.json` with per-file SHA-256 and the brand assets the kit lacks; brand assets (C5) only from `--brand-dir`. `--selftest` unpacks the zip and runs the self-test from it.
+- `.github/workflows/chat-kit.yml`: builds the kit and runs its self-test with only `kit/requirements.txt` installed.
+
+Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 (`interfaces/hosted_*`, `documents/review|worker|policy`, `storage.py`, extra provider adapters) and `branding/icon_extract.py` (reads the institutional design guide, C5). 28 engine files differ, all from the v7.15 port or from #16's hosted changes.

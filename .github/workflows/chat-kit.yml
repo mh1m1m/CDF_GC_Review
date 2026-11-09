@@ -1,0 +1,43 @@
+name: chat-kit
+
+# Builds the chat kit from this repository and runs its end-to-end self-test from the built zip, with only the
+# kit's own requirements installed (as in a chat sandbox). Brand assets (C5) are not in the repository, so the kit
+# is built without them and the dashboard writer skips the missing pictures.
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chat-kit-selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the kit's requirements only
+        run: python -m pip install -r kit/requirements.txt
+      - name: Build the kit and run its self-test from the zip
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p dist
+          python tools/build_chat_kit.py --out dist --selftest | tee dist/chat-kit-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chat-kit
+          path: |
+            dist/*.zip
+            dist/chat-kit-report.json
+          if-no-files-found: warn
