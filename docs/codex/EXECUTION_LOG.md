@@ -158,3 +158,8 @@ Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 
 - The `stable-libreoffice` job runs the suite in a container fed by `git archive HEAD`, which has no `.git`; `tools/build_chat_kit.py` called `git ls-files` and 5 of its tests errored.
 - Outside a git checkout the builder now lists the folders themselves (an export holds only tracked files) and records `built_from` as "unknown (no git checkout)". In a checkout nothing changes: only `git ls-files` output enters the kit.
 - `test_only_tracked_engine_files_enter_the_kit` compares with `git ls-files`, so it is skipped only where there is no git checkout; it still runs in the other CI jobs.
+
+### 2026-11-09 — Chat kit self-test with LibreOffice (owner request)
+- `tools/build_chat_kit.py --selftest --recalc` runs the kit self-test with the independent LibreOffice recalculation (10.4A.15) and records the LibreOffice version; without `soffice` it fails instead of passing silently.
+- `libreoffice-stable.yml` now builds the kit inside the pinned LibreOffice image (`Dockerfile.libreoffice`, 25.2.3) from the `git archive` copy and runs that self-test; the report is kept as `chat-kit-recalc-report.json` in the job's evidence.
+- Live steps asked for the same day (Vercel sign-in on production, Supabase deny-all RLS on schema `cdf`) were refused by this session's safety check and were not made; they are left for the owner (see the tracking issues).

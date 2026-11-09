@@ -13,10 +13,11 @@ manifest lists them as missing.
 
 The zip is deterministic: sorted entries, fixed timestamps, so the same commit gives the same bytes.
 ``--selftest`` unpacks the built zip into a temporary folder and runs ``python cdfkit.py selftest`` there, from the
-kit alone, the way a chat sandbox would.
+kit alone, the way a chat sandbox would. ``--recalc`` adds the independent LibreOffice recalculation to the self-test
+(10.4A.15); it needs ``soffice`` on PATH and fails the run without it, so a pass with ``--recalc`` proves LibreOffice ran.
 
 Usage:
-    python tools/build_chat_kit.py --out dist [--brand-dir PRIVATE/brand-assets] [--selftest]
+    python tools/build_chat_kit.py --out dist [--brand-dir PRIVATE/brand-assets] [--selftest [--recalc]]
 Return codes: 0 built (and self-test PASS), 1 self-test FAIL, 2 input error.
 """
 from __future__ import annotations
@@ -25,6 +26,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess  # nosec B404 - fixed git and python commands, no shell
 import sys
 import tempfile
@@ -136,12 +138,22 @@ def build(out: Path, brand_dir: Path | None) -> tuple[Path, dict]:
     return zpath, manifest
 
 
-def selftest(zpath: Path) -> dict:
+def libreoffice() -> str | None:
+    """``soffice --version`` when LibreOffice is installed, else None."""
+    exe = shutil.which("soffice") or shutil.which("libreoffice")
+    if not exe:
+        return None
+    r = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=120)  # nosec B603
+    return r.stdout.strip() or exe
+
+
+def selftest(zpath: Path, recalc: bool = False) -> dict:
     with tempfile.TemporaryDirectory(prefix="cdf-kit-") as tmp:
         with zipfile.ZipFile(zpath) as z:
             z.extractall(tmp)
         kit = Path(tmp) / TOP
-        r = subprocess.run([sys.executable, "cdfkit.py", "selftest"], cwd=kit,  # nosec B603
+        r = subprocess.run([sys.executable, "cdfkit.py", "selftest", *(["--recalc"] if recalc else [])],  # nosec B603
+                           cwd=kit,
                            capture_output=True, text=True, timeout=1800)
         try:
             rep = json.loads(r.stdout)
@@ -156,6 +168,8 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="dist", help="output folder (default: dist)")
     ap.add_argument("--brand-dir", help="private folder with icons/*.png and brand/*.png (C5)")
     ap.add_argument("--selftest", action="store_true", help="unpack the built zip and run its self-test")
+    ap.add_argument("--recalc", action="store_true",
+                    help="with --selftest: include the LibreOffice recalculation; fails if LibreOffice is missing")
     a = ap.parse_args(argv)
     brand = Path(a.brand_dir).resolve() if a.brand_dir else None
     if brand and not brand.is_dir():
@@ -167,11 +181,22 @@ def main(argv=None) -> int:
               "built_from": manifest["built_from"], "files": len(manifest["files"]),
               "brand_assets_missing": len(manifest["brand_assets_missing"])}
     rc = 0
+    if a.recalc and not a.selftest:
+        print(json.dumps({"status": "FAIL", "detail": "--recalc needs --selftest"}))
+        return 2
+    if a.recalc:
+        report["libreoffice"] = libreoffice()
+        if not report["libreoffice"]:
+            report["status"] = "FAIL"
+            report["detail"] = "--recalc asked for, but LibreOffice (soffice) is not installed"
+            print(json.dumps(report, ensure_ascii=False, indent=1))
+            return 1
     if a.selftest:
-        st = selftest(zpath)
+        st = selftest(zpath, a.recalc)
         failed = [{"step": s.get("step"), "rc": s.get("rc"), "detail": s.get("detail"),
                    "gate_counts": s.get("gate_counts")} for s in st.get("steps", []) if not s.get("ok")]
         report["selftest"] = {"status": st.get("status"), "rc": st.get("rc"), "steps": len(st.get("steps", [])),
+                              "recalc": a.recalc,
                               "failed": failed, **({"detail": st["detail"]} if "detail" in st else {})}
         rc = 0 if st.get("status") == "PASS" else 1
         report["status"] = "PASS" if rc == 0 else "FAIL"

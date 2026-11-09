@@ -118,3 +118,11 @@ def test_detector_does_not_count_the_fixed_labels_as_repetition():
     p2 = det["P2 connective repetition"]
     assert p2["result"] == "PASS", p2["items"]
     assert "P14 reason sentences and 07.2 ceilings" in det
+
+
+def test_recalc_needs_libreoffice_and_the_selftest(tmp_path, monkeypatch, capsys):
+    """--recalc must prove LibreOffice ran: without soffice the run fails instead of passing silently."""
+    assert B.main(["--out", str(tmp_path), "--recalc"]) == 2
+    monkeypatch.setattr(B.shutil, "which", lambda name: None)
+    assert B.main(["--out", str(tmp_path), "--selftest", "--recalc"]) == 1
+    assert "LibreOffice (soffice) is not installed" in capsys.readouterr().out
