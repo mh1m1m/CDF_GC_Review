@@ -136,3 +136,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-08 pypdf 6.21.2 → 6.21.4
 
 `pip_audit -r requirements-execution.txt --vulnerability-service pypi`: 7 CVEs in pypdf 6.21.2 before, **no known vulnerabilities** after. `pytest tests qa_public`: **363 passed, 11 skipped** (expected skips) with pypdf 6.21.4.
+
+## 2026-11-09 Document reading (step 7a)
+
+`pytest tests/test_document_ingest.py`: 7 passed. `pytest tests qa_public`: **370 passed, 11 skipped** (expected skips). Public guard PASS (403 tracked entries).
