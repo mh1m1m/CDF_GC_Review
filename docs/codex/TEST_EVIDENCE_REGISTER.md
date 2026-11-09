@@ -140,3 +140,7 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-11-08 Engine v7.15 (`claude/engine-v715`, local, Python 3.13)
 
 `pytest tests qa_public`: **368 passed, 11 skipped** (expected skips). New: `tests/test_v715_engine.py` (versions, amendment gates), `test_13b_v714_helper_sheet_migrates_to_the_one_sheet_dashboard`, `test_v714_helper_sheet_alone_blocks_a_v715_workbook`, `test_contrast_table_of_the_one_sheet_dashboard`. Rewritten for v7.15: helper-sheet reads → calculation block (`test_regression.py`, `test_titles.py`), KPI read by key, two-sheet guard (`test_assurance.py`), KPI caps = status marks (`test_brand.py`), comment thread key on the last paragraph (`test_word_lifecycle.py`, `test_regression.py` 12b). Public guard: PASS.
+
+## 2026-11-08 v7.15 comment rules (`claude/comments-v715`, local, Python 3.13)
+
+`pytest tests qa_public`: **380 passed, 11 skipped** (expected skips). New `tests/test_comments_v715.py` (11 tests, one negative case per rule plus the 00.2 carve-out) and `test_red_advocate_revisions_ask_no_question_v715` (fails on the pre-change code, checked by restoring it). Public guard: PASS.
