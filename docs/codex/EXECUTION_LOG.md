@@ -118,3 +118,10 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-09 Document reading split out of PR #16 (step 7a)
+
+Owner's choice: move only the document-reading code out of the hosted-deployment PR so the chat-kit builder does not depend on the hosted site. Taken unchanged from `feature/hosted-vercel-supabase` (byte-identical to chat kit 1.1.6, so a later merge of #16 adds nothing new here): `cdf_gco_crms/documents/{__init__,ingest,annotate}.py`, `tests/test_document_ingest.py`, `tests/document_fixtures.py`, `tests/fixtures/documents/synthetic_arabic_memo.txt` (synthetic). Left in #16: `review.py`, `worker.py`, `policy.py` (upload queue, worker, site policy) and their tests. No new dependency (pdfplumber, pypdf, python-docx, openpyxl already pinned). Includes the pypdf 6.21.4 and LibreOffice deb13u9 CI fixes from #18.
+
+### 2026-11-09 — annotate: ambiguous prefix (from the code review)
+`find_block`'s 40-character prefix fallback pinned a comment to the first block sharing that prefix. It now places only when exactly one block matches; otherwise the comment stays unplaced (the module's rule). Test: `test_a_prefix_shared_by_two_blocks_is_not_a_placement`.
