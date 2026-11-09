@@ -153,3 +153,8 @@ Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 
 - The `chat-kit-selftest` job failed on G-DASH-13, G-UX-15 and G-UX-20: the GitHub runner has no ISO 29500 schema directory, so `xsd_validate` returns `NOT_RUN`, and those gates turned `NOT_RUN` into FAIL.
 - Now a check that was not run is NOT_VERIFIED (the gates' own definition): G-DASH-13 is FAIL only on an XSD FAIL; G-UX-15 follows it; G-UX-20 is NOT_VERIFIED when every formula has a cached value and XSD was not run, FAIL on a missing cache or an XSD FAIL. An XSD PASS still gives the same results as before.
 - Same code is on `main`; it reaches main with the v7.15 stack.
+
+### 2026-11-09 — Kit builder outside a git checkout (PR #24 stable-libreoffice CI)
+- The `stable-libreoffice` job runs the suite in a container fed by `git archive HEAD`, which has no `.git`; `tools/build_chat_kit.py` called `git ls-files` and 5 of its tests errored.
+- Outside a git checkout the builder now lists the folders themselves (an export holds only tracked files) and records `built_from` as "unknown (no git checkout)". In a checkout nothing changes: only `git ls-files` output enters the kit.
+- `test_only_tracked_engine_files_enter_the_kit` compares with `git ls-files`, so it is skipped only where there is no git checkout; it still runs in the other CI jobs.

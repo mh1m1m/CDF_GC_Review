@@ -42,6 +42,8 @@ def test_kit_carries_scripts_engine_and_manifest(built):
     assert not any("__pycache__" in n or n.endswith(".pyc") for n in names)
 
 
+@pytest.mark.skipif(not B.in_git_checkout(), reason="needs a git checkout to list tracked files (a git archive "
+                    "export has only tracked files)")
 def test_only_tracked_engine_files_enter_the_kit(built):
     zpath, _ = built
     tracked = set(subprocess.run(["git", "ls-files", "cdf_gco_crms", "shared"], cwd=ROOT, capture_output=True,

@@ -40,13 +40,26 @@ KIT_DIRS = ("prompts", "examples")
 SKIP = re.compile(r"(^|/)(__pycache__|\.pytest_cache)(/|$)|\.pyc$")
 
 
+def in_git_checkout() -> bool:
+    r = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT,  # nosec B603 B607
+                       capture_output=True, text=True)
+    return r.returncode == 0 and r.stdout.strip() == "true"
+
+
 def _git_files(*paths: str) -> list[str]:
+    """Tracked files under ``paths``. Outside a git checkout (a ``git archive`` export, as in the LibreOffice CI
+    container) every file there is a tracked file, so the folder itself is listed."""
+    if not in_git_checkout():
+        found = (f.relative_to(ROOT).as_posix() for p in paths for f in (ROOT / p).rglob("*") if f.is_file())
+        return sorted(p for p in found if not SKIP.search(p))
     out = subprocess.run(["git", "ls-files", "-z", "--", *paths], cwd=ROOT, check=True,  # nosec B603 B607
                          capture_output=True).stdout.decode("utf-8")
     return sorted(p for p in out.split("\0") if p and not SKIP.search(p))
 
 
 def _commit() -> str:
+    if not in_git_checkout():
+        return "unknown (no git checkout)"
     r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True)  # nosec B603 B607
     dirty = subprocess.run(["git", "status", "--porcelain", "--", "cdf_gco_crms", "shared", "kit"], cwd=ROOT,
                            capture_output=True, text=True).stdout.strip()  # nosec B603 B607
