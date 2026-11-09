@@ -66,7 +66,8 @@ LENS = ("a", "b", "c", "d", "e", "f")
 STATUSES = ("مغلقة", "مغلقة بشرط", "يتطلب تعديل", "مفتوحة")
 CLOSURE_PATHS = ("VERIFIED_TEXT", "GCO_REASSESSMENT", "ROUTED_RESIDUAL", "RISK_ACCEPTED")
 LABELS = ("التوصية:", "النص المقترح:", "المطلوب:", "شرط الإغلاق:")
-F7_CONNECTOR = "، بالنص الآتي: "
+from cdf_gco_crms.comments.v715 import (CLOSURE_LABEL, F7_CONNECTOR,  # noqa: E402  one source: the engine
+                                         IMPROVEMENT_LABEL, _DIAC, _WORD)
 
 
 def emit(obj, path: Path | None = None) -> None:
@@ -98,8 +99,6 @@ def load_json(path) -> dict:
 
 
 # ===================================================================================== words (07.7)
-_DIAC = re.compile("[ً-ْٰـ]")
-_WORD = re.compile(r"[0-9A-Za-zء-غف-ي٠-٩ٱ-ۓۺ-ۿ]+")
 
 
 def words(text: str | None) -> int:
@@ -127,7 +126,8 @@ def review_docx(doc: Path, work: Path) -> Path:
         return doc
     from cdf_gco_crms.documents.ingest import extract, to_docx
     out = work / (doc.stem + " - نص المراجعة.docx")
-    if not out.exists():
+    if not out.exists() or out.stat().st_mtime < doc.stat().st_mtime:   # a revised source is read again
+        work.mkdir(parents=True, exist_ok=True)
         try:
             src = extract(doc, kind)
         except ImportError as exc:
@@ -294,12 +294,6 @@ def _segments_from_text(text: str, bold_labels: bool = True):
         elif line:
             segs.append(Segment(line))
     return segs
-
-
-CLOSURE_LABEL = "الإجراء المتوقع للإغلاق:"
-
-
-IMPROVEMENT_LABEL = "ملاحظة تحسينية:"
 
 
 def compose_comment(o: dict):
@@ -860,11 +854,14 @@ def set_docx_properties(path: Path, title: str, working_copy: bool) -> None:
         infos = z.infolist()
         parts = {i.filename: z.read(i.filename) for i in infos}
     core = parts.get("docProps/core.xml", _EMPTY_CORE.encode()).decode("utf-8")
+    transcribed = TRANSCRIBED_MARK in core       # 02.6A: the mark must survive into every delivered round
     core = re.sub(r"<dc:creator>.*?</dc:creator>|<dc:creator/>", "", core, flags=re.S)
     core = re.sub(r"<dc:title>.*?</dc:title>|<dc:title/>", "", core, flags=re.S)
     core = re.sub(r"<dcterms:(created|modified)[^>]*>.*?</dcterms:\1>", "", core, flags=re.S)
     core = re.sub(r"<cp:(category|keywords)>.*?</cp:\1>", "", core, flags=re.S)
     core = _set_core_element(core, "lastModifiedBy", W.AUTHOR)
+    if transcribed:                              # keywords are rewritten below; contentStatus is not
+        core = _set_core_element(core, "contentStatus", TRANSCRIBED_MARK)
     extra = (f"<dc:creator>{W.AUTHOR}</dc:creator><dc:title>{title}</dc:title>"
              f'<dcterms:created xsi:type="dcterms:W3CDTF">{now}</dcterms:created>'
              f'<dcterms:modified xsi:type="dcterms:W3CDTF">{now}</dcterms:modified>')

@@ -163,3 +163,14 @@ Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 
 - `tools/build_chat_kit.py --selftest --recalc` runs the kit self-test with the independent LibreOffice recalculation (10.4A.15) and records the LibreOffice version; without `soffice` it fails instead of passing silently.
 - `libreoffice-stable.yml` now builds the kit inside the pinned LibreOffice image (`Dockerfile.libreoffice`, 25.2.3) from the `git archive` copy and runs that self-test; the report is kept as `chat-kit-recalc-report.json` in the job's evidence.
 - Live steps asked for the same day (Vercel sign-in on production, Supabase deny-all RLS on schema `cdf`) were refused by this session's safety check and were not made; they are left for the owner (see the tracking issues).
+
+### 2026-11-09 — Code review of the v7.15 PRs (owner: "they have bugs")
+Reviewed `main...claude/kit-build` (covers #19–#24). Fixed, each with a regression test (`tests/test_kit_review_fixes.py`):
+- 02.6A: the delivered Word file lost the TRANSCRIBED mark (keywords were rewritten), so round 2 dropped the transcription safeguards. The mark is now kept in `contentStatus`.
+- PDF/XLSX rendition: written into a folder that might not exist yet (`check --out NEW`, `stage-packet --out NEW`), and reused even when the source was replaced by a newer file of the same name. Now it creates the folder and reads a newer source again.
+- READ (20.2): the sample could name comment numbers that are not in the packet. They are refused and do not count toward the sample size.
+- Issue gate: an observation without id crashed `build` with KeyError; it is now reported.
+- HUMAN-REVIEW covering all comments never went stale; it now records what the reviewer saw and goes stale when a comment changes (20.4).
+- `documents/annotate.find_block`: the 40-character prefix fallback pinned a comment to the first block sharing that prefix; it now places only when exactly one block matches, otherwise the comment stays unplaced.
+- The kit's comment labels and 07.7 word pattern now come from the engine (no second copy).
+Not changed: a PDF page with no text layer still stops the read as scanned (02.6A caution; a blank or image-only page may hide text). Dead RTL helpers in `documents/ingest.py` left as shipped in kit 1.1.6.

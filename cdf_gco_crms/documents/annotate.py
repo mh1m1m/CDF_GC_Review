@@ -45,7 +45,9 @@ def key(text: str) -> str:
 
 
 def find_block(source: SourceText, quote: str):
-    """The first block holding the quote (exact, then loose key, then a long prefix of the loose key)."""
+    """The first block holding the quote (exact, then loose key), else the one block holding a long prefix of the
+    loose key (a quote that runs on into the next block). A prefix found in more than one block is ambiguous: the
+    quote stays unplaced rather than pinned to a guess."""
     quote = (quote or "").replace("…", "").strip()
     if not quote:
         return None
@@ -59,9 +61,9 @@ def find_block(source: SourceText, quote: str):
             return block
     if len(k) >= 40:
         head = k[:40]
-        for block, text in keys:
-            if head in text:
-                return block
+        hits = [block for block, text in keys if head in text]
+        if len(hits) == 1:
+            return hits[0]
     return None
 
 

@@ -164,3 +164,4 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 - 2026-11-09 kit build without git: copy of the tracked files with no `.git`: `tests/test_chat_kit_build.py` 6 passed, 1 skipped (needs git). In the checkout: 7 passed.
 - 2026-11-09 the LibreOffice container has no git binary either: `in_git_checkout()` now treats a missing `git` as "not a checkout". Tracked-file copy with no `.git` and no `git` on PATH: `pytest tests qa_public` **393 passed, 23 skipped** (skips are the LibreOffice/git ones).
 - 2026-11-09 kit with LibreOffice: `python tools/build_chat_kit.py --selftest --recalc` locally (LibreOffice 24.2.7.2): **PASS, 42/42 steps**, 3 min 28 s. `tests/test_chat_kit_build.py`: 8 passed (adds: `--recalc` fails without LibreOffice).
+- 2026-11-09 review fixes: `tests/test_kit_review_fixes.py` 6 passed (6 fail without the fixes). `pytest`: **412 passed, 11 skipped**. Kit self-test from the built zip: **PASS, 42/42**.

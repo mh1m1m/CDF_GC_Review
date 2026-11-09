@@ -331,6 +331,11 @@ def validate(stage: str, result: dict, spec: dict, meta: dict | None) -> list[st
     elif stage == "READ":
         comments = (meta or {}).get("comments", [])
         sample = [str(s) for s in result.get("sample", [])]
+        known = {str(c) for c in comments}
+        unknown = sorted({s for s in sample if s not in known})
+        if unknown:
+            p.append(f"sample holds numbers that are not comments of this packet: {unknown} (20.2)")
+        sample = [s for s in sample if s in known]
         need = len(comments) if len(comments) < 5 else max(5, -(-len(comments) * 20 // 100))
         if len(set(sample)) < need:
             p.append(f"sample of {len(set(sample))} < {need} required by 20.2")
@@ -398,6 +403,8 @@ def gate(spec: dict, state, round_no: int) -> list[str]:
             disp = {d["id"]: d for d in adj["dispositions"]}
             snap = (ch or {}).get("meta", {}).get("fingerprints", {})
             for o in obs:
+                if not o.get("id"):
+                    continue                     # reported above: stage-packet numbers them
                 d = disp.get(o["id"])
                 if not d:
                     p.append(f"{o['id']}: no disposition")
@@ -417,6 +424,10 @@ def gate(spec: dict, state, round_no: int) -> list[str]:
     human = stages.get("HUMAN-REVIEW")
     reads = stages.get("READ_HISTORY") or []
     if human and human.get("covers") == "all":
+        seen = (human.get("meta") or {}).get("obs_fingerprints")
+        if seen is None or any(seen.get(o.get("id")) != obs_fingerprint(o) for o in obs):
+            p.append("the HUMAN-REVIEW record is stale: comments changed after it (or it predates kit 1.2.0); "
+                     "the GCO reviewer reads them again and HUMAN-REVIEW is recorded again (20.4)")
         return p
     if not reads:
         p.append("independent read not recorded (Art. 20; or a HUMAN-REVIEW record covering all comments)")
@@ -486,6 +497,9 @@ def cmd_stage_record(a) -> int:
         return k.RC_FAIL
     import datetime as dt
     rec = {**result, "meta": meta or {}, "received_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+    if a.stage == "HUMAN-REVIEW":           # what the human reviewer saw: the record goes stale if a comment changes
+        obs, _ = obs_list(spec)
+        rec["meta"] = {**rec["meta"], "obs_fingerprints": {o["id"]: obs_fingerprint(o) for o in obs if o.get("id")}}
     stages = spec.setdefault("stages", {})
     out = {"status": "OK", "stage": a.stage}
     if a.stage == "READ":
