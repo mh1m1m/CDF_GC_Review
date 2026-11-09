@@ -34,6 +34,14 @@ if HOSTED:
         raise RuntimeError("HOSTED_MODE_REQUIRES_CDF_DATABASE_URL_AND_CDF_SUPABASE_URL")
     VERIFIER = hosted_auth.SupabaseVerifier(os.environ["CDF_SUPABASE_URL"], hosted_auth.load_reviewers())
     TOKEN = None          # no developer bearer is ever accepted by a hosted deployment
+# Owner decision 2026-11-09: CDF_HOSTED_SIGN_IN=OFF opens the hosted site to anyone with the link, with no sign-in.
+# Every request then acts as one listed reviewer (CDF_HOSTED_OPEN_REVIEWER, an e-mail in CDF_HOSTED_REVIEWERS; default
+# the first entry). Anyone online can read every case, upload documents and start AI reviews.
+OPEN_ACCESS = HOSTED and os.getenv("CDF_HOSTED_SIGN_IN", "").strip().upper() == "OFF"
+if OPEN_ACCESS:
+    import secrets
+    OPEN_REVIEWER = hosted_auth.open_reviewer(VERIFIER.reviewers, os.getenv("CDF_HOSTED_OPEN_REVIEWER"))
+    OPEN_TOKEN = secrets.token_urlsafe(32)   # server-side only; never sent to a browser
 elif len(TOKEN) < 32 or TOKEN.lower() in ("changeme", "password"):
     raise RuntimeError("Set a random CDF_CALIBRATION_DEV_TOKEN of at least 32 characters")
 DB_PATH = Path(os.getenv("CDF_CALIBRATION_DB", "build/public-demo/mat-calibration-dev.sqlite")).resolve()
@@ -75,6 +83,9 @@ async def localhost_only(request: Request, call_next):
 
 
 def principal(authorization):
+    if OPEN_ACCESS:
+        with _DB_LOCK:
+            return hosted_auth.open_session(application, OPEN_REVIEWER, OPEN_TOKEN)
     if not authorization or not authorization.startswith('Bearer '):
         raise HTTPException(401,'SIGN_IN_REQUIRED' if HOSTED else 'DEV_TOKEN_REQUIRED')
     try:
@@ -149,7 +160,7 @@ def health():
     uploads = "PUBLIC" if DOCUMENTS is not None else "OFF"
     if HOSTED:
         return {"status": "HOSTED_SYNTHETIC_DEMO", "institutional_auth": "NOT_CONFIGURED",
-                "sign_in": "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_CASES_ONLY",
+                "sign_in": "OFF_OPEN_TO_ANYONE" if OPEN_ACCESS else "SUPABASE_AUTH_LISTED_REVIEWERS_ONLY", "data": "SYNTHETIC_CASES_ONLY",
                 "document_uploads": uploads}
     return {"status": "SYNTHETIC_LOCAL_DEV", "institutional_auth": "NOT_CONFIGURED", "document_uploads": uploads}
 

@@ -108,6 +108,7 @@ class ReviewQueue:
             raise CalibrationError("GENERATED_FILES_ARE_NOT_REVIEWED")
         review_id = "REV-" + uuid.uuid4().hex
         options = {"department": (department or "").strip()[:120] or None}
+        self.expire_stalled()
         with self.store.transaction():
             busy = self.store.db.execute(
                 "SELECT review_id FROM document_reviews WHERE document_id=? AND status IN ('QUEUED','RUNNING')",
@@ -155,12 +156,25 @@ class ReviewQueue:
             (now,)).fetchone() is not None
 
     def expire_stalled(self) -> None:
-        """A website run cut off by the host's time limit leaves a RUNNING row with a lapsed lease: record it."""
+        """Record reviews that can no longer finish, so the document can be reviewed again.
+
+        A website run cut off by the host's time limit leaves a RUNNING row with a lapsed lease. A review that no
+        one ever started (the page that should run it was closed, or no worker is online) stays QUEUED; after
+        ``CDF_REVIEW_QUEUE_SECONDS`` (default 1800) with no worker seen it is recorded as never run. Without this a
+        single stuck row blocked every later review of that document (REVIEW_ALREADY_RUNNING).
+        """
+        ttl = float(os.getenv("CDF_REVIEW_QUEUE_SECONDS", "1800") or 1800)
+        cutoff = datetime.fromtimestamp(time.time() - ttl, timezone.utc).isoformat(timespec="seconds")
+        idle = not self.worker_seen()
         with self.store.transaction():
             self.store.db.execute(
                 "UPDATE document_reviews SET status='FAILED', stage='FAILED', error='WEBSITE_TIME_LIMIT_REACHED', "
                 "finished_at=?, lease_until=NULL WHERE status='RUNNING' AND lease_until < ? AND worker LIKE 'website-%'",
                 (_now(), time.time()))
+            if idle:
+                self.store.db.execute(
+                    "UPDATE document_reviews SET status='FAILED', stage='FAILED', error='QUEUE_EXPIRED_NOT_STARTED', "
+                    "finished_at=? WHERE status='QUEUED' AND created_at < ?", (_now(), cutoff))
 
     def claim_review(self, review_id: str, worker_id: str, lease_seconds: float):
         """Claim one specific queued review (the website runner works on the review its own request queued)."""

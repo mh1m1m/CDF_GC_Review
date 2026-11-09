@@ -132,3 +132,25 @@ def authenticate(application, verifier: SupabaseVerifier, token: str):
     application.sessions.register(token, principal_id=reviewer.principal_id, roles=list(reviewer.roles),
                                   client_id="HOSTED_SUPABASE_WEB", ttl=min(ttl, 86400))
     return application.authenticate(token)
+
+
+def open_reviewer(reviewers: dict[str, Reviewer], email: str | None) -> Reviewer:
+    """The reviewer every request acts as when sign-in is off (CDF_HOSTED_SIGN_IN=OFF)."""
+    if not reviewers:
+        raise ValueError("OPEN_ACCESS_NEEDS_A_LISTED_REVIEWER")
+    if email:
+        try:
+            return reviewers[email.strip().lower()]
+        except KeyError:
+            raise ValueError("OPEN_ACCESS_REVIEWER_NOT_LISTED") from None
+    return next(iter(reviewers.values()))
+
+
+def open_session(application, reviewer: Reviewer, token: str):
+    """A server-side session for the open reviewer, renewed when it expires."""
+    try:
+        return application.authenticate(token)
+    except AccessDenied:
+        application.sessions.register(token, principal_id=reviewer.principal_id, roles=list(reviewer.roles),
+                                      client_id="HOSTED_OPEN_ACCESS", ttl=86400)
+        return application.authenticate(token)

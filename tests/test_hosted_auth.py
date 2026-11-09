@@ -90,3 +90,22 @@ def test_reviewer_entries_are_validated():
         hosted_auth.load_reviewers(json.dumps([{"email": "a@b.c", "principal_id": "ADMIN", "roles": ["CALIBRATION_ADMIN"]}]))
     with pytest.raises(ValueError):
         hosted_auth.load_reviewers(json.dumps([{"email": "a@b.c", "principal_id": "SYN-HOSTED-1", "roles": ["SUPERUSER"]}]))
+
+
+def test_open_access_acts_as_one_listed_reviewer(tmp_path):
+    """CDF_HOSTED_SIGN_IN=OFF (owner decision 2026-11-09): no sign-in; every request is the chosen listed reviewer."""
+    reviewers = hosted_auth.load_reviewers(REVIEWERS)
+    assert hosted_auth.open_reviewer(reviewers, None).principal_id == "SYN-HOSTED-R1"
+    assert hosted_auth.open_reviewer(reviewers, " Reviewer.Two@example.invalid ").principal_id == "SYN-HOSTED-R2"
+    with pytest.raises(ValueError):
+        hosted_auth.open_reviewer(reviewers, "someone@example.invalid")
+    with pytest.raises(ValueError):
+        hosted_auth.open_reviewer({}, None)
+    app = ApplicationService(tmp_path / "synthetic.sqlite", token="")
+    try:
+        first = hosted_auth.open_session(app, reviewers["reviewer.one@example.invalid"], "server-side-open-token-0123456789")
+        again = hosted_auth.open_session(app, reviewers["reviewer.one@example.invalid"], "server-side-open-token-0123456789")
+        assert first.reviewer.reviewer_id == again.reviewer.reviewer_id == "SYN-HOSTED-R1"
+        assert first.client_id == "HOSTED_OPEN_ACCESS" and "CALIBRATION_ADMIN" in first.reviewer.roles
+    finally:
+        app.close()

@@ -7,6 +7,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const hosted = Boolean(url && key);
+// Owner decision 2026-11-09: VITE_HOSTED_SIGN_IN=off removes the sign-in box. The API (CDF_HOSTED_SIGN_IN=OFF) then
+// serves everyone as one listed reviewer and ignores the bearer value; "open-access" only marks the client as connected.
+export const openAccess = import.meta.env.VITE_HOSTED_SIGN_IN === "off";
 
 let client: SupabaseClient | null = null;
 function supabase(): SupabaseClient {
@@ -19,23 +22,29 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
     [password, setPassword] = useState(""),
     [signedIn, setSignedIn] = useState<string | null>(null),
     [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
+    if (openAccess) {
+      onToken("open-access");
+      return;
+    }
     const sb = supabase();
     void sb.auth.getSession().then(({ data }) => {
       onToken(data.session?.access_token ?? "");
       setSignedIn(data.session?.user.email ?? null);
     });
-    const { data } = sb.auth.onAuthStateChange((_event, session) => {
+    const { data } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);   // opened from the reset e-mail
       onToken(session?.access_token ?? "");
       setSignedIn(session?.user.email ?? null);
     });
     return () => data.subscription.unsubscribe();
   }, [onToken]);
 
-  async function run(action: "in" | "up" | "out") {
-    if (action === "up" && password.length < 8) {
+  async function run(action: "in" | "up" | "out" | "reset" | "newpass") {
+    if ((action === "up" || action === "newpass") && password.length < 8) {
       setMessage("كلمة المرور قصيرة: استخدم 8 أحرف على الأقل.");   // keep what was typed
       return;
     }
@@ -47,7 +56,22 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
         await sb.auth.signOut();
       } else if (action === "in") {
         const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error)
+          setMessage(
+            error.message === "Invalid login credentials"
+              ? "البريد أو كلمة المرور غير صحيحة. إن نسيت كلمة المرور فاختر «نسيت كلمة المرور»."
+              : error.message,
+          );
+      } else if (action === "reset") {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        setMessage(error ? error.message : "أُرسل إلى بريدك رابط لتعيين كلمة مرور جديدة؛ افتحه في هذا المتصفح.");
+      } else if (action === "newpass") {
+        const { error } = await sb.auth.updateUser({ password });
         if (error) setMessage(error.message);
+        else {
+          setRecovering(false);
+          setMessage("تم تعيين كلمة المرور الجديدة.");
+        }
       } else {
         const { data, error } = await sb.auth.signUp({
           email,
@@ -63,6 +87,32 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
     }
   }
 
+  if (openAccess)
+    return (
+      <div className="hosted-signin" aria-label="الدخول">
+        <span>دخول مفتوح دون تسجيل</span>
+      </div>
+    );
+  if (recovering)
+    return (
+      <div className="hosted-signin" aria-label="كلمة مرور جديدة">
+        <label>
+          كلمة المرور الجديدة
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            aria-describedby="password-hint"
+          />
+          <small id="password-hint">8 أحرف على الأقل</small>
+        </label>
+        <button className="button dark" onClick={() => void run("newpass")} disabled={busy || !password}>
+          حفظ كلمة المرور
+        </button>
+        {message && <p role="status">{message}</p>}
+      </div>
+    );
   if (signedIn)
     return (
       <div className="hosted-signin" aria-label="الجلسة">
@@ -96,6 +146,9 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
       </button>
       <button className="button" onClick={() => void run("up")} disabled={busy || !email || !password}>
         إنشاء حساب
+      </button>
+      <button className="button" onClick={() => void run("reset")} disabled={busy || !email}>
+        نسيت كلمة المرور
       </button>
       {message && <p role="status">{message}</p>}
     </div>
