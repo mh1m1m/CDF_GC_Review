@@ -7,6 +7,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const hosted = Boolean(url && key);
+// Owner decision 2026-11-09: VITE_HOSTED_SIGN_IN=off removes the sign-in box. The API (CDF_HOSTED_SIGN_IN=OFF) then
+// serves everyone as one listed reviewer and ignores the bearer value; "open-access" only marks the client as connected.
+export const openAccess = import.meta.env.VITE_HOSTED_SIGN_IN === "off";
 
 let client: SupabaseClient | null = null;
 function supabase(): SupabaseClient {
@@ -23,6 +26,10 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
     [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
+    if (openAccess) {
+      onToken("open-access");
+      return;
+    }
     const sb = supabase();
     void sb.auth.getSession().then(({ data }) => {
       onToken(data.session?.access_token ?? "");
@@ -80,6 +87,12 @@ export function HostedSignIn({ onToken }: { onToken: (token: string) => void }) 
     }
   }
 
+  if (openAccess)
+    return (
+      <div className="hosted-signin" aria-label="الدخول">
+        <span>دخول مفتوح دون تسجيل</span>
+      </div>
+    );
   if (recovering)
     return (
       <div className="hosted-signin" aria-label="كلمة مرور جديدة">
