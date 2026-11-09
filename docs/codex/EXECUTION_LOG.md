@@ -126,3 +126,7 @@ Owner approved the repo steps of the v7.15 plan (PR #17) on 2026-11-08. Ported t
 ## 2026-11-08 v7.15 comment rules (plan step 5, branch `claude/comments-v715`)
 
 New `cdf_gco_crms/comments/v715.py`: composer and checks for 07.1, 07.2, 07.4A(a)(b)(d), 08.2A, 08.2B, G-SUB-12 (conditional form), P14 (v7.15 per-comment rule) and R3(c)(d). Reviews under a version before v7.15 keep the earlier checks (00.2 carve-out). `assurance/challenge.py`: `WORD_BUDGET` 120 → 100 (07.2); the Red Advocate no longer turns a silent matrix or a routed matter into an F6 question but into a recommendation (conditional where the matrix may already cover it). R2 stays a reader judgement; its v7.15 change (the three required parts never count as deletable) is for the reader prompt, not a rule check.
+
+## 2026-11-08 Stage packets 19A.3A and 19A.6A (plan step 6, branch `claude/stage-packets`)
+
+New `cdf_gco_crms/protocol/stage_packets.py`: supplied sources with the 19A.7 particulars, carried by every stage packet except READ with their SHA-256 (same digest as kit 1.1.2+); a citation is SUPPLIED only when quoted verbatim in the packet. Retention against the adjudication: a ROUTED_OUTSIDE_GCO or WITHHELD_FOR_EVIDENCE observation left in the draft blocks issue unless a RETAIN decision with the reviewer's role (never a name) and date is recorded; the adjudication record is never rewritten; the delivery note lists retained observations with the adjudicator's ground. Wiring into the chat-kit stage commands follows with the kit builder (step 7).
