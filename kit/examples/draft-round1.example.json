@@ -1,0 +1,271 @@
+{
+  "_note": "SYNTHETIC EXAMPLE: a fictional memorandum used to show the draft format. It is not a CDF finding and not a style model beyond the field layout.",
+  "round": 1,
+  "date": "2026-10-26",
+  "package_short_name": "مذكرة تفاهم تجريبية مع شركة المثال",
+  "document": {
+    "name": "مذكرة تفاهم تجريبية مع شركة المثال",
+    "code": "MOU",
+    "cover_version": "الإصدار 0.1",
+    "owning_department": "إدارة الشراكات (افتراضية)",
+    "language": "ar",
+    "doc_type": "DOC-001",
+    "profile": "PR02",
+    "is_demo": true
+  },
+  "manifest": "PROTOCOL: CDF–GCO–CRMS v7.15 … (the seven manifest lines of 00.3 as printed at the start)",
+  "read_receipt": {
+    "protocol": "lines 1–N in k chunks (receipt table kept in the conversation)",
+    "inputs": "1 of 1 files read in full"
+  },
+  "evidence_pack": [
+    {
+      "document": "لا توجد ملاحق أو وثائق مشار إليها",
+      "status": "SUPPLIED"
+    }
+  ],
+  "observations": [
+    {
+      "quote": "وتتجدد تلقائياً لمدد مماثلة",
+      "location": "المادة (2) – البند (2-1)",
+      "title": "منع التجديد التلقائي",
+      "form": "F2",
+      "analysis": "يجعل التجديد التلقائي المذكرة ممتدة دون قرار مكتوب من الطرفين.",
+      "recommendation": "نوصي بإحلال عبارة التجديد بالنص المقترح.",
+      "lens_category": "a",
+      "severity": "MEDIUM",
+      "severity_basis": "التجديد دون قرار صاحب الصلاحية؛ يُعالج بتعديل صياغي.",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(2-1)",
+        "(7-1)",
+        "(8-1)"
+      ],
+      "target_clauses": [
+        "(2-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "(7-1) الإنهاء و(8-1) التعديل: لا تعارض",
+      "proposed_wording": "ويجوز تجديدها لمدة مماثلة بقرار مكتوب يصدره الطرفان قبل انتهائها",
+      "closure_action": "تعديل البند (2-1) بما يربط التجديد بقرار مكتوب."
+    },
+    {
+      "quote": "يلتزم الصندوق بدعم وتمويل المبادرات المشتركة",
+      "location": "المادة (3) – البند (3-1)",
+      "title": "نفي الالتزام التمويلي",
+      "form": "F7",
+      "analysis": "يُنشئ البند التزاماً تمويلياً على الصندوق في مذكرة غير ملزمة دون تقييم أو اعتماد.",
+      "recommendation": "نوصي بإحلال البند (3-1)",
+      "proposed_wording": "تخضع أي فرص تمويل قد تنشأ في إطار هذه المذكرة للتقييم وفقاً لمعايير الصندوق وإجراءاته المعتمدة، وتُتخذ قرارات التمويل بشكل مستقل، ولا تُعد المشاركة في هذه المذكرة ضماناً للحصول على التمويل.",
+      "lens_category": "b",
+      "severity": "HIGH",
+      "severity_basis": "وعد تمويلي دون اعتماد صاحب الصلاحية (3-1).",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(1-1)",
+        "(3-1)",
+        "(9-1)"
+      ],
+      "target_clauses": [
+        "(3-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "لا يوجد بند مسؤولية أو تعويض يتعارض",
+      "closure_action": "إحلال البند (3-1) بالنص المقترح."
+    },
+    {
+      "quote": "يتولى اعتماد المبادرات والمعايير وآليات التقييم",
+      "location": "المادة (4) – البند (4-1)",
+      "title": "حدود صلاحية فريق العمل",
+      "form": "F2",
+      "analysis": "يمنح البند فريق العمل صلاحية اعتماد تعود لأصحاب الصلاحية لدى الطرفين.",
+      "recommendation": "نوصي بقصر دور فريق العمل على التنسيق ورفع التوصيات، وإخضاع الاعتماد لصلاحيات كل طرف.",
+      "lens_category": "a",
+      "severity": "HIGH",
+      "severity_basis": "صلاحية اعتماد موازية لمصفوفة الصلاحيات (4-1).",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(4-1)",
+        "(8-1)"
+      ],
+      "target_clauses": [
+        "(4-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "(8-1) التعديل: لا تعارض",
+      "proposed_wording": "يشكل الطرفان فريق عمل للتنسيق، ويرفع توصياته إلى صاحب الصلاحية المختص.",
+      "closure_action": "قصر دور الفريق على التنسيق في البند (4-1)."
+    },
+    {
+      "quote": "يتبادل الطرفان البيانات اللازمة لتنفيذ هذه المذكرة",
+      "location": "المادة (5) – البند (5-1)",
+      "title": "ضوابط تبادل البيانات",
+      "form": "F3",
+      "analysis": "يقتصر البند على إحالة عامة لا تبين فئات البيانات وضوابط تبادلها وحمايتها والجهة المسؤولة عن أي حادثة تتعلق بها.",
+      "recommendation": "نوصي بأن ينص البند على:\n• فئات البيانات والغرض والسند النظامي.\n• القناة المعتمدة وضوابط الوصول.\n• الاحتفاظ والإتلاف والإبلاغ عن الحوادث.",
+      "lens_category": "d",
+      "severity": "MEDIUM",
+      "severity_basis": "الإحالة العامة لا تحدد ضوابط البيانات (5-1).",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(5-1)",
+        "(7-1)",
+        "(9-1)"
+      ],
+      "target_clauses": [
+        "(5-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "لا تعارض",
+      "proposed_wording": "يتبادل الطرفان البيانات اللازمة لتنفيذ هذه المذكرة وفق ملحق يحدد فئاتها والغرض منها وسندها النظامي وقنوات تبادلها المعتمدة وضوابط الوصول إليها ومدد الاحتفاظ بها وإتلافها وإجراءات الإبلاغ عن أي حادثة تمسها خلال يومي عمل.",
+      "closure_action": "إضافة ملحق ضوابط البيانات."
+    },
+    {
+      "quote": "بموافقة فريق العمل",
+      "location": "المادة (6) – البند (6-1)",
+      "title": "موافقة الإعلان واستخدام الشعار",
+      "form": "F1",
+      "analysis": "تبقى الموافقة الإعلامية الداخلية مطلوبة رغم موافقة فريق العمل.",
+      "recommendation": "نوصي بإخضاع استخدام الاسم والشعار للموافقات الداخلية، ما لم تتضمن سياسة الإفصاح لدى الصندوق ذلك.",
+      "lens_category": "a",
+      "severity": "MEDIUM",
+      "severity_basis": "موافقة فريق العمل لا تغني عن الموافقة الإعلامية.",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(4-1)",
+        "(6-1)"
+      ],
+      "target_clauses": [
+        "(6-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "(4-1) فريق العمل: لا تعارض",
+      "proposed_wording": "بعد الموافقة الإعلامية الداخلية",
+      "depends_on_unseen": true,
+      "closure_action": "بيان الموافقة الداخلية في البند (6-1) أو الإحالة إلى سياسة الإفصاح."
+    },
+    {
+      "quote": "بإشعار كتابي مدته ثلاثون يوماً",
+      "location": "المادة (7) – البند (7-1)",
+      "title": "مدة الإشعار وآثار الإنهاء",
+      "form": "F1",
+      "analysis": "قد لا تكفي مدة الإشعار لإنهاء المبادرات القائمة بصورة منظمة.",
+      "recommendation": "نقترح تحديد معالجة للمبادرات القائمة عند الإنهاء.",
+      "lens_category": "e",
+      "severity": "LOW",
+      "severity_basis": "ملاءمة تشغيلية يقررها صاحب الطلب.",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(2-1)",
+        "(7-1)"
+      ],
+      "target_clauses": [
+        "(7-1)"
+      ],
+      "edit_type": "add",
+      "observation_type": "IMPROVEMENT",
+      "proposed_wording": "ولا يؤثر الإنهاء على المبادرات القائمة التي تستمر حتى اكتمالها ما لم يتفق الطرفان كتابة على غير ذلك.",
+      "conflicts_checked": "(2-1) المدة: لا تعارض",
+      "closure_action": "إضافة حكم المبادرات القائمة أو بيان المبرر."
+    },
+    {
+      "quote": "يجوز تعديل هذه المذكرة باتفاق الطرفين",
+      "location": "المادة (8) – البند (8-1)",
+      "title": "التعديل وفق مصفوفة الصلاحيات",
+      "form": "F4",
+      "analysis": "يسمح البند بالتعديل دون شكل مكتوب.",
+      "recommendation": "نوصي بما يلي:\n1. اشتراط أن يكون التعديل مكتوباً.\n2. اعتماده وفق مصفوفة الصلاحيات.",
+      "lens_category": "a",
+      "severity": "MEDIUM",
+      "severity_basis": "تعديل دون اشتراط صاحب الصلاحية (8-1).",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(2-1)",
+        "(8-1)"
+      ],
+      "target_clauses": [
+        "(8-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "(2-1) التجديد: لا تعارض",
+      "proposed_wording": "يجوز تعديل هذه المذكرة بملحق مكتوب يعتمده المفوضون بالتوقيع وفق مصفوفة الصلاحيات المعتمدة.",
+      "closure_action": "تعديل البند (8-1)."
+    },
+    {
+      "quote": "في المجالات ذات الاهتمام المشترك",
+      "location": "المادة (1) – البند (1-1)",
+      "title": "تحديد مجالات التعاون",
+      "form": "F1",
+      "analysis": "العبارة مفتوحة النطاق.",
+      "recommendation": "نوصي بتحديد المسارات.",
+      "lens_category": "a",
+      "severity": "LOW",
+      "severity_basis": "عبارة مفتوحة قد توسع النطاق (1-1).",
+      "materiality_test": {
+        "q1_lens": true,
+        "q2_worse_off": true,
+        "q3_handled_elsewhere": false,
+        "q4_duplicate": false
+      },
+      "searched_clauses": [
+        "(1-1)",
+        "(3-1)"
+      ],
+      "target_clauses": [
+        "(1-1)"
+      ],
+      "edit_type": "replace",
+      "conflicts_checked": "لا تعارض",
+      "proposed_wording": "في المسارات المحددة في الملحق (1)",
+      "closure_action": "ربط البند (1-1) بالملحق (1)."
+    }
+  ],
+  "withdrawn": [
+    {
+      "summary": "خطأ طباعي في البند (9-1)",
+      "reason": "routed: drafting (03A.2)"
+    }
+  ],
+  "routed": [
+    {
+      "item": "صياغة البند (9-1)",
+      "addressee": "الشؤون القانونية"
+    }
+  ],
+  "protocol_version": "7.15"
+}
