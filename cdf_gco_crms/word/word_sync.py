@@ -12,8 +12,8 @@
   (label, white 2-pt REF line, body), Calibri on every run. The round-n file
   carries the birth comment of every observation and its follow-ups as native
   reply threads (G-SYNC-9, v7.12): python-docx has no reply API, so after the
-  save the package is post-processed with lxml: every comment's first paragraph
-  receives a w14:paraId, word/commentsExtended.xml (w15) links each follow-up to
+  save the package is post-processed with lxml: every comment's last paragraph
+  receives a w14:paraId ([MS-DOCX]; kit 1.1.0), word/commentsExtended.xml (w15) links each follow-up to
   its birth comment through w15:paraIdParent and marks مغلقة threads resolved
   (w15:done="1"), word/commentsIds.xml (w16cid) carries the durable ids, and the
   two parts are registered in [Content_Types].xml and document.xml.rels.
@@ -60,7 +60,7 @@ class WordComment:
     status: str | None = None
     ref_line_index: int | None = None
     ref_run_ok: bool = False
-    para_id: str | None = None          # w14:paraId of the first paragraph (thread key)
+    para_id: str | None = None          # thread key: w14:paraId of the last paragraph (else the first, kit 1.0.0)
     parent_cid: str | None = None       # id of the comment this one replies to (w15:paraIdParent), else None
     done: bool | None = None            # w15:done of the thread, None when commentsExtended.xml is absent
 
@@ -88,10 +88,15 @@ def extract_comments(docx) -> list[WordComment]:
             return out
         root = etree.fromstring(z.read("word/comments.xml"))
         ext = etree.fromstring(z.read(COMMENTS_EX_PART)) if COMMENTS_EX_PART in z.namelist() else None
+    pids_of: dict[str, set[str]] = {}                       # comment w:id -> w14:paraId of every paragraph
     for c in root.findall(f"{{{WNS}}}comment"):
         lines = []
-        first_p = c.find(f"{{{WNS}}}p")
-        para_id = first_p.get(f"{{{W14NS}}}paraId") if first_p is not None else None
+        all_p = c.findall(f"{{{WNS}}}p")
+        ids = [(p.get(f"{{{W14NS}}}paraId") or "").upper() for p in all_p]
+        pids_of[c.get(f"{{{WNS}}}id")] = {x for x in ids if x}
+        # thread key: the LAST paragraph's paraId ([MS-DOCX]; Word and kit 1.1.0), else the first (kit 1.0.0)
+        para_id = next((x for x in ([ids[-1], ids[0]] if ids else []) if x), None) or \
+            next((x for x in ids if x), None)
         ref_ok = False
         ref_idx = None
         for i, p in enumerate(c.findall(f"{{{WNS}}}p")):
@@ -125,7 +130,9 @@ def extract_comments(docx) -> list[WordComment]:
             wc.status = head if head in S.CLOSURE_VALUES else None
         out.append(wc)
     if ext is not None:                                   # reply threads (w15 commentsExtended)
-        by_para = {wc.para_id: wc for wc in out if wc.para_id}
+        # a commentEx entry resolves through any paragraph of its comment: the last (Word, kit 1.1.0) or the first
+        # (kit 1.0.0); owner comments of several paragraphs are linked by Word through their last paragraph
+        by_para = {pid: wc for wc in out for pid in pids_of.get(wc.cid, set())}
         for ex in ext.findall(f"{{{W15NS}}}commentEx"):
             wc = by_para.get((ex.get(f"{{{W15NS}}}paraId") or "").upper())
             if wc is None:
@@ -203,9 +210,9 @@ def reconcile(docx, xlsx, *, round_no: int | None = None) -> SyncReport:
     rep.checks["G-SYNC-9 follow-ups threaded"] = th_ok
     # dashboard counts (cached values) against Word status counts and the data sheet
     wb = load_workbook(xlsx, data_only=True)
-    if W.DASHBOARD_SHEET in wb.sheetnames and W.HELPER_SHEET in wb.sheetnames:
-        hs = wb[W.HELPER_SHEET]
-        hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    from ..ingestion.workbook_reader import calc_block
+    hs, hdr = calc_block(wb)                     # the dashboard's block (kit 1.1.0) or the v7.14 helper sheet
+    if W.DASHBOARD_SHEET in wb.sheetnames and hs is not None:
         rowR = 1 + R
         counts = {v: hs.cell(row=rowR, column=hdr[f"trend.{k}"]).value
                   for v, k in ((S.CLOSED, "closed"), (S.CLOSED_COND, "cond"), (S.REQUIRES_EDIT, "req"), (S.OPEN, "open"))}
@@ -302,8 +309,8 @@ def _thread_comments(path, parents: dict[str, str], resolved: dict[str, bool] | 
     """Post-process a saved .docx into Word reply threads (w15 commentsExtended; G-SYNC-9).
 
     ``parents`` maps the w:id of a reply comment to the w:id of its thread root; ``resolved`` maps a root
-    w:id to the thread's w15:done. Every comment's first paragraph gets a unique w14:paraId (Word's thread
-    key, 8 hex digits below 0x80000000); the w15 and w16cid parts are written and registered.
+    w:id to the thread's w15:done. Every comment's last paragraph gets a unique w14:paraId (Word's thread
+    key per [MS-DOCX], 8 hex digits below 0x80000000; kit 1.1.0, the first paragraph in 1.0.0); the w15 and w16cid parts are written and registered.
     """
     import os
     resolved = resolved or {}
@@ -313,7 +320,7 @@ def _thread_comments(path, parents: dict[str, str], resolved: dict[str, bool] | 
         infos = z.infolist()
     if "word/comments.xml" not in parts:
         return
-    # 1. comments.xml: w14:paraId on the first paragraph of every comment; w15 declared; mc:Ignorable
+    # 1. comments.xml: w14:paraId on the last paragraph of every comment; w15 declared; mc:Ignorable
     old = etree.fromstring(parts["word/comments.xml"])
     nsmap = dict(old.nsmap)
     nsmap.setdefault("mc", MCNS)
@@ -336,9 +343,8 @@ def _thread_comments(path, parents: dict[str, str], resolved: dict[str, bool] | 
     n = 0
     for c in root.findall(f"{{{WNS}}}comment"):
         cid = c.get(f"{{{WNS}}}id")
-        p = c.find(f"{{{WNS}}}p")
-        if p is None:
-            p = etree.SubElement(c, f"{{{WNS}}}p")
+        paras = c.findall(f"{{{WNS}}}p")
+        p = paras[-1] if paras else etree.SubElement(c, f"{{{WNS}}}p")    # [MS-DOCX]: the LAST paragraph (1.1.0)
         pid = p.get(f"{{{W14NS}}}paraId")
         if not pid:
             while True:

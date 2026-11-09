@@ -118,3 +118,59 @@ Verified each P0 finding against the code before changing it; all reproduced.
 - D15: `safe_xml` checks decoded text, so UTF-16/UTF-32 parts cannot hide a DOCTYPE; copilot ingestion uses the same check and also scans `.rels` parts.
 
 Not changed here (owner decisions or later work): C1, C2, C4, C5; D9–D14, D16–D18; stale docs listed in the audit. No history rewrite and no Drive sharing change.
+
+## 2026-11-08 Engine to v7.15 (plan step 4, branch `claude/engine-v715`)
+
+Owner approved the repo steps of the v7.15 plan (PR #17) on 2026-11-08. Ported the 21 engine files where kit 1.1.6 differs from PR #16, plus `excel/dash_layout.py`: one-sheet dashboard with the calculation block in hidden columns from R, TWO_SHEETS_ONLY / HELPER_RETIRED guard, gates PASS when met (`AMENDMENT_DEPENDENT = ()`), dashboard required action (`action_summary`), migration that removes a v7.14 helper sheet, comment thread key on the last paragraph ([MS-DOCX]). Versions 7.15 / 7.15.0 / `.../7.15`. The guide icons and the logo are institutional assets (C5) and are not committed: a public build skips them and G-UX-21 reports NOT_VERIFIED. Only the kit-generated gauge hub is committed. Tests that encoded v7.14 behaviour now test v7.15 behaviour; none deleted.
+
+## 2026-11-08 v7.15 comment rules (plan step 5, branch `claude/comments-v715`)
+
+New `cdf_gco_crms/comments/v715.py`: composer and checks for 07.1, 07.2, 07.4A(a)(b)(d), 08.2A, 08.2B, G-SUB-12 (conditional form), P14 (v7.15 per-comment rule) and R3(c)(d). Reviews under a version before v7.15 keep the earlier checks (00.2 carve-out). `assurance/challenge.py`: `WORD_BUDGET` 120 → 100 (07.2); the Red Advocate no longer turns a silent matrix or a routed matter into an F6 question but into a recommendation (conditional where the matrix may already cover it). R2 stays a reader judgement; its v7.15 change (the three required parts never count as deletable) is for the reader prompt, not a rule check.
+
+## 2026-11-08 Stage packets 19A.3A and 19A.6A (plan step 6, branch `claude/stage-packets`)
+
+New `cdf_gco_crms/protocol/stage_packets.py`: supplied sources with the 19A.7 particulars, carried by every stage packet except READ with their SHA-256 (same digest as kit 1.1.2+); a citation is SUPPLIED only when quoted verbatim in the packet. Retention against the adjudication: a ROUTED_OUTSIDE_GCO or WITHHELD_FOR_EVIDENCE observation left in the draft blocks issue unless a RETAIN decision with the reviewer's role (never a name) and date is recorded; the adjudication record is never rewritten; the delivery note lists retained observations with the adjudicator's ground. Wiring into the chat-kit stage commands follows with the kit builder (step 7).
+
+## 2026-11-09 Document reading split out of PR #16 (step 7a)
+
+Owner's choice: move only the document-reading code out of the hosted-deployment PR so the chat-kit builder does not depend on the hosted site. Taken unchanged from `feature/hosted-vercel-supabase` (byte-identical to chat kit 1.1.6, so a later merge of #16 adds nothing new here): `cdf_gco_crms/documents/{__init__,ingest,annotate}.py`, `tests/test_document_ingest.py`, `tests/document_fixtures.py`, `tests/fixtures/documents/synthetic_arabic_memo.txt` (synthetic). Left in #16: `review.py`, `worker.py`, `policy.py` (upload queue, worker, site policy) and their tests. No new dependency (pdfplumber, pypdf, python-docx, openpyxl already pinned). Includes the pypdf 6.21.4 and LibreOffice deb13u9 CI fixes from #18.
+
+## 2026-11-09 Chat kit built from the repository (step 7b)
+
+Owner's choices: split the document-reading code out of #16 (done as #23), and run the kit's self-test in CI. This branch stacks #19, #20, #21 and #23.
+
+- `kit/`: `cdfkit.py`, `kit_stages.py`, `kit_selftest.py`, `AGENT-GUIDE.md`, `prompts/`, `examples/`, `requirements.txt` from chat kit 1.1.6 (reviewed: no network, no shell; one fixed `pdftoppm` call). Kit version 1.2.0.
+- `cdfkit.py` is thinner: `words`, `compose_comment`, the per-comment checks (07.1, 07.2, 07.4A, G-SUB-12, 08.2A, 08.2B) and P14 now come from `cdf_gco_crms.comments`; a draft's `protocol_version` (default 7.15) selects the rules, so a review begun before v7.15 keeps the earlier ones (00.2). P2 and P4 are measured on the drafted words, without the fixed labels that v7.15 puts in every comment (they were counted as repetition).
+- `kit_stages.py` takes supplied sources (19A.3A) and retention (19A.6A) from `cdf_gco_crms.protocol.stage_packets`; an extract missing a 19A.7 particular is now refused, and a retention needs `{"decision": "RETAIN", "reviewer_role", "date"}`.
+- The example drafts and the self-test's round-3 observation follow the v7.15 shape (reason, "نوصي بـ"/"نقترح", proposed text, closing action, conditional form, no question). The self-test gains a step proving `check` refuses a question.
+- `AGENT-GUIDE.md` and the start prompts updated to v7.15 (fields table, retention record, conditional form; protocol file name).
+- `tools/build_chat_kit.py` builds `cdf-chat-kit-<version>.zip` from `git ls-files cdf_gco_crms shared` plus `kit/`; deterministic (fixed timestamps); `KIT-MANIFEST.json` with per-file SHA-256 and the brand assets the kit lacks; brand assets (C5) only from `--brand-dir`. `--selftest` unpacks the zip and runs the self-test from it.
+- `.github/workflows/chat-kit.yml`: builds the kit and runs its self-test with only `kit/requirements.txt` installed.
+
+Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 (`interfaces/hosted_*`, `documents/review|worker|policy`, `storage.py`, extra provider adapters) and `branding/icon_extract.py` (reads the institutional design guide, C5). 28 engine files differ, all from the v7.15 port or from #16's hosted changes.
+
+### 2026-11-09 — XSD gates when the schemas are absent (PR #24 CI)
+- The `chat-kit-selftest` job failed on G-DASH-13, G-UX-15 and G-UX-20: the GitHub runner has no ISO 29500 schema directory, so `xsd_validate` returns `NOT_RUN`, and those gates turned `NOT_RUN` into FAIL.
+- Now a check that was not run is NOT_VERIFIED (the gates' own definition): G-DASH-13 is FAIL only on an XSD FAIL; G-UX-15 follows it; G-UX-20 is NOT_VERIFIED when every formula has a cached value and XSD was not run, FAIL on a missing cache or an XSD FAIL. An XSD PASS still gives the same results as before.
+- Same code is on `main`; it reaches main with the v7.15 stack.
+
+### 2026-11-09 — Kit builder outside a git checkout (PR #24 stable-libreoffice CI)
+- The `stable-libreoffice` job runs the suite in a container fed by `git archive HEAD`, which has no `.git`; `tools/build_chat_kit.py` called `git ls-files` and 5 of its tests errored.
+- Outside a git checkout the builder now lists the folders themselves (an export holds only tracked files) and records `built_from` as "unknown (no git checkout)". In a checkout nothing changes: only `git ls-files` output enters the kit.
+- `test_only_tracked_engine_files_enter_the_kit` compares with `git ls-files`, so it is skipped only where there is no git checkout; it still runs in the other CI jobs.
+
+### 2026-11-09 — Chat kit self-test with LibreOffice (owner request)
+- `tools/build_chat_kit.py --selftest --recalc` runs the kit self-test with the independent LibreOffice recalculation (10.4A.15) and records the LibreOffice version; without `soffice` it fails instead of passing silently.
+- `libreoffice-stable.yml` now builds the kit inside the pinned LibreOffice image (`Dockerfile.libreoffice`, 25.2.3) from the `git archive` copy and runs that self-test; the report is kept as `chat-kit-recalc-report.json` in the job's evidence.
+- Live steps asked for the same day (Vercel sign-in on production, Supabase deny-all RLS on schema `cdf`) were refused by this session's safety check and were not made; they are left for the owner (see the tracking issues).
+
+### 2026-11-09 — Code review of the v7.15 PRs (owner: "they have bugs")
+Reviewed `main...claude/kit-build` (covers #19–#24). Fixed, each with a regression test (`tests/test_kit_review_fixes.py`):
+- 02.6A: the delivered Word file lost the TRANSCRIBED mark (keywords were rewritten), so round 2 dropped the transcription safeguards. The mark is now kept in `contentStatus`.
+- PDF/XLSX rendition: written into a folder that might not exist yet (`check --out NEW`, `stage-packet --out NEW`), and reused even when the source was replaced by a newer file of the same name. Now it creates the folder and reads a newer source again.
+- READ (20.2): the sample could name comment numbers that are not in the packet. They are refused and do not count toward the sample size.
+- Issue gate: an observation without id crashed `build` with KeyError; it is now reported.
+- HUMAN-REVIEW covering all comments never went stale; it now records what the reviewer saw and goes stale when a comment changes (20.4).
+- `documents/annotate.find_block`: the 40-character prefix fallback pinned a comment to the first block sharing that prefix; it now places only when exactly one block matches, otherwise the comment stays unplaced.
+- The kit's comment labels and 07.7 word pattern now come from the engine (no second copy).
+Not changed: a PDF page with no text layer still stops the read as scanned (02.6A caution; a blank or image-only page may hide text). Dead RTL helpers in `documents/ingest.py` left as shipped in kit 1.1.6.

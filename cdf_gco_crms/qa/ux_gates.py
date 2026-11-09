@@ -1,4 +1,5 @@
-"""UX gates G-UX-01…20 (UX directive §12), executed on the saved workbook."""
+"""UX gates G-UX-01…22 (UX directive §12; kit 1.1.0: G-UX-21 icon provenance, G-UX-22 contrast table of spec 4.6),
+executed on the saved workbook."""
 from __future__ import annotations
 
 import hashlib
@@ -18,21 +19,14 @@ from ..config import workbook_settings as W
 from ..guidance import guidance_dictionary as G
 from ..ingestion.workbook_reader import parse_workbook
 from . import inspect as I
-from .gates import FAIL, MANUAL, NV, PASS, GateContext, GateResult, _status
+from .gates import FAIL, MANUAL, NV, PASS, GateContext, GateResult, _status, amendment_cap, layout_of
 
 
 def token_colours() -> dict[str, str]:
-    """hex -> family for every colour defined in design_tokens."""
-    out = {}
-    brand = {t.hex for t in BT.BRAND_TOKENS}
-    for name in dir(T):
-        val = getattr(T, name)
-        vals = val.values() if isinstance(val, dict) else [val]
-        for v in vals:
-            if isinstance(v, str) and re.fullmatch(r"[0-9A-F]{6}", v):
-                fam = ("brand" if v in brand else "semantic" if v in T.STATUS_FILL.values()
-                       or v in T.STATUS_TEXT.values() or v in T.STATUS_CHART.values() else "protocol/complementary")
-                out.setdefault(v, fam)
+    """hex -> family (or families) for every colour registered in design_tokens.TOKEN_FAMILY (G-UX-01)."""
+    out: dict[str, str] = {}
+    for _, hex_, fam in T.TOKEN_FAMILY:
+        out[hex_] = fam if hex_ not in out else ", ".join(sorted(set(out[hex_].split(", ")) | {fam}))
     return out
 
 
@@ -121,26 +115,33 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                           _status(not unknown and not claims_used),
                           "brand tokens: " + ", ".join(f"#{t.hex} {t.verification}" for t in BT.BRAND_TOKENS[:2])))
 
-    # 02 logo integrity
+    # 02 logo integrity: the supplied white-on-dark file, byte-identical, proportions kept, in the identity band
     imgs = [i for i in pkg.images if i["sheet"] == W.DASHBOARD_SHEET]
-    if imgs and ctx.logo_source and Path(ctx.logo_source).exists():
+    lay = layout_of(pw.state)
+    if ctx.logo_source and Path(ctx.logo_source).exists():
         from PIL import Image
+        src_bytes = Path(ctx.logo_source).read_bytes()
         src = Image.open(ctx.logo_source)
         ratio_src = src.height / src.width
-        im = imgs[0]
-        ratio = im["cy"] / im["cx"]
         with zipfile.ZipFile(x) as z:
-            emb = z.read(im["part"])
-        from io import BytesIO
-        emb_img = Image.open(BytesIO(emb))
-        ok = abs(ratio - ratio_src) / ratio_src < 0.01 and im["col"] == 1 and im["row"] == 1 and \
-            emb_img.size == src.size
-        out.append(GateResult("G-UX-02", "Logo integrity", "embedded logo = supplied logo (pixels), aspect ratio "
-                              "kept, placed in the header band", inp, f"ratio {ratio_src:.4f} ±1 %, anchor B2",
-                              f"ratio {ratio:.4f}, anchor col {im['col']} row {im['row']}, size {emb_img.size}",
-                              _status(ok), f"source sha256 {hashlib.sha256(Path(ctx.logo_source).read_bytes()).hexdigest()[:16]}…"))
+            cand = [i for i in imgs if hashlib.sha256(z.read(i["part"])).digest() == hashlib.sha256(src_bytes).digest()]
+        if cand:
+            im = cand[0]
+            ratio = im["cy"] / im["cx"]
+            ok = abs(ratio - ratio_src) / ratio_src < 0.01 and im["col"] == 1 and lay.rows["hline"] - 1 <= im["row"] <= lay.rows["doc"]
+            out.append(GateResult("G-UX-02", "Logo integrity", "embedded logo byte-identical to the supplied "
+                                  "white-on-dark file, aspect ratio kept, in the identity band g1–g3", inp,
+                                  f"ratio {ratio_src:.4f} ±1 %, band rows {lay.rows['hline']}–{lay.rows['doc']}",
+                                  f"ratio {ratio:.4f}, anchor col {im['col']} row {im['row'] + 1}", _status(ok),
+                                  f"source sha256 {hashlib.sha256(src_bytes).hexdigest()}"))
+        else:
+            out.append(GateResult("G-UX-02", "Logo integrity", "embedded logo byte-identical to the supplied file", inp,
+                                  "present", "supplied file not embedded", FAIL))
     else:
-        out.append(GateResult("G-UX-02", "Logo integrity", "logo present", inp, "logo", "absent", FAIL))
+        out.append(GateResult("G-UX-02", "Logo integrity", "white-on-dark logo of DASH_HEADER", inp,
+                              "the supplied official white-on-dark logo file", "none supplied; logo slot g1–g3 left "
+                              "empty on the dark band", NV, "the CDF Design Guide prints no white-on-dark logo (every "
+                              "logo raster in it is ink); the on-light logo is never recoloured or redrawn"))
 
     # 03 typography
     fonts = set()
@@ -168,7 +169,7 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
     worst = []
     checked = 0
     for ws in (dash, data):
-        for row in ws.iter_rows():
+        for row in ws.iter_rows(max_col=(W.CALC_FIRST_COL - 1) if ws is dash else None):
             for c in row:
                 if c.value in (None, ""):
                     continue
@@ -179,10 +180,11 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                 checked += 1
                 if ratio < need:
                     worst.append(f"{ws.title}!{c.coordinate} #{fg} on #{bg} = {ratio:.2f}")
-    cf_pairs = [(T.BRAND_INK, f) for f in T.STATUS_FILL.values()] + [(T.BRAND_INK, T.FLAG_REOPENED),
-                                                                      (T.BRAND_INK, T.FLAG_STALLED),
-                                                                      (T.BRAND_INK, T.SELECTED_ROW),
-                                                                      (T.MUTED_TEXT, T.ZEBRA)]
+    cf_pairs = ([(T.INK, f) for f in T.STATUS_FILL.values()]
+                + [(T.INK, T.FLAG_REOPENED), (T.INK, T.FLAG_STALLED), (T.INK, T.FLAG_COND), (T.INK, T.ZEBRA),
+                   (T.MUTED, T.ZEBRA), (T.INK, T.HISTORIC_BAND), (T.INK, T.DEMO_BAND), (T.MUTED, T.NOT_RAISED_FILL),
+                   (T.LINK, T.ZEBRA), (T.INK, T.STATUS_MARK[S.CLOSED])]
+                + [(fg, bg) for bg, fg in T.CHIP.values()])
     cf_bad = [f"#{a} on #{b}" for a, b in cf_pairs if contrast_ratio(a, b) < 4.5]
     painted, exceptions = cf_text_pairs(data)
     cf_cells_bad = [f"{data.title}!{c} #{a} on #{b} = {contrast_ratio(a, b):.2f}" for c, a, b in painted
@@ -208,7 +210,7 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
     # 06 table readability
     nowrap = []
     vwb = load_workbook(x, data_only=True)
-    for ws, rows in ((dash, range(1, dash.max_row + 1)), (data, range(2, data.max_row + 1))):
+    for ws, rows in ((dash, range(1, lay.last_row + 1)), (data, range(2, data.max_row + 1))):
         vws = vwb[ws.title]
         spans = {}
         for m in ws.merged_cells.ranges:
@@ -216,6 +218,8 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                                                 for c in range(m.min_col, m.max_col + 1))
         for r in rows:
             for c in ws[r]:
+                if ws is dash and c.column >= W.CALC_FIRST_COL:
+                    continue                                   # hidden calculation block (wrapped, never shown)
                 v = vws.cell(row=c.row, column=c.column).value
                 if not isinstance(v, str) or (c.alignment and c.alignment.wrap_text):
                     continue
@@ -235,7 +239,9 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
             continue
         if data.cell(row=1, column=c).comment is None:
             missing.append(f"header {gl(c)}1")
-    for coord in ("B9", "E9", "H9", "K9"):
+    sel_l = [f"{gl(2 + g1)}{lay.rows['sel_l']}" for g1, _ in lay.selector_spans]
+    sel_v = [f"{gl(2 + g1)}{lay.rows['sel_v']}" for g1, _ in lay.selector_spans]
+    for coord in sel_l:
         if dash[coord].comment is None:
             missing.append(f"selector note {coord}")
     dv_prompts = {str(dv.sqref): dv for ws in (dash, data) for dv in ws.data_validations.dataValidation}
@@ -243,7 +249,7 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
     impl_col = gl(pw.schema.col(R, S.ROLE_IMPL))
     covered_resp = any(resp_col in k and dv.prompt for k, dv in dv_prompts.items())
     covered_impl = any(impl_col in k and dv.prompt == S.DV_IMPL_PROMPT for k, dv in dv_prompts.items())
-    sel_prompts = sum(1 for k, dv in dv_prompts.items() if k in ("B10", "E10", "H10", "K10") and dv.prompt)
+    sel_prompts = sum(1 for k, dv in dv_prompts.items() if k in sel_v and dv.prompt)
     integrity = G.validate_integrity()
     help_row = any(c.value == "دليل الاستخدام" for row in dash.iter_rows() for c in row)
     ok = not missing and covered_resp and covered_impl and sel_prompts == 4 and not integrity and help_row
@@ -298,20 +304,29 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
         out.append(GateResult(gid, name, f"same check as {src}" + (" and G-DASH-10" if gid == "G-UX-13" else ""),
                               g.input, g.expected, g.actual, status, g.evidence))
 
-    # 14 visual regression: charts do not cover filled cells + manual inspection
-    overlaps = []
-    for ch_anchor in _chart_rects(x, W.DASHBOARD_SHEET):
-        c1, r1, c2, r2 = ch_anchor
+    # 14 visual regression: no chart covers cell content, except the value and caption cells in the lower half of a
+    # gauge (under the transparent arc); no link sits under any chart
+    overlaps, link_under = [], []
+    for (c1, r1, c2, r2), kind in _chart_rects(x, W.DASHBOARD_SHEET):
+        gauge = kind in ("doughnutChart", "pieChart")
+        mid = r1 + (r2 - r1 + 1) // 2
         for r in range(r1, r2 + 1):
             for c in range(c1, c2 + 1):
-                v = dash.cell(row=r, column=c).value
-                if v not in (None, ""):
+                cell = dash.cell(row=r, column=c)
+                v = cell.value
+                if v in (None, ""):
+                    continue
+                if (isinstance(v, str) and "HYPERLINK(" in v) or cell.hyperlink is not None:
+                    link_under.append(f"{gl(c)}{r}")
+                elif not gauge or r < mid:
                     overlaps.append(f"{gl(c)}{r}")
     man = ctx.manual.get("G-UX-14")
-    st_ = (MANUAL if man else NV) if not overlaps else FAIL
-    out.append(GateResult("G-UX-14", "Visual regression", "chart rectangles contain no cell content; rendered pages "
-                          "inspected for overlap and clipping", inp, "0 overlaps; inspection recorded",
-                          f"{len(overlaps)} cells under charts", st_, man[1] if man else "; ".join(overlaps[:5])))
+    st_ = (MANUAL if man else NV) if not overlaps and not link_under else FAIL
+    out.append(GateResult("G-UX-14", "Visual regression", "chart rectangles contain no cell content (gauges: only in "
+                          "their lower half); no link under a chart; rendered pages inspected", inp,
+                          "0 overlaps; 0 links under charts; inspection recorded",
+                          f"{len(overlaps)} cells under charts, {len(link_under)} links under charts", st_,
+                          man[1] if man else "; ".join((overlaps + link_under)[:5])))
 
     # 16 performance
     if ctx.perf:
@@ -338,13 +353,15 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
         "Arabic severity words": r"(?<![\w])(حرجة|عالية الخطورة)(?![\w])",
     }
     hits = {k: len(re.findall(p, sheet_txt)) for k, p in patterns.items()}
-    vis_ids = [c.coordinate for row in load_workbook(x, data_only=True)[W.DASHBOARD_SHEET].iter_rows() for c in row
+    vis_ids = [c.coordinate for row in load_workbook(x, data_only=True)[W.DASHBOARD_SHEET].iter_rows(
+               max_col=W.CALC_FIRST_COL - 1) for c in row
                if isinstance(c.value, str) and re.search(r"GCO-[A-Z]{2,4}-R\d+", c.value)]
     vwb17 = load_workbook(x, data_only=True)
     code = pw.state.document.code
     code_cells = [f"{ws.title}!{c.coordinate}" for ws in vwb17.worksheets for row in ws.iter_rows() for c in row
                   if isinstance(c.value, str) and c.value.strip() == code]
-    banner = any(c.value == S.DEMO_BANNER for row in vwb17[W.DASHBOARD_SHEET].iter_rows() for c in row)
+    banner = any(isinstance(c.value, str) and S.DEMO_BANNER in c.value       # the band row may add the historic notice
+                 for row in vwb17[W.DASHBOARD_SHEET].iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row)
     demo_ok = banner == bool(pw.state.document.is_demo)
     ok = not any(hits.values()) and not vis_ids and not code_cells and demo_ok
     out.append(GateResult("G-UX-17", "Information security", "allowlist scan of every sheet, note and chart part; "
@@ -356,10 +373,10 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
 
     # 18 user experience
     vals = load_workbook(x, data_only=True)[W.DASHBOARD_SHEET]
-    next_label = dash["J5"].value
-    next_val = vals["J6"].value
-    nav_input = [c for c in dash[8] if c.hyperlink is not None and c.hyperlink.location
-                 and c.hyperlink.location.startswith(f"'{pw.data_ws.title}'!{resp_col}")]
+    next_label = dash.cell(row=lay.rows["fact_l"], column=2 + 9).value
+    next_val = vals.cell(row=lay.rows["fact_v"], column=2 + 9).value
+    nav_input = [c for r in (lay.rows["nav"], lay.rows["sel_v"]) for c in dash[r] if c.hyperlink is not None
+                 and c.hyperlink.location and c.hyperlink.location.startswith(f"'{pw.data_ws.title}'!{resp_col}")]
     ok = bool(next_label) and bool(next_val) and bool(nav_input) and help_row
     out.append(GateResult("G-UX-18", "User experience", "the next required action is stated on the first screen; "
                           "one click reaches the current-round input column; help present", inp,
@@ -367,9 +384,10 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                           _status(ok)))
 
     # 19 design consistency
-    sizes = {(dash.cell(row=14, column=c).font.sz, dash.cell(row=13, column=c).font.sz) for c in (2, 4, 6, 8, 10, 12)}
+    kv, kl = lay.rows["kpi_v"], lay.rows["kpi_l"]
+    sizes = {(dash.cell(row=kv, column=c).font.sz, dash.cell(row=kl, column=c).font.sz) for c in (2, 4, 6, 8, 10, 12)}
     merged = {str(m) for m in dash.merged_cells.ranges}
-    cards = all(f"{gl(c)}14:{gl(c + 1)}14" in merged for c in (2, 4, 6, 8, 10, 12))
+    cards = all(f"{gl(c)}{kv}:{gl(c + 1)}{kv}" in merged for c in (2, 4, 6, 8, 10, 12))
     out.append(GateResult("G-UX-19", "Design consistency", "six KPI cards with identical size and type scale",
                           inp, "1 size pair; 6 equal merges", f"size pairs={sizes}; equal cards={cards}",
                           _status(len(sizes) == 1 and cards)))
@@ -388,14 +406,91 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                             missing_cache += 1
     xsd = by["G-DASH-13"].actual.split(";")[0]
     ok = missing_cache == 0 and "XSD PASS" in xsd
+    # Without the schemas the XSD part is not run: the gate is NOT_VERIFIED, not FAIL, unless a cache is missing.
+    status = NV if (missing_cache == 0 and "XSD NOT_RUN" in xsd) else _status(ok)
     out.append(GateResult("G-UX-20", "Workbook integrity", "reopen; every formula carries a cached value; XSD",
                           inp, "0 formulas without cache; XSD PASS", f"{total_f} formulas, {missing_cache} without "
-                          f"cache; {xsd}", _status(ok)))
-    return sorted(out, key=lambda g: g.gate)
+                          f"cache; {xsd}", status))
+    out += _icon_and_contrast_gates(x, pkg, dash, lay)
+    return amendment_cap(sorted(out, key=lambda g: int(re.sub(r"\D", "", g.gate) or 0)))
+
+
+def _guide_icons_provisioned() -> bool:
+    from ..excel.dashboard_writer import KIT_ROOT
+    return any((KIT_ROOT / T.ICON_DIR / f"{k}-ink.png").exists() for k in T.ICONS)
+
+
+def _icon_and_contrast_gates(x, pkg, dash, lay) -> list[GateResult]:
+    out = []
+    inp = Path(x).name
+    # 21 icon provenance: every embedded picture is a recorded guide icon (ink on light, white on dark), the hub, or
+    # the supplied logo; SHA-256 equal to the token file's record
+    known = {v[var]: (k, var) for k, v in T.ICONS.items() for var in ("ink", "white")}
+    known[T.HUB["sha256"]] = ("hub", "generated")
+    dark = {T.BAND_DARK, T.PANEL_DARK, T.INK}
+    bad, counted = [], {}
+    with zipfile.ZipFile(x) as z:
+        for im in pkg.images:
+            if im["sheet"] != W.DASHBOARD_SHEET:
+                continue
+            sha = hashlib.sha256(z.read(im["part"])).hexdigest()
+            rec = known.get(sha)
+            cell = dash.cell(row=im["row"] + 1, column=im["col"] + 1)
+            for m in dash.merged_cells.ranges:                 # a merged area takes the style of its first cell
+                if cell.coordinate in m:
+                    cell = dash.cell(row=m.min_row, column=m.min_col)
+                    break
+            bg = (cell.fill.fgColor.rgb[-6:].upper() if cell.fill is not None and cell.fill.fill_type == "solid"
+                  and isinstance(cell.fill.fgColor.rgb, str) else "FFFFFF")
+            if rec is None:
+                bad.append(f"{im['part']}: sha256 {sha[:12]}… not recorded")
+                continue
+            counted[rec[1]] = counted.get(rec[1], 0) + 1
+            if rec[1] == "ink" and bg in dark or rec[1] == "white" and bg not in dark:
+                bad.append(f"{rec[0]}-{rec[1]} on #{bg}")
+    guide = set(counted) - {"generated"}
+    status = _status(not bad and bool(counted))
+    if not bad and not guide and not _guide_icons_provisioned():
+        status = NV                                  # public checkout: the guide icons live in private storage
+    out.append(GateResult("G-UX-21", "Icon provenance", "SHA-256 of every embedded picture against the icon register "
+                          "(guide pages 17 and 18, page, box, xref recorded); ink on light, white on dark", inp,
+                          "all recorded; variants match their backgrounds", f"{sum(counted.values())} pictures "
+                          f"{counted}; problems={bad[:4]}", status,
+                          f"{len(T.ICONS)} icons extracted at 600 dpi from {T.ICON_SOURCE.split(',')[0]}"))
+    # 22 contrast table of spec 4.6 and the outline rule for chart marks
+    rows, fails = [], []
+    for name, fg, bg, stated, kind in T.CONTRAST_TABLE:
+        r = contrast_ratio(fg, bg)
+        need = 3.0 if kind == "mark" else 4.5
+        if r < need or (stated is not None and abs(r - stated) > 0.1):
+            fails.append(f"{name} {r:.2f}")
+        rows.append(f"{name} {r:.1f}")
+    import re as _re
+    outline_bad = []
+    with zipfile.ZipFile(x) as z:
+        for ch in pkg.charts:
+            txt = z.read(ch.part).decode("utf-8")
+            if ch.kinds[0] in ("barChart/bar", "barChart/col"):
+                for ser in _re.findall(r"<c:ser>.*?</c:ser>", txt, flags=_re.S):
+                    sp = _re.search(r"<c:spPr>.*?</c:spPr>", ser, flags=_re.S)
+                    sp = sp.group(0) if sp else ""
+                    if not (_re.search(rf'<a:ln w="{T.OUTLINE_EMU}"', sp) and T.CHART_OUTLINE in sp):
+                        outline_bad.append(ch.part)
+            elif ch.kinds[0] == "doughnutChart":
+                for dpt in _re.findall(r"<c:dPt>.*?</c:dPt>", txt, flags=_re.S):
+                    if "<a:solidFill>" in dpt.split("<a:ln")[0] and not (
+                            _re.search(rf'<a:ln w="{T.DECK_SEPARATOR_EMU}"', dpt) and T.DECK_SEPARATOR in dpt):
+                        outline_bad.append(ch.part)
+    out.append(GateResult("G-UX-22", "Contrast table and mark outlines", "WCAG 2.1 ratios of the pairs of spec 4.6 "
+                          "(text ≥ 4.5, marks ≥ 3) and equal to the stated value ±0.1; every mark on white with a "
+                          "0.75-pt Cinder outline, every arc on the deck with a 1.25-pt PANEL_DARK separator", inp,
+                          "0 failures", f"{len(rows)} pairs, failures={fails}; outline problems={sorted(set(outline_bad))}",
+                          _status(not fails and not outline_bad), "; ".join(rows[:9])))
+    return out
 
 
 def _chart_rects(path, sheet_name):
-    """(col1, row1, col2, row2) 1-based cell rectangles covered by each chart anchor on a sheet."""
+    """((col1, row1, col2, row2), chart kind) for each chart anchor on a sheet (1-based cell rectangles)."""
     pkg = I.package(path)
     out = []
     wb = load_workbook(path)
@@ -407,15 +502,21 @@ def _chart_rects(path, sheet_name):
             if typ != "drawing":
                 continue
             root = etree.fromstring(z.read(target))
+            drel = I._rels(z, target)
             for anchor in root:
-                if anchor.find(".//c:chart", I.NS) is None:
+                gf = anchor.find(".//c:chart", I.NS)
+                if gf is None:
                     continue
+                cpart = drel[gf.get(f"{{{I.NS['r']}}}id")][1]
+                kind = next((c.kinds[0] for c in pkg.charts if c.part == cpart), "")
                 frm = anchor.find("xdr:from", I.NS)
                 ext = anchor.find("xdr:ext", I.NS)
                 c0 = int(frm.find("xdr:col", I.NS).text) + 1
                 r0 = int(frm.find("xdr:row", I.NS).text) + 1
-                w_px = int(ext.get("cx")) / 9525
-                h_px = int(ext.get("cy")) / 9525
+                x_off = int(frm.find("xdr:colOff", I.NS).text) / 9525
+                y_off = int(frm.find("xdr:rowOff", I.NS).text) / 9525
+                w_px = int(ext.get("cx")) / 9525 + x_off
+                h_px = int(ext.get("cy")) / 9525 + y_off
                 c, acc = c0, 0.0
                 while acc + (ws.column_dimensions[gl(c)].width or 8.43) * 7 + 5 <= w_px + 2:
                     acc += (ws.column_dimensions[gl(c)].width or 8.43) * 7 + 5
@@ -424,5 +525,5 @@ def _chart_rects(path, sheet_name):
                 while acc + (ws.row_dimensions[r].height or 15) * 96 / 72 <= h_px + 2:
                     acc += (ws.row_dimensions[r].height or 15) * 96 / 72
                     r += 1
-                out.append((c0, r0, max(c0, c - 1), max(r0, r - 1)))
+                out.append(((c0, r0, max(c0, c - 1), max(r0, r - 1)), kind))
     return out

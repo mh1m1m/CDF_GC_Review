@@ -132,3 +132,36 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 ## 2026-10-25 P0 audit fixes (local, Python 3.13)
 
 `pytest tests qa_public`: **363 passed, 11 skipped** (same expected skips). New `tests/test_p0_audit_fixes.py`: 20 passed; 17 of them fail against the pre-fix source (checked by stashing the fixes). `python -m cdf_gco_crms.acceptance.phase2 --no-browser --no-exports`: PASS. Browser and LibreOffice export steps NOT_RUN locally (sandbox Playwright mismatch); PR CI is the source of truth. Public guard PASS; Bandit 0 medium/high; web build and contract tests pass.
+
+## 2026-11-08 pypdf 6.21.2 → 6.21.4
+
+`pip_audit -r requirements-execution.txt --vulnerability-service pypi`: 7 CVEs in pypdf 6.21.2 before, **no known vulnerabilities** after. `pytest tests qa_public`: **363 passed, 11 skipped** (expected skips) with pypdf 6.21.4.
+
+## 2026-11-08 Engine v7.15 (`claude/engine-v715`, local, Python 3.13)
+
+`pytest tests qa_public`: **368 passed, 11 skipped** (expected skips). New: `tests/test_v715_engine.py` (versions, amendment gates), `test_13b_v714_helper_sheet_migrates_to_the_one_sheet_dashboard`, `test_v714_helper_sheet_alone_blocks_a_v715_workbook`, `test_contrast_table_of_the_one_sheet_dashboard`. Rewritten for v7.15: helper-sheet reads → calculation block (`test_regression.py`, `test_titles.py`), KPI read by key, two-sheet guard (`test_assurance.py`), KPI caps = status marks (`test_brand.py`), comment thread key on the last paragraph (`test_word_lifecycle.py`, `test_regression.py` 12b). Public guard: PASS.
+
+## 2026-11-08 v7.15 comment rules (`claude/comments-v715`, local, Python 3.13)
+
+`pytest tests qa_public`: **380 passed, 11 skipped** (expected skips). New `tests/test_comments_v715.py` (11 tests, one negative case per rule plus the 00.2 carve-out) and `test_red_advocate_revisions_ask_no_question_v715` (fails on the pre-change code, checked by restoring it). Public guard: PASS.
+
+## 2026-11-08 Stage packets (`claude/stage-packets`, local, Python 3.13)
+
+`pytest tests qa_public`: all pass except the expected skips (see the PR). New `tests/test_stage_packets_v715.py`: 10 tests (READ without sources, digest and tamper check, kit-compatible digest, missing particulars refused, verbatim-only supply, routed observation blocks issue, recorded retention clears it and is listed with the ground, four incomplete-retention cases). Public guard: PASS.
+
+## 2026-11-09 Document reading (step 7a)
+
+`pytest tests/test_document_ingest.py`: 7 passed. `pytest tests qa_public`: **370 passed, 11 skipped** (expected skips). Public guard PASS (403 tracked entries).
+
+## 2026-11-09 Chat kit 1.2.0 (step 7b)
+
+- `python tools/build_chat_kit.py --selftest`: built (160 files, 43 brand assets listed as missing), self-test **PASS 42/42** from the unpacked zip; again in a fresh virtual environment with only `kit/requirements.txt` (openpyxl, python-docx, lxml, pillow, pdfplumber): **PASS 42/42**.
+- Two builds of the same commit give the same zip SHA-256.
+- `tests/test_chat_kit_build.py`: 7 passed (contents, tracked files only, no brand asset without `--brand-dir`, determinism, manifest digests, kit `check` = engine v7.15 rules incl. the 00.2 carve-out, P2 without labels).
+- `pytest tests qa_public`: **404 passed, 11 skipped** (expected skips). Public guard PASS (422 tracked entries).
+- Brand-dependent gates (G-UX-21 guide icons) stay NOT_VERIFIED in a kit built without `--brand-dir`.
+- 2026-11-09 XSD NOT_RUN: `tests/test_e2e.py::test_e2e_missing_xsd_schemas_give_not_verified_not_fail` (schemas pointed at a missing folder: G-DASH-13, G-UX-15, G-UX-20 NOT_VERIFIED). `pytest`: **405 passed, 11 skipped**. Kit self-test from the built zip with `CRMS_OOXML_XSD_DIR` pointed at a missing folder: **PASS, 42/42 steps**.
+- 2026-11-09 kit build without git: copy of the tracked files with no `.git`: `tests/test_chat_kit_build.py` 6 passed, 1 skipped (needs git). In the checkout: 7 passed.
+- 2026-11-09 the LibreOffice container has no git binary either: `in_git_checkout()` now treats a missing `git` as "not a checkout". Tracked-file copy with no `.git` and no `git` on PATH: `pytest tests qa_public` **393 passed, 23 skipped** (skips are the LibreOffice/git ones).
+- 2026-11-09 kit with LibreOffice: `python tools/build_chat_kit.py --selftest --recalc` locally (LibreOffice 24.2.7.2): **PASS, 42/42 steps**, 3 min 28 s. `tests/test_chat_kit_build.py`: 8 passed (adds: `--recalc` fails without LibreOffice).
+- 2026-11-09 review fixes: `tests/test_kit_review_fixes.py` 6 passed (6 fail without the fixes). `pytest`: **412 passed, 11 skipped**. Kit self-test from the built zip: **PASS, 42/42**.

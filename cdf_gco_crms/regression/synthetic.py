@@ -350,3 +350,40 @@ def random_trajectories(n: int, rounds: int, rng: random.Random) -> list[list[st
                 t.append(C if x < 0.35 else CC if x < 0.5 else RE if x < 0.8 else O)
         out.append(t)
     return out
+
+
+# --------------------------------------------------------------------------- dashboard states (kit 1.1.0, spec 9)
+LONG_COMMENT = ("لا تحدد اللائحة الجهة المختصة باعتماد المبادرات المشتركة ولا آلية رفعها إلى صاحب الصلاحية، "
+                "كما لا تبين الضوابط التي تحكم تعديل نطاق المبادرة بعد اعتمادها أو إيقافها عند تعثرها، ولا تربط "
+                "الصرف على المبادرة بموافقة مسبقة وفق مصفوفة الصلاحيات المعتمدة لدى الصندوق، بما قد يؤدي إلى نفاذ "
+                "التزامات لم يعتمدها صاحب الصلاحية أو إلى صرف دون سند.\nالتوصية: نوصي بإضافة مادة تحدد جهة الاعتماد "
+                "وآلية الرفع والتعديل والإيقاف وربط الصرف بالموافقة المسبقة.")
+TWELVE_WORD_TITLE = "تحديد جهة اعتماد المبادرات المشتركة وآلية رفعها وتعديلها وإيقافها وربط صرفها بالصلاحيات"
+
+
+def dashboard_states() -> dict[str, ReviewState]:
+    """Synthetic states of spec 9 for the one-sheet dashboard: round 1 all مفتوحة; round 2 all مغلقة بشرط; a
+    five-round history (demonstration band; observations born in rounds 3 and 4); all مغلقة in round 3 with an
+    approved twelve-word title and an observation longer than 300 characters; a document with no observation."""
+    from ..rounds.round_expansion import TitleDecision, finalize_titles
+    doc = Document(name="لائحة تجريبية لاختبار اللوحة", code="TST", owning_department="إدارة افتراضية",
+                   cover_version="الإصدار 0.1", is_demo=True)
+    base = [NewObservation("ص.2، المادة (3) – البند (3-1)", "يتولى الطرفان تنفيذ المبادرات المشتركة …",
+                           GText([Segment(LONG_COMMENT, False)]), title=TWELVE_WORD_TITLE)]
+    base += [topic_obs(i) for i in range(1, 6)]
+    out: dict[str, ReviewState] = {}
+    h = run_history(doc, base, [[O, CC], [O, CC], [O, CC], [O, CC], [O, CC], [O, CC]], rounds=2, roundtrip=False,
+                    dates={1: "2026-08-02", 2: "2026-09-01"})
+    out["round1_all_open"], out["round2_all_conditional"] = h.states[1], h.states[2]
+    out["demo_round5"] = demo_history(None, rounds=5).states[5]
+    hc = run_history(doc, base, [[O, CC, C], [O, RE, C], [O, C, C], [O, O, C], [O, CC, C], [O, RE, C]], rounds=3,
+                     roundtrip=False, dates={1: "2026-08-02", 2: "2026-09-01", 3: "2026-10-01"},
+                     versions={1: "الإصدار 0.1", 2: "الإصدار 0.2", 3: "الإصدار 0.3"})
+    st = hc.states[3]
+    st, _ = finalize_titles(st, [TitleDecision(st.ordered()[0].internal_id, "APPROVE",
+                                               "المراجع المسؤول في إدارة الحوكمة والامتثال المؤسسي", "2026-10-01",
+                                               "GCO-TEST-DECISION-001")])
+    out["round3_all_closed"] = st
+    out["no_observations"] = build_round1(Document(name="وثيقة تجريبية دون ملاحظات", code="EMP", is_demo=True), [],
+                                          date="2026-10-26")
+    return out

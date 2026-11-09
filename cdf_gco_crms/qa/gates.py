@@ -1,4 +1,4 @@
-"""v7.11 dashboard gates G-DASH-01…20 and UX gates G-UX-01…20 (protocol Art. 18; UX directive §12).
+"""Dashboard gates G-DASH-01…24 (protocol Art. 18; kit 1.1.0 one-sheet dashboard, v7.15 draft gates 21–24).
 
 Every gate is an executable check on the saved file (or on recorded manual
 inspection evidence). Status values:
@@ -8,6 +8,9 @@ inspection evidence). Status values:
   NOT_VERIFIED  the check needs something unavailable here (Microsoft Excel);
                 never reported as passed
   MANUAL_PASS   visual inspection of a rendered page, with the image as evidence
+
+Gates whose v7.14 wording the one-sheet design cannot meet before the v7.15 amendment is approved
+(``W.AMENDMENT_DEPENDENT``) report NOT_VERIFIED when their check runs and meets the v7.15 draft, never PASS.
 """
 from __future__ import annotations
 
@@ -26,6 +29,11 @@ from ..reconciliation.historical import compare, snapshot
 from . import inspect as I
 
 PASS, FAIL, NV, MANUAL = "PASS", "FAIL", "NOT_VERIFIED", "MANUAL_PASS"
+
+
+def _one_cell(ref: str) -> str:
+    """A one-row range ("$A$2:$A$2", round 1) and its single-cell form ("$A$2") are the same reference."""
+    return re.sub(r"(\$[A-Z]+\$\d+):\1$", r"\1", ref or "")
 
 
 @dataclass
@@ -58,6 +66,23 @@ def _status(ok: bool) -> str:
     return PASS if ok else FAIL
 
 
+def amendment_cap(results: list) -> list:
+    """A check that meets the v7.15 draft reports NOT_VERIFIED until the amendment is approved (spec 11)."""
+    for g in results:
+        if g.gate in W.AMENDMENT_DEPENDENT and g.status == PASS:
+            g.status = NV
+            g.evidence = (g.evidence + "; " if g.evidence else "") + f"check met; depends on the {W.AMENDMENT}"
+    return results
+
+
+def layout_of(st):
+    """The row plan of the dashboard of a parsed workbook (same inputs as the build: N, R, rows not مغلقة at R)."""
+    from ..excel.dash_layout import plan
+    R = st.current_round
+    qn = sum(1 for o in st.observations if o.value(R) not in ("", S.CLOSED))
+    return plan(len(st.observations), R, qn)
+
+
 def run_dash_gates(ctx: GateContext) -> list[GateResult]:
     out: list[GateResult] = []
     x = Path(ctx.xlsx)
@@ -71,15 +96,17 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
     dash = wb[W.DASHBOARD_SHEET] if W.DASHBOARD_SHEET in wb.sheetnames else None
     inp = x.name
 
-    # G-DASH-01 structure
+    # G-DASH-01 structure (v7.15 draft of 10.4A.2: two sheets, the dashboard first and active, no helper sheet)
+    lay = layout_of(st)
     visible = [n for n, s, _ in pkg.sheets if s == "visible"]
     hidden = [n for n, s, _ in pkg.sheets if s != "visible"]
-    ok = (visible == [W.DASHBOARD_SHEET, data_name] and hidden == [W.HELPER_SHEET] and pkg.active_tab == 0
-          and W.LEGACY_PRINT_VIEW_SHEET not in wb.sheetnames and pw.schema.rounds == list(range(1, R + 1)))
-    out.append(GateResult("G-DASH-01", "Structure", "sheet order/visibility/active tab; complete round blocks",
-                          inp, f"visible=[{W.DASHBOARD_SHEET}, {data_name}], hidden=[{W.HELPER_SHEET}], active=0, "
-                          f"blocks 1..{R}", f"visible={visible}, hidden={hidden}, active={pkg.active_tab}, "
-                          f"blocks={pw.schema.rounds}", _status(ok)))
+    ok = (visible == [W.DASHBOARD_SHEET, data_name] and hidden == [] and len(pkg.sheets) == 2 and pkg.active_tab == 0
+          and W.LEGACY_PRINT_VIEW_SHEET not in wb.sheetnames and W.HELPER_SHEET not in wb.sheetnames
+          and pw.schema.rounds == list(range(1, R + 1)))
+    out.append(GateResult("G-DASH-01", "Structure", "sheet set, order, visibility, active tab; complete round blocks",
+                          inp, f"sheets=[{W.DASHBOARD_SHEET}, {data_name}], none hidden, active=0, blocks 1..{R}",
+                          f"visible={visible}, hidden={hidden}, active={pkg.active_tab}, blocks={pw.schema.rounds}",
+                          _status(ok), "v7.14 text requires the hidden helper sheet; the v7.15 draft retires it"))
 
     # G-DASH-02 historical preservation
     if ctx.previous_xlsx:
@@ -98,8 +125,8 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
                               PASS if R == 1 else FAIL, "round 1 has no earlier block" if R == 1 else ""))
 
     # G-DASH-03 current-status accuracy (cached dashboard/helper values vs data sheet)
-    hs = wbv[W.HELPER_SHEET]
-    hdr = {hs.cell(row=1, column=c).value: c for c in range(1, hs.max_column + 1)}
+    from ..ingestion.workbook_reader import calc_block
+    hs, hdr = calc_block(wbv)
     mism = []
     for o in st.ordered():
         k = o.reader_int  # k == position in Reader_No order (rows written in that order)
@@ -108,19 +135,24 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
         cached = hs.cell(row=k + 1, column=hdr["obs.vR"]).value or ""
         if cached != o.value(R):
             mism.append(f"#{o.reader_no}: {cached!r} != {o.value(R)!r}")
-    out.append(GateResult("G-DASH-03", "Current-status accuracy", "helper obs.vR (cached) vs latest closure cell",
+    out.append(GateResult("G-DASH-03", "Current-status accuracy", "block obs.vR (cached) vs latest closure cell",
                           inp, "all equal", f"{len(ordered) - len(mism)}/{len(ordered)} equal", _status(not mism),
                           "; ".join(mism[:5])))
 
     # G-DASH-04 KPI reconciliation: dashboard cached KPIs vs counts computed from the data sheet
     dv = wbv[W.DASHBOARD_SHEET]
-    kpi_row = 14
+    kpi_row = lay.rows["kpi_v"]
     kpis = [dv.cell(row=kpi_row, column=c).value for c in (2, 4, 6, 8, 10, 12)]
-    counts = [sum(1 for o in st.observations if o.value(R) != "")] + \
-             [sum(1 for o in st.observations if o.value(R) == v) for v in (S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN)]
+    # the round the saved view shows (the current round unless the file was saved on an earlier round)
+    meta = {hs.cell(row=r, column=hdr["meta.key"]).value: hs.cell(row=r, column=hdr["meta.value"]).value
+            for r in range(2, 60) if hs.cell(row=r, column=hdr["meta.key"]).value}
+    Sv = int(meta.get("selected_round") or R)
+    counts = [sum(1 for o in st.observations if o.value(Sv) not in ("", S.NOT_RAISED))] + \
+             [sum(1 for o in st.observations if o.value(Sv) == v) for v in (S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN)]
     rate = counts[1] / counts[0] if counts[0] else ""
     ok = kpis[:5] == counts and (abs((kpis[5] or 0) - rate) < 1e-9 if rate != "" else kpis[5] in ("", None))
-    out.append(GateResult("G-DASH-04", "KPI reconciliation", "six KPI cards vs independent count of the data sheet",
+    out.append(GateResult("G-DASH-04", "KPI reconciliation", f"six KPI cards vs independent count of the data sheet "
+                          f"(round {Sv}, the round the saved view shows)",
                           inp, f"{counts} rate={rate if rate == '' else round(rate, 4)}",
                           f"{kpis[:5]} rate={kpis[5] if not isinstance(kpis[5], float) else round(kpis[5], 4)}",
                           _status(ok)))
@@ -168,7 +200,7 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
         if data_ws.cell(row=row, column=2).value != iid:
             bad.append(f"{iid}: row {row} holds {data_ws.cell(row=row, column=2).value}")
     nav_bad = []
-    for row in dash.iter_rows(min_row=8, max_row=8):
+    for row in dash.iter_rows(min_row=1, max_row=lay.last_row, max_col=W.CALC_FIRST_COL - 1):
         for c in row:
             if c.hyperlink is not None and c.hyperlink.location:
                 loc = c.hyperlink.location
@@ -194,46 +226,62 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
     data_formulas = [c.coordinate for row in data_ws.iter_rows() for c in row
                      if isinstance(c.value, str) and c.value.startswith("=")]
     vc_err = sum(len(v.errors) for v in vcs) if vcs else 0
+    fn_bad, prefixed, arrays = excel2010_scan(x)
     out.append(GateResult("G-DASH-07", "Formula integrity", "no error value cached or recalculated; no #REF! "
-                          "in any formula; no formula in the data sheet", inp, "0/0/0",
+                          "in any formula; no formula in the data sheet; Excel 2010 functions only (10.4A.15): no "
+                          "_xlfn/_xlpm/_xlws prefix, no array formula", inp, "0/0/0/0",
                           f"{len(errs)} cached errors, {vc_err} recalculated errors, {len(ref_in_formula)} #REF!, "
-                          f"{len(data_formulas)} data-sheet formulas",
-                          _status(not errs and not vc_err and not ref_in_formula and not data_formulas)))
+                          f"{len(data_formulas)} data-sheet formulas; functions outside the list={sorted(fn_bad)}; "
+                          f"prefixed={prefixed}; array formulas={arrays}",
+                          _status(not errs and not vc_err and not ref_in_formula and not data_formulas and not fn_bad
+                                  and not prefixed and not arrays)))
 
-    # G-DASH-08 chart accuracy
-    trend_cols = {k: hdr[f"trend.{k}"] for k in ("label", "closed", "cond", "req", "open", "rate", "new",
-                                                    "closed_event", "reopen_event")}
+    # G-DASH-08 chart accuracy (bound to the block's tables on the dashboard)
     from openpyxl.utils import get_column_letter as gl
-    def rng(col):
-        return f"'{W.HELPER_SHEET}'!${gl(trend_cols[col])}$2:${gl(trend_cols[col])}${R + 1}"
+    DQ = "'" + W.DASHBOARD_SHEET + "'"
+
+    def col_rng(name, n):
+        c = gl(hdr[name])
+        return f"{DQ}!${c}$2:${c}${n + 1}"
+    trng = lambda col: col_rng(f"trend.{col}", R)                     # noqa: E731
     expect = {
-        ("barChart/col", "stacked"): ([rng(c) for c in ("closed", "cond", "req", "open")],
-                                      [S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN]),
-        ("lineChart", "standard"): ([rng("rate")], ["نسبة الإغلاق"]),
-        ("barChart/col", "clustered"): ([rng(c) for c in ("new", "closed_event", "reopen_event")],
-                                        ["ملاحظات جديدة", "أُغلقت خلال الجولة", "أُعيد فتحها"]),
+        ("barChart/col", "stacked"): ([trng(c) for c in ("closed", "cond", "req", "open")],
+                                      [S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN], trng("label")),
+        ("lineChart", "standard"): ([trng("rate"), trng("impl")], ["نسبة الإغلاق", "نسبة تطبيق الملاحظات"],
+                                    trng("label")),
+        ("barChart/bar", "percentStacked"): ([col_rng(f"bar.{c}", 1) for c in ("closed", "cond", "req", "open")],
+                                             [S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN], col_rng("bar.label", 1)),
     }
+    gauge_refs = {col_rng(f"gauge.{k}_arc", 5 if k == "comp" else 3) for k in ("comp", "rate", "sus")} | \
+        {col_rng(f"gauge.{k}_needle", 3) for k in ("comp", "rate", "sus")}
     problems = []
     seen = 0
+    gauges = 0
     for ch in pkg.charts:
+        if ch.sheet != W.DASHBOARD_SHEET:
+            continue
         key = (ch.kinds[0], ch.grouping)
+        if ch.kinds[0] in ("doughnutChart", "pieChart"):
+            gauges += 1
+            if not all(_one_cell(r) in {_one_cell(x) for x in gauge_refs} for r in ch.series_refs):
+                problems.append(f"gauge {ch.part}: {ch.series_refs}")
+            continue
         if key in expect:
             seen += 1
-            refs, names = expect[key]
-            if ch.series_refs != refs or ch.series_names != names or any(c != rng("label") for c in ch.category_refs):
+            refs, names, cat = expect[key]
+            if ([_one_cell(r) for r in ch.series_refs] != [_one_cell(r) for r in refs] or ch.series_names != names
+                    or any(_one_cell(c) != _one_cell(cat) for c in ch.category_refs)):
                 problems.append(f"{key}: {ch.series_refs} {ch.series_names}")
-        elif key == ("barChart/bar", "percentStacked"):
-            seen += 1
-            if ch.series_names != [S.CLOSED, S.CLOSED_COND, S.REQUIRES_EDIT, S.OPEN]:
-                problems.append("status bar series")
-    # the bar feed equals the KPI counts
+        else:
+            problems.append(f"unexpected chart {key}")
     bar_vals = [hs.cell(row=2, column=hdr[f"bar.{k}"]).value for k in ("closed", "cond", "req", "open")]
     if bar_vals != counts[1:]:
         problems.append(f"bar feed {bar_vals} != KPIs {counts[1:]}")
-    out.append(GateResult("G-DASH-08", "Chart accuracy", "series ranges, names, categories; status bar = KPIs",
-                          inp, "4 charts bound to the trend/bar tables; bar = KPI counts",
-                          f"{seen} charts checked; bar {bar_vals}", _status(seen == 4 and not problems),
-                          "; ".join(problems)))
+    out.append(GateResult("G-DASH-08", "Chart accuracy", "series ranges, names, categories; status bar = KPIs; "
+                          "gauges read the gauge table", inp,
+                          "3 charts bound to the trend/bar tables, 6 gauge charts (3 arcs, 3 needles); bar = KPI counts",
+                          f"{seen} charts and {gauges} gauge charts checked; bar {bar_vals}",
+                          _status(seen == 3 and gauges == 6 and not problems), "; ".join(problems)))
 
     # G-DASH-09 Arabic visual integrity (automated part + manual render)
     fonts = set()
@@ -306,22 +354,22 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
                           "valid parts; opens without repair in Excel", f"XSD {xsd_status} ({xsd_msgs[0]}); "
                           "openpyxl reopen OK; LibreOffice recalculation "
                           f"{'OK' if vcs and all(v.engine for v in vcs) else 'not run'}; Microsoft Excel: not available",
-                          NV if xsd_status == PASS else FAIL,
+                          FAIL if xsd_status == FAIL else NV,   # NOT_RUN (no schemas here) is NOT_VERIFIED
                           "Excel-specific repair behaviour cannot be observed in this environment"))
 
     # G-DASH-14 round refresh
     if ctx.refresh:
         b, a = parse_workbook(ctx.refresh["before"]), parse_workbook(ctx.refresh["after"])
         av = load_workbook(ctx.refresh["after"], data_only=True)
-        ah = av[W.HELPER_SHEET]
-        ahdr = {ah.cell(row=1, column=c).value: c for c in range(1, ah.max_column + 1)}
+        ah, ahdr = calc_block(av)
         Ra = a.schema.current_round
+        la = layout_of(a.state)
         trend_rows = sum(1 for r in range(2, ah.max_row + 1) if isinstance(ah.cell(row=r, column=ahdr["trend.r"]).value, int))
-        cur_label = av[W.DASHBOARD_SHEET].cell(row=6, column=2).value
-        sel = av[W.DASHBOARD_SHEET].cell(row=10, column=2).value
+        cur_label = av[W.DASHBOARD_SHEET].cell(row=la.rows["fact_v"], column=2).value
+        sel = av[W.DASHBOARD_SHEET].cell(row=la.rows["sel_v"], column=2).value
         apkg = I.package(ctx.refresh["after"])
-        cats_ok = all(c.endswith(f"${Ra + 1}") for ch in apkg.charts if ch.kinds[0] != "barChart/bar"
-                      for c in ch.category_refs)
+        cats_ok = all(c.endswith(f"${Ra + 1}") for ch in apkg.charts
+                      if ch.kinds[0] in ("barChart/col", "lineChart") for c in ch.category_refs)
         ok = (Ra == b.schema.current_round + 1 and trend_rows == Ra and cur_label == S.round_label(Ra)
               and sel == S.round_label(Ra) and cats_ok)
         out.append(GateResult("G-DASH-14", "Round refresh", "append round n+1; dashboard labels, trend rows, chart "
@@ -354,16 +402,19 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
                           f"Company={pkg.app.get('Company')}; Title={pkg.core.get('title')}; prohibited={prohibited}",
                           _status(ok)))
 
-    # G-DASH-18 executive readability
+    # G-DASH-18 executive readability (spec 1.1: the first screen answers where the review stands and what the
+    # owning department must do; the action list follows the gauge deck and is one click away by its chip)
     widths = sum((dash.column_dimensions[gl(c)].width or 8.43) for c in range(1, 15))
     min_font = I.min_font_size(dash)
-    first_screen = sum((dash.row_dimensions[r].height or 15) for r in range(1, 27))
+    first_screen = sum((dash.row_dimensions[r].height or 15) for r in range(1, lay.rows["kpi_f"] + 1))
+    to_list = sum((dash.row_dimensions[r].height or 15) for r in range(1, lay.q0))
     man = ctx.manual.get("G-DASH-18")
     auto_ok = widths <= W.LAPTOP_WIDTH_BUDGET and min_font >= T.MIN_FONT and first_screen <= 470
-    out.append(GateResult("G-DASH-18", "Executive readability", "used width, smallest font, height to the action "
-                          "list; rendered page inspected", inp,
-                          f"width ≤ {W.LAPTOP_WIDTH_BUDGET} chars; font ≥ {T.MIN_FONT} pt; action list starts "
-                          f"≤ 470 pt", f"width={widths:.0f}; min font={min_font}; action list at {first_screen:.0f} pt",
+    out.append(GateResult("G-DASH-18", "Executive readability", "used width, smallest font, height of the facts and "
+                          "KPI cards (first screen); position of the action list; rendered page inspected", inp,
+                          f"width ≤ {W.LAPTOP_WIDTH_BUDGET} chars; font ≥ {T.MIN_FONT} pt; facts, required action "
+                          f"and KPI cards within 470 pt", f"width={widths:.0f}; min font={min_font}; first screen ends "
+                          f"at {first_screen:.0f} pt; action list starts at {to_list:.0f} pt (v7.14 asked ≤ 470 pt)",
                           (MANUAL if man else NV) if auto_ok else FAIL, man[1] if man else ""))
 
     # G-DASH-19 closure-semantics accuracy
@@ -377,7 +428,7 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
             if v not in S.CLOSURE_VALUES and v != S.NOT_RAISED:
                 leak.append(f"#{o.reader_no} R{r}: {v!r}")
     overlap = derived & set(S.CLOSURE_VALUES)
-    cond_ok = counts[1] == sum(1 for o in st.observations if o.value(R) == S.CLOSED)
+    cond_ok = counts[1] == sum(1 for o in st.observations if o.value(Sv) == S.CLOSED)
     out.append(GateResult("G-DASH-19", "Closure-semantics accuracy", "closure cells hold only the four values or "
                           "the not-raised text; derived labels disjoint from official values; conditional closure "
                           "not counted as closed", inp, "0 / empty / true",
@@ -385,24 +436,161 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
                           f"conditional={cond_ok}", _status(not leak and not overlap and cond_ok), "; ".join(leak[:4])))
 
     # G-DASH-20 protection of authoritative records
+    sel_cells = {f"{gl(2 + g1)}{lay.rows['sel_v']}" for g1, _ in lay.selector_spans}
+    allowed = {f"{gl(2 + g)}{lay.rows['sel_v']}" for g1, g2 in lay.selector_spans for g in range(g1, g2 + 1)}
     unlocked = [c.coordinate for row in dash.iter_rows() for c in row
                 if c.protection is not None and c.protection.locked is False]
-    sel_cells = {"B10", "E10", "H10", "K10"}
-    unlocked_anchor = {c for c in unlocked if c in sel_cells}
-    extra_unlocked = [c for c in unlocked if not (c[0] in "BCDEFGHIJKLM" and c[1:] == "10")]
-    helper_ws = wb[W.HELPER_SHEET]
-    no_password = not dash.protection.password and not helper_ws.protection.password
-    ok = (dash.protection.sheet and helper_ws.protection.sheet and no_password and not data_ws.protection.sheet
-          and unlocked_anchor == sel_cells and not extra_unlocked and not data_formulas)
-    out.append(GateResult("G-DASH-20", "Protection of authoritative records", "dashboard protected except the four "
-                          "selectors; helper sheet protected; no password; data sheet unprotected (10.4) and free of "
-                          "cell formulas; selectors are display-only",
-                          inp, "protected; 4 selectors unlocked; helper protected; data sheet without formulas",
-                          f"dashboard protected={dash.protection.sheet}; helper protected={helper_ws.protection.sheet}; "
-                          f"password set={not no_password}; unlocked selector anchors="
-                          f"{sorted(unlocked_anchor)}; other unlocked={extra_unlocked[:3]}; data sheet protected="
-                          f"{data_ws.protection.sheet}", _status(ok)))
-    return sorted(out, key=lambda g: g.gate)
+    extra_unlocked = [c for c in unlocked if c not in allowed]
+    no_password = not dash.protection.password
+    ok = (dash.protection.sheet and no_password and not data_ws.protection.sheet
+          and sel_cells <= set(unlocked) and not extra_unlocked and not data_formulas)
+    out.append(GateResult("G-DASH-20", "Protection of authoritative records", "dashboard protected without a password "
+                          "except the four selectors; data sheet unprotected (10.4) and free of cell formulas; nothing "
+                          "on the dashboard writes to it", inp, "protected; only the 4 selectors unlocked; data sheet "
+                          "without formulas", f"dashboard protected={dash.protection.sheet}; password set="
+                          f"{not no_password}; selector anchors unlocked={sorted(sel_cells & set(unlocked))}; other "
+                          f"unlocked={extra_unlocked[:3]}; data sheet protected={data_ws.protection.sheet}", _status(ok),
+                          "v7.14 text also asks for a protected helper sheet, which the v7.15 draft retires"))
+
+    out += _new_gates(ctx, x, wb, wbv, pkg, pw, st, lay, hs, hdr, data_ws, data_name)
+    return amendment_cap(sorted(out, key=lambda g: (g.gate[:6], int(re.sub(r"\D", "", g.gate) or 0))))
+
+
+def _new_gates(ctx, x, wb, wbv, pkg, pw, st, lay, hs, hdr, data_ws, data_name) -> list[GateResult]:
+    """G-DASH-21…24 of the v7.15 draft (spec 11.7)."""
+    from openpyxl.utils import get_column_letter as gl
+    from ..excel.dash_layout import CARD_STRIDE
+    out = []
+    inp = x.name
+    dash = wb[W.DASHBOARD_SHEET]
+    dv = wbv[W.DASHBOARD_SHEET]
+    # G-DASH-21 two sheets, calculation block in hidden columns outside the print area, O..Q empty
+    block_cols = sorted(set(hdr.values())) if hs is not None and hs.title == W.DASHBOARD_SHEET else []
+    not_hidden = [gl(c) for c in range(W.CALC_FIRST_COL, (max(block_cols) if block_cols else 0) + 1)
+                  if not dash.column_dimensions[gl(c)].hidden]
+    grouped = [gl(c) for c in range(W.CALC_FIRST_COL, (max(block_cols) if block_cols else 0) + 1)
+               if dash.column_dimensions[gl(c)].outline_level]
+    pa = str(dash.print_area or "")
+    oq = [f"{gl(c)}{r}" for r in range(1, lay.last_row + 1) for c in range(15, W.CALC_FIRST_COL)
+          if dash.cell(row=r, column=c).value not in (None, "")]
+    ok = (len(wb.sheetnames) == 2 and W.HELPER_SHEET not in wb.sheetnames and bool(block_cols)
+          and min(block_cols) >= W.CALC_FIRST_COL and not not_hidden and not grouped and pa.endswith(f"$A$1:$N${lay.last_row}")
+          and not oq)
+    out.append(GateResult("G-DASH-21", "Two-sheet structure and calculation block", "no third sheet; the block's "
+                          "tables from column R, hidden (not grouped), outside the print area; O..Q empty", inp,
+                          f"2 sheets; block ≥ R hidden; print area A1:N{lay.last_row}",
+                          f"sheets={wb.sheetnames}; block columns {gl(min(block_cols)) if block_cols else '-'}.."
+                          f"{gl(max(block_cols)) if block_cols else '-'}; not hidden={not_hidden[:3]}; grouped="
+                          f"{grouped[:3]}; print area={pa}; O..Q values={oq[:3]}", _status(ok)))
+    # G-DASH-22 gridlines hidden on both sheets
+    gl_state = {ws.title: ws.sheet_view.showGridLines for ws in wb.worksheets}
+    out.append(GateResult("G-DASH-22", "Gridlines hidden on both sheets", "showGridLines read back", inp,
+                          "0 on every sheet", str(gl_state), _status(all(v is False for v in gl_state.values()))))
+    # G-DASH-23 plotVisOnly 0 on every chart reading the block; overlaid gauges share anchor, size, plot layout
+    import zipfile
+    from lxml import etree
+    bad_vis, anchors = [], {}
+    with zipfile.ZipFile(x) as z:
+        for ch in pkg.charts:
+            root = etree.fromstring(z.read(ch.part))
+            pv = root.find(".//c:plotVisOnly", I.NS)
+            if pv is None or pv.get("val") not in ("0", "false"):
+                bad_vis.append(ch.part)
+        dpart = [t for n, s_, part in pkg.sheets if n == W.DASHBOARD_SHEET
+                 for rid, (typ, t) in I._rels(z, part).items() if typ == "drawing"]
+        layouts = {}
+        if dpart:
+            droot = etree.fromstring(z.read(dpart[0]))
+            drel = I._rels(z, dpart[0])
+            for anc in droot:
+                gf = anc.find(".//c:chart", I.NS)
+                if gf is None:
+                    continue
+                cpart = drel[gf.get(f"{{{I.NS['r']}}}id")][1]
+                frm, ext = anc.find("xdr:from", I.NS), anc.find("xdr:ext", I.NS)
+                anchors[cpart] = (frm.find("xdr:col", I.NS).text, frm.find("xdr:colOff", I.NS).text,
+                                  frm.find("xdr:row", I.NS).text, frm.find("xdr:rowOff", I.NS).text,
+                                  ext.get("cx"), ext.get("cy"))
+                croot = etree.fromstring(z.read(cpart))
+                ml = croot.find(".//c:plotArea/c:layout/c:manualLayout", I.NS)
+                layouts[cpart] = tuple(ml.find(f"c:{k}", I.NS).get("val") if ml is not None and
+                                       ml.find(f"c:{k}", I.NS) is not None else None for k in ("x", "y", "w", "h"))
+    gauge_parts = [ch.part for ch in pkg.charts if ch.kinds[0] in ("doughnutChart", "pieChart")]
+    pairs = [gauge_parts[i:i + 2] for i in range(0, len(gauge_parts), 2)]
+    misaligned = [p for p in pairs if len(p) != 2 or anchors.get(p[0]) != anchors.get(p[1])
+                  or layouts.get(p[0]) != layouts.get(p[1]) or layouts.get(p[0]) != ("0.05", "0.05", "0.9", "0.9")]
+    out.append(GateResult("G-DASH-23", "plotVisOnly and gauge overlays", "plotVisOnly=0 on every chart (the block's "
+                          "columns are hidden); each gauge's arc and needle share anchor, size and manual plot layout "
+                          "0.05/0.05/0.9/0.9", inp, f"{len(pkg.charts)} charts with plotVisOnly 0; 3 aligned pairs",
+                          f"plotVisOnly not 0: {bad_vis}; gauge pairs {len(pairs)}, misaligned {misaligned}",
+                          _status(not bad_vis and len(pairs) == 3 and not misaligned),
+                          "overlay alignment and hub position as Excel draws them: NOT_VERIFIED (G-DASH-13)"))
+    # G-DASH-24 links resolve; card count = observation count; back links land on the observation's list row
+    ordered = st.ordered()
+    N = len(ordered)
+    problems = []
+    cards = [c.row for c in dash[gl(2)][:lay.last_row] if isinstance(c.value, str) and c.font is not None
+             and c.font.sz == T.SZ_CHIP and c.value.startswith("#")]
+    if len(cards) != N:
+        problems.append(f"{len(cards)} cards for {N} observations")
+    for k, o in enumerate(ordered, start=1):
+        cr = hs.cell(row=k + 1, column=hdr["obs.card_row"]).value
+        if cr != lay.card0 + (k - 1) * CARD_STRIDE or dash.cell(row=cr + 1, column=2).value != f"#{o.reader_no}":
+            problems.append(f"#{o.reader_no}: card row {cr}")
+        lr = hs.cell(row=k + 1, column=hdr["obs.list_row"]).value
+        qpos = hs.cell(row=k + 1, column=hdr["obs.qpos"]).value
+        if qpos in (None, "") or (isinstance(qpos, (int, float)) and qpos > lay.QN):
+            if lr != lay.bands["queue"]:
+                problems.append(f"#{o.reader_no}: back link {lr} != zone D {lay.bands['queue']}")
+        elif dv.cell(row=lr, column=2).value != f"#{o.reader_no}":
+            problems.append(f"#{o.reader_no}: back link row {lr} shows {dv.cell(row=lr, column=2).value!r}")
+        t = I.hyperlink_target(hs.cell(row=k + 1, column=hdr["obs.link_row"]).value)
+        if t is None or t[0] != data_name or data_ws[t[1]].row != pw.rows.get(o.internal_id):
+            problems.append(f"#{o.reader_no}: row link {t}")
+    statics = []
+    for row in dash.iter_rows(min_row=1, max_row=lay.last_row, max_col=W.CALC_FIRST_COL - 1):
+        for c in row:
+            if c.hyperlink is not None and c.hyperlink.location:
+                sheet, _, coord = c.hyperlink.location.rpartition("!")
+                sheet = sheet.strip("'")
+                if sheet not in wb.sheetnames or not re.fullmatch(r"\$?[A-Z]+\$?\d+", coord):
+                    statics.append(c.hyperlink.location)
+    n_formula_links = sum(1 for row in dash.iter_rows(max_col=W.CALC_FIRST_COL - 1) for c in row
+                          if isinstance(c.value, str) and c.value.startswith("=") and "HYPERLINK(" in c.value)
+    out.append(GateResult("G-DASH-24", "Links, cards and back links", "card k starts at CARD0 + (k − 1) × 17 and its "
+                          "header shows #k; "
+                          "card links (block card_row), back links (block list_row) and row links (block link_row) "
+                          "resolve; static links resolve", inp, f"{N} cards; 0 broken",
+                          f"{len(cards)} cards; {n_formula_links} HYPERLINK formulas; {len(problems)} problems; "
+                          f"{len(statics)} broken static links", _status(not problems and not statics),
+                          "; ".join((problems + statics)[:4])))
+    return out
+
+
+
+
+# functions the builders use, every one available since Excel 2007/2010 (10.4A.15)
+EXCEL2010_FUNCTIONS = {"ABS", "ADDRESS", "AND", "CHOOSE", "COUNT", "COUNTIF", "COUNTIFS", "EXACT", "FIXED", "HYPERLINK",
+                       "IF", "IFERROR", "INDEX", "ISNA", "ISNUMBER", "LEFT", "LEN", "MATCH", "MAX", "MOD", "NOT", "OR",
+                       "ROW", "SIGN", "SMALL", "SUMIFS", "SUMPRODUCT"}
+
+
+def excel2010_scan(path) -> tuple[set, int, int]:
+    """(functions outside the list, count of _xlfn/_xlpm/_xlws prefixes, count of array formulas) over every cell
+    formula and conditional-format formula of the workbook."""
+    import zipfile
+    names, prefixed, arrays = set(), 0, 0
+    with zipfile.ZipFile(path) as z:
+        for n in z.namelist():
+            if not n.startswith("xl/worksheets/sheet"):
+                continue
+            txt = z.read(n).decode("utf-8")
+            prefixed += len(re.findall(r"_xl(?:fn|pm|ws)\.", txt))
+            arrays += len(re.findall(r'<f[^>]*t="array"', txt))
+            for f in re.findall(r"<f[^>]*>(.*?)</f>|<formula>(.*?)</formula>", txt, flags=re.S):
+                body = re.sub(r'"[^"]*"', "", f[0] or f[1])
+                names |= set(re.findall(r"([A-Z][A-Z0-9.]*)\(", body))
+    return names - EXCEL2010_FUNCTIONS, prefixed, arrays
 
 
 def _formula_cells(ws, needle: str) -> list[str]:

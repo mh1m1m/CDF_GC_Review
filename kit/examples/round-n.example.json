@@ -1,0 +1,36 @@
+{
+  "_note": "SYNTHETIC EXAMPLE (round 2 of the fictional memorandum in draft-round1.example.json). Fill the ROUND-n.template.json that `intake` writes; this file only shows the shapes.",
+  "round": 2,
+  "date": "2026-10-27",
+  "document_version": "الإصدار 0.2",
+  "manifest": "the seven manifest lines of 00.3 for this round",
+  "assessments": [
+    {"internal_id": "GCO-MOU-R1-001", "status": "يتطلب تعديل", "severity": "LOW",
+     "feedback": "لم يُعثر على التعديل في النص؛ بقي البند (1-1) دون تحديد المسارات.\nالمطلوب: ربط مجالات التعاون بمسارات محددة في المتن.",
+     "integrity_signals": ["I-01"], "integrity_class": "INTEGRITY_NOTE"},
+    {"internal_id": "GCO-MOU-R1-002", "status": "مغلقة", "closure_path": "VERIFIED_TEXT",
+     "closure_text": "ويجوز تجديدها باتفاق كتابي يوقعه الممثلون المفوضون للطرفين",
+     "closure_basis": "البند (2-1) في الإصدار 0.2",
+     "feedback": "عُدّل البند (2-1) وأصبح التجديد باتفاق كتابي يوقعه الممثلون المفوضون، دون إفادة في التتبع."},
+    {"internal_id": "GCO-MOU-R1-003", "status": "يتطلب تعديل", "severity": "HIGH",
+     "feedback": "عُدّل البند (3-1) إلى بحث فرص الدعم، ولم يتضمن خضوع التمويل للتقييم المستقل.\nالمطلوب: إضافة خضوع أي تمويل للتقييم وفق معايير الصندوق المعتمدة."},
+    {"internal_id": "GCO-MOU-R1-004", "status": "يتطلب تعديل", "severity": "HIGH",
+     "feedback": "نشكر الإدارة على الإفادة، وبقي البند (4-1) يمنح فريق العمل صلاحية الاعتماد.\nالمطلوب: قصر دور الفريق على التنسيق ورفع التوصيات."},
+    {"internal_id": "GCO-MOU-R1-005", "status": "مفتوحة",
+     "feedback": "لم ترد إفادة ولم يُعدل النص.\nالمطلوب: الإفادة عن الملاحظة وتطبيق التوصية."},
+    {"internal_id": "GCO-MOU-R1-006", "status": "مفتوحة",
+     "feedback": "لم ترد إفادة ولم يُعدل النص.\nالمطلوب: الإفادة عن الملاحظة وتطبيق التوصية."},
+    {"internal_id": "GCO-MOU-R1-007", "status": "مغلقة", "closure_path": "GCO_REASSESSMENT",
+     "decision_ref": "قرار المراجع المسجل (مثال)", "closure_basis": "إفادة الإدارة بمناسبة المدة",
+     "feedback": "قُبل المبرر: أفادت الإدارة بمناسبة مدة الإشعار."},
+    {"internal_id": "GCO-MOU-R1-008", "status": "مفتوحة",
+     "feedback": "لم ترد إفادة ولم يُعدل النص.\nالمطلوب: الإفادة عن الملاحظة وتطبيق التوصية."}
+  ],
+  "new_observations": [],
+  "_late_round_shape_example": {
+    "internal_id": "GCO-MOU-R1-005", "status": "مفتوحة",
+    "comment": "لم ترد إفادة، وبقي البند (5-1) دون ضوابط لتبادل البيانات. والغرض حماية البيانات وفق سياسة الصندوق، والخطر: مشاركة بيانات دون سند أو قناة معتمدة.",
+    "recommendation": "طلبنا في الجولتين السابقتين تحديد ضوابط التبادل، ولم يُعدل النص. نوصي بإحلال البند (5-1) بالنص المقترح.",
+    "proposed_text": "5-1 لا تُتبادل البيانات إلا لغرض محدد وبسند نظامي ومن خلال القنوات المعتمدة، وتُحدد فئاتها ومدد الاحتفاظ بها وآلية الإبلاغ عن الحوادث في اتفاقية مستقلة عند الحاجة."
+  }
+}

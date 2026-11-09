@@ -37,8 +37,9 @@ def test_status_fills_equal_the_issued_register():
     """AMB-161: the dashboard shows a status in the very fill of every issued register (D.2)."""
     assert T.STATUS_FILL == {S.CLOSED: "E2EFDA", S.CLOSED_COND: "DDEBF7", S.REQUIRES_EDIT: "FFF2CC", S.OPEN: "FCE4D6"}
     assert {t.hex for t in BT.SEMANTIC_FILLS} == set(T.STATUS_FILL.values())
+    # v7.15 one-sheet dashboard (10.4A, D.10): KPI caps carry the status mark; the data sheet keeps the D.2 fills
     for k, v in (("closed", S.CLOSED), ("cond", S.CLOSED_COND), ("req", S.REQUIRES_EDIT), ("open", S.OPEN)):
-        assert T.CARD_CAP[k] == T.STATUS_FILL[v]
+        assert T.CARD_CAP[k] == T.STATUS_MARK[v]
     assert T.ROUND1_OPEN_FILL == "F2F2F2"
     reg = ROOT / "sources" / "reference" / "issued_register_round4.xlsx"
     if reg.exists():                                                  # the register supplied by the protocol owner
@@ -61,11 +62,21 @@ def test_derived_tones_reach_aa_on_white_and_are_not_brand():
 
 
 def test_ink_on_every_brand_fill_and_caps():
-    for hx in list(T.STATUS_FILL.values()) + list(T.CARD_CAP.values()) + [T.TITLE_BAND, T.ACCENT, T.LABEL_FILL]:
+    caps = [hx for hx in T.CARD_CAP.values() if hx != T.INK]      # the rate cap is Cinder with white text
+    for hx in list(T.STATUS_FILL.values()) + caps + [T.ACCENT, T.LABEL_FILL]:
         assert contrast_ratio(T.BRAND_INK, hx) >= 4.5, hx
-    assert contrast_ratio(T.MUTED_TEXT, T.TITLE_BAND) >= 4.5
+    assert contrast_ratio(T.WHITE, T.INK) >= 4.5
+    assert contrast_ratio(T.WHITE, T.BAND_DARK) >= 4.5            # v7.15 dark identity band replaces TITLE_BAND
     assert contrast_ratio(T.MUTED_TEXT, T.PAGE_SURFACE) >= 4.5
     assert contrast_ratio(T.LINK, T.PAGE_SURFACE) >= 4.5
+
+
+def test_contrast_table_of_the_one_sheet_dashboard():
+    for pair, fg, bg, stated, kind in T.CONTRAST_TABLE:
+        ratio = contrast_ratio(fg, bg)
+        assert ratio >= (4.5 if kind == "text" else 3.0), (pair, ratio)
+        if stated is not None:
+            assert abs(ratio - stated) < 0.15, (pair, ratio, stated)
 
 
 def test_contrast_register_has_no_fail():

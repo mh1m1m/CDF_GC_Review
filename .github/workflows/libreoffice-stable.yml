@@ -45,9 +45,18 @@ jobs:
             --mount "type=bind,src=$RUNNER_TEMP/cdf-lo-source,dst=/repo" \
             --mount "type=bind,src=$GITHUB_WORKSPACE/build/libreoffice,dst=/evidence" \
             cdf-lo-stable python tools/libreoffice_validate.py --evidence /evidence
+      - name: Chat kit self-test with LibreOffice recalculation (from the built zip)
+        run: |
+          set -o pipefail
+          docker run --rm --init --name cdf-lo-kit --user "$(id -u):$(id -g)" --network none --cap-drop ALL --security-opt no-new-privileges \
+            -e HOME=/tmp \
+            --mount "type=bind,src=$RUNNER_TEMP/cdf-lo-source,dst=/repo" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/build/libreoffice,dst=/evidence" \
+            cdf-lo-stable python tools/build_chat_kit.py --out /evidence/chat-kit --selftest --recalc \
+            | tee build/libreoffice/chat-kit-recalc-report.json
       - name: Clean up this job's container
         if: always()
-        run: docker rm -f cdf-lo-validation || true
+        run: docker rm -f cdf-lo-validation cdf-lo-kit || true
       - name: Preserve synthetic diagnostics
         if: always()
         uses: actions/upload-artifact@v4

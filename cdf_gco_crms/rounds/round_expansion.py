@@ -25,6 +25,7 @@ class NewObservation:
     comment: GText | str
     reason: str | None = None          # required for observations born after round 1 (10.2)
     title: str | None = None           # proposed title (10.4A.16); never shown as approved without a decision
+    action_summary: str | None = None  # kit 1.1.3: GCO-authored required action shown on the dashboard
 
 
 @dataclass
@@ -125,6 +126,7 @@ def apply_round(state: ReviewState, rin: RoundInput) -> tuple[ReviewState, Appen
             rep.carried_closed.append(o.internal_id)
             continue
         rep.assessed.append(o.internal_id)
+        o.action_summary = (a.action_summary or "").strip() or None
         fb = _as_gtext(a.feedback) if a.feedback is not None else None
         if fb is None:
             raise SchemaError("MISSING_FEEDBACK", f"{o.internal_id}: round {n} assessment has no feedback")
@@ -160,6 +162,7 @@ def apply_round(state: ReviewState, rin: RoundInput) -> tuple[ReviewState, Appen
                                 response=S.PH_TEXT, impl=S.PH_STATUS)
         if nobs.title and nobs.title.strip():
             o.title, o.title_status = " ".join(nobs.title.split()), S.TITLE_PROPOSED
+        o.action_summary = (nobs.action_summary or "").strip() or None
         new.observations.append(o)
         rep.new_ids.append(o.internal_id)
 
