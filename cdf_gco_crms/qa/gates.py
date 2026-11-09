@@ -354,7 +354,7 @@ def run_dash_gates(ctx: GateContext) -> list[GateResult]:
                           "valid parts; opens without repair in Excel", f"XSD {xsd_status} ({xsd_msgs[0]}); "
                           "openpyxl reopen OK; LibreOffice recalculation "
                           f"{'OK' if vcs and all(v.engine for v in vcs) else 'not run'}; Microsoft Excel: not available",
-                          NV if xsd_status == PASS else FAIL,
+                          FAIL if xsd_status == FAIL else NV,   # NOT_RUN (no schemas here) is NOT_VERIFIED
                           "Excel-specific repair behaviour cannot be observed in this environment"))
 
     # G-DASH-14 round refresh

@@ -262,6 +262,20 @@ def test_e2e_every_round_recalculates_and_cross_reconciles(case):
         assert res["G-DASH-02"] == "PASS" and res["G-DASH-01"] == "PASS"
 
 
+def test_e2e_missing_xsd_schemas_give_not_verified_not_fail(case, tmp_path, monkeypatch):
+    """Without the ISO 29500 schemas (a CI runner, a chat sandbox) the XSD check is not run: NOT_VERIFIED, not FAIL."""
+    from cdf_gco_crms.qa.gates import GateContext, run_dash_gates
+    from cdf_gco_crms.qa.ux_gates import run_ux_gates
+    monkeypatch.setenv("CRMS_OOXML_XSD_DIR", str(tmp_path / "no-schemas"))
+    files = case["files"]
+    ctx = GateContext(xlsx=files[5], previous_xlsx=files[3], docx=case["docx"][5])
+    dash = run_dash_gates(ctx)
+    res = {g.gate: g for g in dash + run_ux_gates(ctx, dash)}
+    assert "XSD NOT_RUN" in res["G-DASH-13"].actual
+    for gid in ("G-DASH-13", "G-UX-15", "G-UX-20"):
+        assert res[gid].status == "NOT_VERIFIED", (gid, res[gid].actual)
+
+
 def test_e2e_blocker_is_cleared_only_by_a_verified_human_decision(case, tmp_path):
     """V712-043/044: a quote the document does not carry → WITHHELD_FOR_EVIDENCE blocks the issue; a boolean or an
     unsigned record changes nothing; a verified, signed reviewer decision clears it (19A.9)."""

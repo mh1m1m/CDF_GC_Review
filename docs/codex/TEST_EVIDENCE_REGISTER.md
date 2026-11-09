@@ -160,3 +160,4 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 - `tests/test_chat_kit_build.py`: 7 passed (contents, tracked files only, no brand asset without `--brand-dir`, determinism, manifest digests, kit `check` = engine v7.15 rules incl. the 00.2 carve-out, P2 without labels).
 - `pytest tests qa_public`: **404 passed, 11 skipped** (expected skips). Public guard PASS (422 tracked entries).
 - Brand-dependent gates (G-UX-21 guide icons) stay NOT_VERIFIED in a kit built without `--brand-dir`.
+- 2026-11-09 XSD NOT_RUN: `tests/test_e2e.py::test_e2e_missing_xsd_schemas_give_not_verified_not_fail` (schemas pointed at a missing folder: G-DASH-13, G-UX-15, G-UX-20 NOT_VERIFIED). `pytest`: **405 passed, 11 skipped**. Kit self-test from the built zip with `CRMS_OOXML_XSD_DIR` pointed at a missing folder: **PASS, 42/42 steps**.

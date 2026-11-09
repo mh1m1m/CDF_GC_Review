@@ -406,9 +406,11 @@ def run_ux_gates(ctx: GateContext, dash_results: list[GateResult]) -> list[GateR
                             missing_cache += 1
     xsd = by["G-DASH-13"].actual.split(";")[0]
     ok = missing_cache == 0 and "XSD PASS" in xsd
+    # Without the schemas the XSD part is not run: the gate is NOT_VERIFIED, not FAIL, unless a cache is missing.
+    status = NV if (missing_cache == 0 and "XSD NOT_RUN" in xsd) else _status(ok)
     out.append(GateResult("G-UX-20", "Workbook integrity", "reopen; every formula carries a cached value; XSD",
                           inp, "0 formulas without cache; XSD PASS", f"{total_f} formulas, {missing_cache} without "
-                          f"cache; {xsd}", _status(ok)))
+                          f"cache; {xsd}", status))
     out += _icon_and_contrast_gates(x, pkg, dash, lay)
     return amendment_cap(sorted(out, key=lambda g: int(re.sub(r"\D", "", g.gate) or 0)))
 

@@ -148,3 +148,8 @@ Owner's choices: split the document-reading code out of #16 (done as #23), and r
 - `.github/workflows/chat-kit.yml`: builds the kit and runs its self-test with only `kit/requirements.txt` installed.
 
 Against kit 1.1.6: the repository kit leaves out the hosted-site modules of #16 (`interfaces/hosted_*`, `documents/review|worker|policy`, `storage.py`, extra provider adapters) and `branding/icon_extract.py` (reads the institutional design guide, C5). 28 engine files differ, all from the v7.15 port or from #16's hosted changes.
+
+### 2026-11-09 — XSD gates when the schemas are absent (PR #24 CI)
+- The `chat-kit-selftest` job failed on G-DASH-13, G-UX-15 and G-UX-20: the GitHub runner has no ISO 29500 schema directory, so `xsd_validate` returns `NOT_RUN`, and those gates turned `NOT_RUN` into FAIL.
+- Now a check that was not run is NOT_VERIFIED (the gates' own definition): G-DASH-13 is FAIL only on an XSD FAIL; G-UX-15 follows it; G-UX-20 is NOT_VERIFIED when every formula has a cached value and XSD was not run, FAIL on a missing cache or an XSD FAIL. An XSD PASS still gives the same results as before.
+- Same code is on `main`; it reaches main with the v7.15 stack.
