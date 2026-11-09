@@ -162,3 +162,4 @@ Final local focused connectivity/provider/shared-execution run: **40 passed**. S
 - Brand-dependent gates (G-UX-21 guide icons) stay NOT_VERIFIED in a kit built without `--brand-dir`.
 - 2026-11-09 XSD NOT_RUN: `tests/test_e2e.py::test_e2e_missing_xsd_schemas_give_not_verified_not_fail` (schemas pointed at a missing folder: G-DASH-13, G-UX-15, G-UX-20 NOT_VERIFIED). `pytest`: **405 passed, 11 skipped**. Kit self-test from the built zip with `CRMS_OOXML_XSD_DIR` pointed at a missing folder: **PASS, 42/42 steps**.
 - 2026-11-09 kit build without git: copy of the tracked files with no `.git`: `tests/test_chat_kit_build.py` 6 passed, 1 skipped (needs git). In the checkout: 7 passed.
+- 2026-11-09 the LibreOffice container has no git binary either: `in_git_checkout()` now treats a missing `git` as "not a checkout". Tracked-file copy with no `.git` and no `git` on PATH: `pytest tests qa_public` **393 passed, 23 skipped** (skips are the LibreOffice/git ones).

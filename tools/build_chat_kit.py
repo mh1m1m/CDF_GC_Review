@@ -41,8 +41,11 @@ SKIP = re.compile(r"(^|/)(__pycache__|\.pytest_cache)(/|$)|\.pyc$")
 
 
 def in_git_checkout() -> bool:
-    r = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT,  # nosec B603 B607
-                       capture_output=True, text=True)
+    try:
+        r = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT,  # nosec B603 B607
+                           capture_output=True, text=True)
+    except OSError:   # git itself is not installed (the LibreOffice CI container)
+        return False
     return r.returncode == 0 and r.stdout.strip() == "true"
 
 
