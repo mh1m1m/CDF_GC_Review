@@ -153,7 +153,8 @@ def main(argv=None) -> int:
     rc = 0
     if a.selftest:
         st = selftest(zpath)
-        failed = [s.get("step") for s in st.get("steps", []) if not s.get("ok")]
+        failed = [{"step": s.get("step"), "rc": s.get("rc"), "detail": s.get("detail"),
+                   "gate_counts": s.get("gate_counts")} for s in st.get("steps", []) if not s.get("ok")]
         report["selftest"] = {"status": st.get("status"), "rc": st.get("rc"), "steps": len(st.get("steps", [])),
                               "failed": failed, **({"detail": st["detail"]} if "detail" in st else {})}
         rc = 0 if st.get("status") == "PASS" else 1

@@ -300,8 +300,11 @@ def run(keep: str | None = None) -> dict:
         except ValueError:
             out = {"raw": buf.getvalue()[-2000:]}
         ok = rc in want
-        steps.append({"step": name, "rc": rc, "ok": ok,
-                      "gate_counts": out.get("gate_counts"), "detail": out.get("detail") or out.get("problems")})
+        detail = out.get("detail") or out.get("problems")
+        if not ok and not detail:                              # say which gates stopped it
+            detail = [g for g in (out.get("gates_not_passed") or []) if "FAIL" in json.dumps(g)] or \
+                out.get("gates_not_passed") or out.get("raw")
+        steps.append({"step": name, "rc": rc, "ok": ok, "gate_counts": out.get("gate_counts"), "detail": detail})
         return rc, out
 
     pr = paraid_regression(root / "paraid")
