@@ -134,3 +134,6 @@ Continues the P0 pass above with the items it left open. Each was reproduced bef
 - CI: the PR base `claude/project-thread-gi42zn` added to the pull-request filters.
 
 Not changed: history (C1) and Drive sharing (C2) are the owner's decisions; no calibration decision was recorded, since only the reviewer can record one; no live provider call was made.
+
+### 2026-11-09 — Hosted site: a review no one started blocked its document
+Found on the live database: one review has been QUEUED since 2026-10-25 and its document could not be reviewed again (REVIEW_ALREADY_RUNNING). The website runner starts a review only from the page that queued it; if that page closes first, or no worker is online, the row stays QUEUED for good. `ReviewQueue.expire_stalled` now records such a review as FAILED `QUEUE_EXPIRED_NOT_STARTED` after `CDF_REVIEW_QUEUE_SECONDS` (default 1800) with no worker seen, and `queue` runs it first. Test: `test_a_review_no_one_started_expires_and_frees_the_document`. Also seen on the live database (not code): 5 of 7 reviews failed at the AI provider, one with CREDIT_BALANCE_TOO_LOW.

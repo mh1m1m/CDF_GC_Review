@@ -310,3 +310,19 @@ def test_run_endpoint_refused_when_runner_is_the_worker(api):
     client, _ = api
     response = client.post("/api/document-reviews/REV-" + "0" * 32 + "/run", headers=headers())
     assert response.status_code == 409 and "REVIEW_RUNS_ON_THE_REVIEW_WORKER" in response.text
+
+
+def test_a_review_no_one_started_expires_and_frees_the_document(website):
+    """A QUEUED review that no worker or page ever ran blocked the document for good (REVIEW_ALREADY_RUNNING)."""
+    client, module = website
+    document = upload(client, "معلق.docx", _word_doc())
+    stuck = review(client, document["document_id"])                 # queued, but its run is never called
+    blocked = client.post(f"/api/documents/{document['document_id']}/review", headers=headers())
+    assert blocked.status_code == 422 and "REVIEW_ALREADY_RUNNING" in blocked.text
+    module.store.db.execute("UPDATE document_reviews SET created_at=? WHERE review_id=?",
+                            ("2026-01-01T00:00:00+00:00", stuck["review_id"]))
+    module.store.db.commit()
+    seen = client.get(f"/api/document-reviews/{stuck['review_id']}", headers=headers()).json()
+    assert seen["status"] == "FAILED" and seen["error"] == "QUEUE_EXPIRED_NOT_STARTED"
+    again = review(client, document["document_id"])
+    assert again["status"] == "QUEUED" and again["review_id"] != stuck["review_id"]
